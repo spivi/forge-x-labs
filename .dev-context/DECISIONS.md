@@ -169,3 +169,23 @@ surfaces as a clean `error: …` exit-1, not a raw traceback.
 message, never as an opaque downstream `terraform validate` duplicate-resource error. The
 `NodeType → resource_type` map in `label_collisions.py` must stay in sync with the block
 assemblers in `terraform_blocks.py` if a new resource-emitting node type is added.
+
+## FXL-D007: CSA CCM control-ID mappings are training-eligible; control text is not; CIS stays restricted
+
+**Status**: accepted
+**Date**: 2026-07-05
+
+**Context**: The FXL-E2 learning corpus can map cloudforge weakness families to external control
+frameworks. CSA publishes the Cloud Controls Matrix machine-readably (JSON/YAML/OSCAL); CIS
+Benchmark content is more restricted.
+
+**Decision**: For CSA CCM, our-id -> CCM control-ID **mappings** are training-eligible
+(`reuse_status: mappings_only`, `allowed_for_training: true`) — the corpus may record which CCM
+control a pattern maps to. Copying CCM control **body text** into the corpus or training export
+is NOT permitted. CIS Benchmarks stay `metadata_only` / not-training-eligible (section IDs/titles
+only; never the benchmark text). A new `mappings_only` reuse_status is added to the registry
+vocabulary for this posture.
+
+**Consequences**: FXL-E2 adapters that touch CSA CCM emit `control_mappings` (id references) only,
+never control text; a corpus-validation check must reject any CCM-sourced record carrying control
+body text. Revisit CIS if reuse rights are later confirmed.
