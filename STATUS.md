@@ -1,37 +1,43 @@
 # Project Status
 
-**Current Phase:** MVP vertical slice delivered
+**Current Phase:** Sprint wave 1 delivered (MVP + 2 features)
 **Last Updated:** 2026-07-05
 
 ## Recent Achievements
-- **cloudforge MVP vertical slice** (branch `feat/FXL-1-mvp-vertical-slice`, commit `ada60c1`):
-  `generate → validate → report` works end-to-end for the `ci_cd_iam_chain` family.
-- Product package `app/cloudforge/` (models, TemplateGenerator, Terraform emitter,
-  fail-soft validators + stdlib graph-risk engine, Markdown report, Typer CLI).
-- Graph is the source of truth; ground-truth paths + expected findings are machine-checked.
-- 35 product tests, **95% coverage** on `app`; `ruff` clean; `mypy --strict` clean;
-  real `terraform validate` passes; checkov/opa warn-and-skip (fail-soft).
-- Template adapted (identity filled, `app/cloudforge` layout, decisions FXL-D001/D002),
-  agentic scaffolding kept inert.
-- GitHub PM: 6 milestones, 23 issues (14 closed as done), Project board #6; mirror in
-  `docs/project-management/`. Wiki staged in `docs/wiki/` (10 pages).
+- **MVP vertical slice** (PR #24): `generate → validate → report` end-to-end for the
+  `ci_cd_iam_chain` family — models, TemplateGenerator, Terraform emitter, fail-soft
+  validators + stdlib graph-risk engine, Markdown report, Typer CLI.
+- **Sprint wave 1 (both merged):**
+  - **FXL-26** (PR #29) — second scenario family `public_data_exposure` (direct
+    data-exposure risk; new `FindingFamily.S3_PUBLIC_EXPOSURE`). Proves the generator
+    seam is family-agnostic.
+  - **FXL-14** (PR #28) — seeded, deterministic `MutationGenerator` (+ `--mutate-seed N`
+    CLI option): cosmetic/benign variants that preserve ground-truth risk. Same seed →
+    byte-identical graph; risk engine PASS on all variants.
+- Integrated master verified: `ruff` + `mypy --strict` clean, **63 tests / 95.77%
+  coverage**, both families + mutation exercised end-to-end via the real CLI.
+- **Review gates both on:** `AI_REVIEW_GATE` (tactical, per-PR) + `COUNCIL_REVIEW`
+  (director-level doc council; engine vendored + verified live).
+- Docs live: README + 10 wiki pages published to the GitHub Wiki; project board #6 linked
+  to the repo.
 
 ### Next Steps
-1. Open a PR for `feat/FXL-1-mvp-vertical-slice` and merge.
-2. Author README/wiki issues #16–23 → close them (content is staged).
-3. `MutationGenerator` (#14) + a second scenario family.
-4. Publish `docs/wiki/` to the GitHub Wiki; wire checkov/OPA into CI when runners have them.
+1. `/debrief` — the wave has real actuals (durations/tokens) to calibrate estimates + model routing.
+2. More scenario families (cross-account trust, KMS key-policy, public snapshot) as new tickets.
+3. Parameterize the Terraform emitter per-family (currently emits the ci_cd resource set for all families).
+4. Wire checkov/OPA into CI once runners have the tools.
 
 ## Active Worktrees
 
 | Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
 |--------|-------------|--------|-------|--------|---------------|
-| feat/FXL-1-mvp-vertical-slice | (main) | FXL-1 | (human+Claude) | MVP delivered | app/cloudforge/**, tests/cloudforge/**, docs/** |
+| (none) | — | — | — | — | — |
 
 ## Active Tasks
-- **M0–M4 complete** (template, graph+generator, terraform, validators, reporting).
-- **M5 (mutation engine)** — deferred (issue #14).
-- **M6 (docs/wiki)** — content staged in `docs/wiki/`; issues #16–23 open pending publish.
+- **M0–M5 complete** (template, graph+generator, terraform, validators, reporting, mutation engine).
+- **M1 extended** — second scenario family delivered (`public_data_exposure`).
+- **M6 (docs/wiki)** — README + wiki published.
+- Backlog: additional families; per-family Terraform emitter; checkov/OPA in CI.
 
 ## Agent Pipeline Status
 
