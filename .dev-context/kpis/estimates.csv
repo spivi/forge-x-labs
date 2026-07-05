@@ -1,3 +1,4 @@
 ticket,estimate_minutes,type,labels,effort,milestone,risk,area,priority,recommended_model,agent,started_at,status,scope_changed,architectural_deviation,clarifying_questions_asked,caused_by
 FXL-14,120,feature,effort:M,M,M5,,generation,P2,sonnet,,,done,,,,
 FXL-26,120,feature,effort:M,M,M1,,generation,P2,sonnet,,,done,,,,
+FXL-31,45,fix,effort:M,M,M2,,generation,P2,sonnet,,,planned,,,,
