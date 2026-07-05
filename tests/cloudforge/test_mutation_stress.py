@@ -157,9 +157,9 @@ def test_distinct_seeds_produce_distinct_variants(example_spec: ScenarioSpec) ->
     hashes = {run_seed(base, example_spec, seed).graph_hash for seed in _LOCAL_SEEDS}
     # The mutation space (names x tags x extra-subnet cidr) easily exceeds 100 draws;
     # require broad — not necessarily perfect — diversity to stay robust to collisions.
-    assert len(hashes) >= int(
-        0.9 * len(_LOCAL_SEEDS)
-    ), f"only {len(hashes)} distinct variants across {len(_LOCAL_SEEDS)} seeds"
+    assert len(hashes) >= int(0.9 * len(_LOCAL_SEEDS)), (
+        f"only {len(hashes)} distinct variants across {len(_LOCAL_SEEDS)} seeds"
+    )
 
 
 def test_critical_path_node_ids_invariant_over_range(example_spec: ScenarioSpec) -> None:
