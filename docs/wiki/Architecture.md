@@ -53,7 +53,7 @@ examples/ci_cd_iam_chain.yaml
   `ScenarioBundle` (graph + findings + ground truth) → `ScenarioArtifacts.write_all()`
   serializes the whole output tree, including the six `.tf` files.
 - **validate** — `run_validations()` reconstructs the bundle from disk and runs the
-  fail-soft checks (see [Validation Pipeline](Validation-Pipeline.md)).
+  fail-soft checks (see [Validation Pipeline](Validation-Pipeline)).
 - **report** — `ReportRenderer` re-loads the artifacts (works standalone) and joins the
   section builders into `report.md`.
 

@@ -11,7 +11,7 @@
 
 - **`MutationGenerator`** — name/tag/resource variants for scenario diversity, behind the
   `ScenarioGenerator` interface (issue #14).
-- **More scenario families** (see [Scenario Families](Scenario-Families.md)).
+- **More scenario families** (see [Scenario Families](Scenario-Families)).
 - **Checkov/OPA in CI** — currently fail-soft locally; wire them into the pipeline when the
   runners have the tools.
 - **OPA over Terraform plan** — today the Rego evaluates `graph.json`; add plan support.
@@ -32,7 +32,7 @@ and its ground truth. This keeps future engines **additive**.
 
 - `LLMGenerator` — propose graphs from natural-language scenario briefs.
 - `ModalBatchGenerator` / `DiffusionGraphGenerator` — see
-  [Modal & Diffusion Future Integration](Modal-and-Diffusion-Future-Integration.md).
+  [Modal & Diffusion Future Integration](Modal-and-Diffusion-Future-Integration).
 
 **Invariant across all of them:** local validators remain the source of truth. A generated
 graph is only trustworthy once the risk engine (and, where available, checkov/OPA) confirm

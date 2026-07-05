@@ -26,15 +26,15 @@ cloudforge report   out/scenario_001
 
 | Page | What it covers |
 |------|----------------|
-| [Architecture](Architecture.md) | Module layout, pipeline flow, source-of-truth hierarchy |
-| [Scenario Schema](Scenario-Schema.md) | The `scenario.yaml` input contract |
-| [Graph Model](Graph-Model.md) | Node/edge types, metadata, self-consistency invariants |
-| [Validation Pipeline](Validation-Pipeline.md) | Fail-soft checks, the risk engine, exit policy |
-| [Scenario Families](Scenario-Families.md) | `ci_cd_iam_chain` and how to add families |
-| [Roadmap](Roadmap.md) | What's next; the generator extension seam |
-| [Modal & Diffusion Future Integration](Modal-and-Diffusion-Future-Integration.md) | Optional future engines |
-| [Safety & Scope](Safety-and-Scope.md) | Local-only guarantees, forbidden permissions |
-| [Template Feedback](Template-Feedback.md) | Feedback on the base agentic template |
+| [Architecture](Architecture) | Module layout, pipeline flow, source-of-truth hierarchy |
+| [Scenario Schema](Scenario-Schema) | The `scenario.yaml` input contract |
+| [Graph Model](Graph-Model) | Node/edge types, metadata, self-consistency invariants |
+| [Validation Pipeline](Validation-Pipeline) | Fail-soft checks, the risk engine, exit policy |
+| [Scenario Families](Scenario-Families) | `ci_cd_iam_chain` and how to add families |
+| [Roadmap](Roadmap) | What's next; the generator extension seam |
+| [Modal & Diffusion Future Integration](Modal-and-Diffusion-Future-Integration) | Optional future engines |
+| [Safety & Scope](Safety-and-Scope) | Local-only guarantees, forbidden permissions |
+| [Template Feedback](Template-Feedback) | Feedback on the base agentic template |
 
 ## Scope in one line
 
