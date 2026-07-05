@@ -31,7 +31,10 @@ jobs:
           else
             echo "is_template=false" >> "$GITHUB_OUTPUT"
           fi
-      - run: pip install ruff mypy
+      # Pin ruff to the .pre-commit-config version so CI/local/pre-commit formatting never
+      # diverge (FXL-52). An unpinned `pip install ruff` pulls latest, which reformats
+      # differently than the pinned pre-commit ruff and fails format-check on clean files.
+      - run: pip install ruff==0.9.4 mypy
       - if: steps.tpl.outputs.is_template == 'false'
         run: pip install poetry-core && pip install -e .
       # Lint/format only the product surface. The template ships pre-existing drift in
