@@ -1,0 +1,470 @@
+# cloudforge seed rule catalog — hand-authored defensive cloud-risk patterns.
+#
+# Ticket: FXL-72 (design §8 "Seed rule catalog"). This is the Tier-4 local rule
+# catalog referenced by `data/source_registry.yaml` (`local-rule-catalog`, path
+# `data/rule_catalog/seed_patterns.yaml`) and parsed by the `rule_catalog_yaml`
+# adapter (app/cloudforge/learn/adapters/rule_catalog_yaml.py, ticket #63).
+#
+# Every entry below is:
+#   - hand-authored and fully owned by this repo (license: CC0-1.0, reuse_status:
+#     full_reuse, allowed_for_training: true)
+#   - DEFENSIVE and high-level: it names the misconfiguration and its remediation
+#     only — no operational attacker steps, no persistence/evasion technique
+#   - free of real secrets, credentials, or live/real cloud account IDs (any
+#     account-id-shaped example uses the project's DUMMY_ACCOUNT_ID convention,
+#     "000000000000", or a generic placeholder ARN)
+#
+# Shape matches exactly what `rule_catalog_yaml.RuleCatalogYamlAdapter` parses
+# (see its `_RuleCatalogEntry` schema and `tests/cloudforge/learn/fixtures/
+# sample_rule_catalog.yaml`): a top-level `entries:` list of mappings.
+
+entries:
+  # ── AWS ──────────────────────────────────────────────────────────────────
+  - id: s3-missing-access-logging-aws-001
+    title: "S3 bucket missing access logging"
+    summary: >-
+      An S3 bucket has server access logging disabled, so read/write requests
+      against it (including from misconfigured public access) leave no audit
+      trail for detection or forensics.
+    cloud_provider: aws
+    domains:
+      - storage
+      - logging
+    weakness_family: s3_logging_missing
+    severity: medium
+    affected_resource_types:
+      - aws_s3_bucket
+    risky_relationships: []
+    missing_controls:
+      - server_access_logging
+    negative_controls: []
+    compensating_controls:
+      - cloudtrail_data_events_s3
+    remediation: >-
+      Enable S3 server access logging (or CloudTrail S3 data events) to a
+      dedicated, access-restricted logging bucket.
+    references:
+      - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerLogs.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: s3-public-read-no-compensating-control-aws-002
+    title: "S3 bucket allows public read with no compensating control"
+    summary: >-
+      An S3 bucket grants public read access (public-read ACL or an
+      open bucket policy) and Block Public Access is not enabled, so any
+      object placed in the bucket becomes world-readable by default.
+    cloud_provider: aws
+    domains:
+      - storage
+      - data
+    weakness_family: s3_public_exposure
+    severity: high
+    affected_resource_types:
+      - aws_s3_bucket
+    risky_relationships:
+      - can_read
+    missing_controls:
+      - block_public_access
+    negative_controls:
+      - public_read_acl
+    compensating_controls: []
+    remediation: >-
+      Enable S3 Block Public Access at the bucket (and account) level, remove
+      public grants from the ACL/bucket policy, and require access via
+      signed URLs or a CDN origin-access identity instead.
+    references:
+      - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: iam-broad-s3-read-sensitive-bucket-aws-003
+    title: "IAM policy grants broad S3 read over a sensitive bucket"
+    summary: >-
+      An IAM policy grants s3:GetObject / s3:ListBucket across an entire
+      sensitive-data bucket (or all buckets via a wildcard resource) rather
+      than scoping to the specific prefixes a role actually needs.
+    cloud_provider: aws
+    domains:
+      - iam
+      - storage
+      - data
+    weakness_family: iam_excessive_privilege
+    severity: high
+    affected_resource_types:
+      - aws_iam_policy
+      - aws_iam_role
+      - aws_s3_bucket
+    risky_relationships:
+      - can_read
+    missing_controls:
+      - least_privilege_resource_scoping
+    negative_controls:
+      - wildcard_s3_resource_arn
+    compensating_controls:
+      - s3_object_level_encryption
+    remediation: >-
+      Scope the policy's Resource element to the specific bucket ARNs and key
+      prefixes required, and review broad read grants against data
+      classification for the bucket.
+    references:
+      - "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: iam-passrole-chain-sensitive-runtime-aws-004
+    title: "IAM PassRole chain reaches a sensitive runtime role"
+    summary: >-
+      A principal holds iam:PassRole on a role broad enough to be attached to
+      a compute service (e.g. Lambda, EC2), and that target role in turn
+      carries sensitive permissions, letting a lower-privileged principal
+      indirectly obtain the higher-privileged role's access.
+    cloud_provider: aws
+    domains:
+      - iam
+      - compute
+    weakness_family: iam_passrole_risk
+    severity: critical
+    affected_resource_types:
+      - aws_iam_role
+      - aws_iam_policy
+      - aws_lambda_function
+    risky_relationships:
+      - can_pass_role
+      - can_assume_role
+    missing_controls:
+      - resource_scoped_passrole
+      - permissions_boundary
+    negative_controls:
+      - wildcard_passrole_resource
+    compensating_controls: []
+    remediation: >-
+      Scope iam:PassRole to specific role ARNs, attach a permissions boundary
+      to runtime roles, and require iam:PassedToService conditions.
+    references:
+      - "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: security-group-ssh-open-to-internet-aws-005
+    title: "Security group allows SSH from the internet"
+    summary: >-
+      A security group ingress rule permits TCP/22 from 0.0.0.0/0 (and/or
+      ::/0), exposing SSH management access to the entire internet instead
+      of a bastion, VPN CIDR, or Session Manager.
+    cloud_provider: aws
+    domains:
+      - network
+    weakness_family: security_group_overexposed
+    severity: high
+    affected_resource_types:
+      - aws_security_group
+    risky_relationships: []
+    missing_controls:
+      - restricted_ingress_cidr
+    negative_controls:
+      - ssh_open_to_0_0_0_0_0
+    compensating_controls:
+      - session_manager_only_access
+    remediation: >-
+      Restrict SSH ingress to known management CIDRs or a bastion/VPN, or
+      remove the port entirely in favor of AWS Systems Manager Session
+      Manager.
+    references:
+      - "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: security-group-admin-ui-open-to-internet-aws-006
+    title: "Security group exposes an admin web UI to the internet"
+    summary: >-
+      A security group allows unrestricted internet ingress (0.0.0.0/0) to a
+      port hosting an administrative web console (e.g. a database admin
+      panel or orchestration dashboard), rather than requiring a VPN or
+      allow-listed CIDR.
+    cloud_provider: aws
+    domains:
+      - network
+    weakness_family: security_group_overexposed
+    severity: critical
+    affected_resource_types:
+      - aws_security_group
+      - aws_instance
+    risky_relationships: []
+    missing_controls:
+      - restricted_ingress_cidr
+      - mfa_on_admin_console
+    negative_controls:
+      - admin_port_open_to_0_0_0_0_0
+    compensating_controls: []
+    remediation: >-
+      Restrict ingress on the admin UI port to a VPN or allow-listed CIDR,
+      and place the console behind an authenticated reverse proxy or
+      bastion.
+    references:
+      - "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: kms-key-policy-wildcard-principal-aws-007
+    title: "KMS key policy grants a wildcard principal"
+    summary: >-
+      A KMS key policy's Principal element is set to "*" (optionally gated
+      only by a weak or missing condition), allowing any AWS principal
+      that also has an IAM allow to use the key rather than scoping trust
+      to specific accounts/roles.
+    cloud_provider: aws
+    domains:
+      - encryption
+      - iam
+    weakness_family: misconfigured_control
+    severity: high
+    affected_resource_types:
+      - aws_kms_key
+    risky_relationships: []
+    missing_controls:
+      - scoped_key_policy_principal
+    negative_controls:
+      - wildcard_key_policy_principal
+    compensating_controls:
+      - key_policy_source_account_condition
+    remediation: >-
+      Scope the key policy Principal to specific account/role ARNs and add a
+      aws:PrincipalOrgID or kms:CallerAccount condition instead of "*".
+    references:
+      - "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: cloudtrail-logging-missing-aws-008
+    title: "CloudTrail logging is missing or disabled for the account/region"
+    summary: >-
+      No CloudTrail trail is enabled (or an existing trail is stopped/not
+      multi-region), so API activity across the account is not durably
+      recorded, undermining detection and incident response.
+    cloud_provider: aws
+    domains:
+      - logging
+      - governance
+    weakness_family: missing_logging
+    severity: high
+    affected_resource_types:
+      - aws_cloudtrail
+    risky_relationships: []
+    missing_controls:
+      - multi_region_cloudtrail
+      - log_file_validation
+    negative_controls: []
+    compensating_controls: []
+    remediation: >-
+      Enable a multi-region CloudTrail trail with log file validation,
+      deliver logs to a dedicated access-restricted bucket, and alarm on
+      trail-stopped events.
+    references:
+      - "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-a-trail-using-the-console-first-time.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  # ── Azure ────────────────────────────────────────────────────────────────
+  - id: storage-account-public-blob-access-azure-009
+    title: "Azure Storage account allows public blob access"
+    summary: >-
+      An Azure Storage account has "Allow Blob Anonymous Access" enabled at
+      the account level, permitting any container/blob configured for
+      public access to be read anonymously over the internet.
+    cloud_provider: azure
+    domains:
+      - storage
+      - data
+    weakness_family: public_exposure
+    severity: high
+    affected_resource_types:
+      - azurerm_storage_account
+      - azurerm_storage_container
+    risky_relationships:
+      - can_read
+    missing_controls:
+      - allow_blob_public_access_disabled
+    negative_controls:
+      - anonymous_blob_access_enabled
+    compensating_controls: []
+    remediation: >-
+      Set allow_nested_items_to_be_public / "Allow Blob Anonymous Access" to
+      disabled at the storage account level and use SAS tokens or private
+      endpoints for sharing.
+    references:
+      - "https://learn.microsoft.com/en-us/azure/storage/blobs/anonymous-read-access-prevent"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: key-vault-public-network-access-azure-010
+    title: "Azure Key Vault allows public network access"
+    summary: >-
+      An Azure Key Vault's network configuration permits access from all
+      networks ("Public endpoint (all networks)") instead of being
+      restricted to selected virtual networks/private endpoints, widening
+      the exposure of stored secrets and keys.
+    cloud_provider: azure
+    domains:
+      - secrets
+      - network
+      - encryption
+    weakness_family: unrestricted_access
+    severity: high
+    affected_resource_types:
+      - azurerm_key_vault
+    risky_relationships: []
+    missing_controls:
+      - private_endpoint_or_vnet_restriction
+    negative_controls:
+      - public_network_access_enabled
+    compensating_controls:
+      - key_vault_firewall_ip_allowlist
+    remediation: >-
+      Set the vault's public_network_access_enabled to false and expose it
+      only via a private endpoint or selected-network firewall rules.
+    references:
+      - "https://learn.microsoft.com/en-us/azure/key-vault/general/network-security"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  # ── GCP ──────────────────────────────────────────────────────────────────
+  - id: storage-bucket-public-iam-member-gcp-011
+    title: "GCS bucket grants a public IAM member"
+    summary: >-
+      A Cloud Storage bucket's IAM policy grants a role (e.g.
+      roles/storage.objectViewer) to allUsers or allAuthenticatedUsers,
+      making objects in the bucket readable without authentication.
+    cloud_provider: gcp
+    domains:
+      - storage
+      - data
+    weakness_family: public_exposure
+    severity: high
+    affected_resource_types:
+      - google_storage_bucket
+    risky_relationships:
+      - can_read
+    missing_controls:
+      - public_access_prevention
+    negative_controls:
+      - all_users_object_viewer
+    compensating_controls: []
+    remediation: >-
+      Remove allUsers/allAuthenticatedUsers IAM bindings and enforce Public
+      Access Prevention on the bucket.
+    references:
+      - "https://cloud.google.com/storage/docs/access-control/making-data-public"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: service-account-overprivileged-project-role-gcp-012
+    title: "Service account holds an overprivileged project-level role"
+    summary: >-
+      A service account is bound to a broad project-level role (e.g.
+      roles/editor or roles/owner) rather than a narrowly scoped
+      predefined or custom role, giving it far more permission than the
+      workload it runs requires.
+    cloud_provider: gcp
+    domains:
+      - iam
+    weakness_family: iam_excessive_privilege
+    severity: high
+    affected_resource_types:
+      - google_service_account
+      - google_project_iam_member
+    risky_relationships: []
+    missing_controls:
+      - least_privilege_custom_role
+    negative_controls:
+      - project_editor_role_binding
+    compensating_controls:
+      - org_policy_domain_restricted_sharing
+    remediation: >-
+      Replace the broad project role with a least-privilege predefined or
+      custom role scoped to the resources the workload actually touches.
+    references:
+      - "https://cloud.google.com/iam/docs/using-iam-securely"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  # ── Extra coverage: ci_cd (AWS) and secrets (GCP) ──────────────────────────
+  - id: cicd-pipeline-long-lived-static-cloud-creds-aws-013
+    title: "CI/CD pipeline stores long-lived static cloud credentials"
+    summary: >-
+      A CI/CD pipeline authenticates to AWS using long-lived static IAM
+      access keys stored as pipeline secrets, instead of a short-lived
+      OpenID Connect (OIDC) federated role assumption scoped to the
+      pipeline and repository.
+    cloud_provider: aws
+    domains:
+      - ci_cd
+      - iam
+      - secrets
+    weakness_family: secrets_exposure
+    severity: medium
+    affected_resource_types:
+      - aws_iam_user
+      - aws_iam_access_key
+    risky_relationships: []
+    missing_controls:
+      - oidc_federated_role_assumption
+      - credential_rotation
+    negative_controls:
+      - long_lived_static_access_key
+    compensating_controls:
+      - access_key_last_used_alerting
+    remediation: >-
+      Replace static access keys with an OIDC identity provider trust and a
+      short-lived assume-role scoped to the specific repository/branch, and
+      delete the long-lived keys.
+    references:
+      - "https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: secret-manager-secret-overly-broad-iam-access-gcp-014
+    title: "Secret Manager secret grants overly broad IAM access"
+    summary: >-
+      A secret in GCP Secret Manager grants roles/secretmanager.secretAccessor
+      at the project level (or to a broad group) rather than binding the
+      role directly on the individual secret to the specific service
+      accounts that need it.
+    cloud_provider: gcp
+    domains:
+      - secrets
+      - iam
+    weakness_family: excessive_privilege
+    severity: medium
+    affected_resource_types:
+      - google_secret_manager_secret
+      - google_project_iam_member
+    risky_relationships: []
+    missing_controls:
+      - resource_level_secret_iam_binding
+    negative_controls:
+      - project_wide_secret_accessor_role
+    compensating_controls:
+      - secret_access_audit_logging
+    remediation: >-
+      Bind roles/secretmanager.secretAccessor on the individual secret
+      resource to only the service accounts that require it, removing the
+      project-wide grant.
+    references:
+      - "https://cloud.google.com/secret-manager/docs/access-control"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
