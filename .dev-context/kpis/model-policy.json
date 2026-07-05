@@ -6,21 +6,23 @@
   "learned": {
     "label:effort:M": {
       "recommended_model": "sonnet",
-      "samples": 3,
+      "samples": 4,
       "verdicts": {
-        "overkill": 3
+        "overkill": 3,
+        "well-matched": 1
       },
-      "avg_cost_usd": 6.3115,
-      "rationale": "0 underpowered / 3 overkill / 0 well-matched over 3 runs [floor: sonnet]"
+      "avg_cost_usd": 8.0639,
+      "rationale": "0 underpowered / 3 overkill / 1 well-matched over 4 runs [floor: sonnet]"
     },
     "label:area:generation": {
       "recommended_model": "sonnet",
-      "samples": 3,
+      "samples": 4,
       "verdicts": {
-        "overkill": 3
+        "overkill": 3,
+        "well-matched": 1
       },
-      "avg_cost_usd": 6.3115,
-      "rationale": "0 underpowered / 3 overkill / 0 well-matched over 3 runs [floor: sonnet]"
+      "avg_cost_usd": 8.0639,
+      "rationale": "0 underpowered / 3 overkill / 1 well-matched over 4 runs [floor: sonnet]"
     }
   }
 }
