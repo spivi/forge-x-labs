@@ -19,6 +19,7 @@ class FindingFamily(StrEnum):
     IAM_EXCESSIVE_PRIVILEGE = "iam_excessive_privilege"
     IAM_PASSROLE_RISK = "iam_passrole_risk"
     S3_LOGGING_MISSING = "s3_logging_missing"
+    S3_PUBLIC_EXPOSURE = "s3_public_exposure"
     SECURITY_GROUP_OVEREXPOSED = "security_group_overexposed"
     PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL = (
         "public_looking_bucket_with_compensating_control"
