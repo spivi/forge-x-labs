@@ -5,9 +5,9 @@
 
 ## Project
 
-- **Identifier**: `{{PROJECT_ID}}` — used for decisions, branch names
-- **Name**: `{{PROJECT_NAME}}`
-- **Description**: {{PROJECT_DESCRIPTION}}
+- **Identifier**: `FXL` — used for decisions, branch names
+- **Name**: `cloudforge`
+- **Description**: Local-first generation of validated cloud-risk scenarios for scanner benchmarking, training, and prioritization research.
 - **Config**: `.dev-context/project.conf`
 
 ## Stack

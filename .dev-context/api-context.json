@@ -1,0 +1,14 @@
+{
+  "project_id": "FXL",
+  "project_name": "cloudforge",
+  "last_synced": "2026-07-05T06:48:31Z",
+  "current_phase": "Setup",
+  "status_last_updated": "2026-07-05",
+  "inbox": {
+    "critical": 0,
+    "approval": 0,
+    "digest": 0
+  },
+  "top_backlog_tickets": [],
+  "role": "Worker Agent \u2014 configurable per invocation"
+}

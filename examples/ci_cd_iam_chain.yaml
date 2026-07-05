@@ -1,0 +1,19 @@
+# Example scenario input — user intent for a CI/CD IAM privilege-chain scenario.
+# This is the source of intent; the generated graph.json is the source of truth.
+cloud: aws
+scenario_type: ci_cd_iam_chain
+environment: staging
+difficulty: medium
+company_profile:
+  type: b2b_saas
+  size: small
+  app_name: analytics-exporter
+requirements:
+  critical_chains: 1
+  medium_findings: 2
+  false_positives: 1
+constraints:
+  no_real_secrets: true
+  no_destructive_permissions: true
+  max_resources: 40
+  deployable: false

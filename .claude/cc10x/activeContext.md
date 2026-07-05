@@ -7,16 +7,24 @@
 # Active Context
 
 ## Current Focus
-- _(nothing in progress — set by /develop or the human)_
+- cloudforge MVP delivered on `feat/FXL-1-mvp-vertical-slice`. Next: open/merge PR, then
+  MutationGenerator (#14) + a 2nd scenario family, and publish `docs/wiki/`.
 
 ## Recent Changes
-- _(dated entries, newest first: `[YYYY-MM-DD] what changed`)_
+- [2026-07-05] Built the `cloudforge` MVP vertical slice: `generate/validate/report` over
+  `app/cloudforge/` (models, TemplateGenerator, Terraform emitter, fail-soft validators +
+  stdlib graph-risk engine, Markdown report, Typer CLI). 35 tests, 95% cov, ruff+mypy clean.
+- [2026-07-05] Adapted the template (identity filled, agentic scaffolding kept inert),
+  created GitHub milestones/issues/board #6, staged README + 10 wiki pages.
 
 ## Next Steps
-1. _(immediate next actions)_
+1. Open PR for `feat/FXL-1-mvp-vertical-slice`; merge when green.
+2. Close docs issues #16–23 (content staged in `docs/wiki/`); publish to GitHub Wiki.
+3. MutationGenerator (#14); second scenario family.
 
 ## Decisions
-- _(decisions made THIS session that aren't yet promoted to DECISIONS.md)_
+- FXL-D001 (`app/cloudforge/` layout, zero CI edits) and FXL-D002 (deterministic generation
+  first; validators + ground truth over cleverness) — promoted to DECISIONS.md.
 
 ## Learnings
 - _(session-local insights; promote durable ones to patterns.md)_

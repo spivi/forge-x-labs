@@ -1,4 +1,4 @@
-# {{PROJECT_NAME}} — Gemini CLI Context
+# cloudforge — Gemini CLI Context
 
 > This file governs the Gemini CLI's operating context when invoked non-interactively
 > (`gemini -p ...`) as a harness efficiency filter. It is NOT an instruction surface
