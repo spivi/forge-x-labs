@@ -25,12 +25,21 @@ _COMPENSATING_CONTROL = "compensating_control"
 def hcl_str(value: str) -> str:
     """The single source of truth for a safely-quoted HCL string literal.
 
-    HCL string literals accept JSON-style quoting/escaping, so ``json.dumps``
-    yields a valid, injection-proof literal (a ``"`` + newline in ``value`` can no
-    longer break out of the string). Every scalar string entering emitted HCL must
-    pass through here; JSON policy documents built via ``json.dumps`` are already safe.
+    Two escaping layers, both required:
+
+    1. HCL evaluates ``${...}`` (interpolation) and ``%{...}`` (template directives)
+       *inside* a double-quoted string. ``json.dumps`` leaves ``$``/``%``/``{``
+       untouched, so those openers would stay live. We first neutralize them with
+       HCL's own literal-escape sequences (``$${`` / ``%%{``) on the raw value —
+       ``$``/``%`` are JSON-safe, so the later ``json.dumps`` preserves them verbatim.
+    2. ``json.dumps`` then quotes and escapes ``"``, ``\\`` and control chars
+       (newlines), so a hostile value can no longer break out of the string.
+
+    Every scalar string entering emitted HCL must pass through here; JSON policy
+    documents built via ``json.dumps`` are already inert (they are not HCL strings).
     """
-    return json.dumps(value)
+    neutralized = value.replace("${", "$${").replace("%{", "%%{")
+    return json.dumps(neutralized)
 
 
 def resource_name(node: GraphNode) -> str:
