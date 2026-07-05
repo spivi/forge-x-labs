@@ -1,0 +1,22 @@
+{
+  "paths": [
+    {
+      "id": "path-critical-01",
+      "severity": "critical",
+      "nodes": [
+        "cicd-github",
+        "role-deploy",
+        "role-runtime",
+        "s3-customer-exports",
+        "data-customer-exports"
+      ],
+      "edges": [
+        "cicd-github->assumes->role-deploy",
+        "role-deploy->can_pass_role->role-runtime",
+        "role-runtime->can_read->s3-customer-exports",
+        "s3-customer-exports->stores_sensitive_data->data-customer-exports"
+      ],
+      "explanation": "GitHub Actions OIDC assumes DeployRole; DeployRole can iam:PassRole RuntimeRole; RuntimeRole holds broad s3:Get*/List* on the sensitive customer-exports bucket -> full read of customer data via CI."
+    }
+  ]
+}
