@@ -192,4 +192,4 @@ def test_hostile_hcl_is_terraform_valid(tmp_path: Path) -> None:
     # A double-quote in the name is backslash-escaped inside the literal, never bare.
     assert '\\"' in s3
     # A newline in the name is escaped, so it cannot start a new HCL line.
-    assert "pwned\"\n}\nresource" not in s3
+    assert 'pwned"\n}\nresource' not in s3
