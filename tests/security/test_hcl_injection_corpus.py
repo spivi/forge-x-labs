@@ -152,6 +152,22 @@ def test_sink_node_name_bucket(hostile: HostileValue) -> None:
     _emit_and_scan(bucket_block(_node(NodeType.S3_BUCKET, name=hostile.value)), hostile)
 
 
+def test_sink_bucket_policy_arn(hostile: HostileValue) -> None:
+    """The THIRD jsonencode sink: ``_bucket_policy_block`` embeds ``node.name`` in the arn.
+
+    A plain ``bucket_block`` omits the compensating control, so the bucket-policy block
+    (a ``jsonencode``-wrapped document carrying ``node.name`` via ``_bucket_name``) never
+    emits — leaving that neutralized sink un-regression-locked. Setting
+    ``compensating_control="true"`` forces it to emit with the hostile value.
+    """
+    block = bucket_block(
+        _node(NodeType.S3_BUCKET, name=hostile.value, compensating_control="true")
+    )
+    # The compensating control must actually have produced the bucket-policy block.
+    assert '"aws_s3_bucket_policy"' in block, "compensating-control policy block did not emit"
+    _emit_and_scan(block, hostile)
+
+
 def test_sink_node_name_security_group(hostile: HostileValue) -> None:
     block = security_group_block(_node(NodeType.SECURITY_GROUP, name=hostile.value), "vpc_ref")
     _emit_and_scan(block, hostile)
@@ -272,6 +288,34 @@ def test_interpolation_payload_is_inert_end_to_end(tmp_path: Path) -> None:
         return
     tricky = HostileValue("interp_ref", "${data.nonexistent.thing.value}")
     TerraformEmitter(_tagged_graph(tricky)).emit(tmp_path)
+    result = _terraform_validate(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_bucket_policy_document_interpolation_is_inert_under_terraform(tmp_path: Path) -> None:
+    """The bucket-policy ``jsonencode`` arg (carrying ``node.name``) is inert as HCL.
+
+    ``_bucket_policy_block`` embeds the untrusted ``node.name`` into a ``jsonencode``
+    document. An interpolation-bearing name cannot ride the S3 ``bucket`` argument (that
+    is rejected by AWS name-schema — the "OR rejected" branch), so we isolate the sink:
+    emit the policy block for an interpolation-bearing name and place ITS ``jsonencode``
+    document into a schema-free ``locals`` value. A LIVE ``${...}`` (undeclared ref) would
+    fail ``terraform validate``; the neutralized document is inert and validates.
+    """
+    if _TERRAFORM is None:  # pragma: no cover
+        return
+    node = _node(
+        NodeType.S3_BUCKET,
+        name="x${data.nonexistent.thing.value}",
+        compensating_control="true",
+    )
+    block = bucket_block(node)
+    # Extract the exact document handed to ``jsonencode(...)`` from the emitted policy.
+    match = re.search(r"policy = jsonencode\((?P<doc>.+)\)\n", block)
+    assert match is not None, block
+    (tmp_path / "policy_doc.tf").write_text(
+        f"locals {{\n  doc = jsonencode({match.group('doc')})\n}}\n", encoding="utf-8"
+    )
     result = _terraform_validate(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
 
