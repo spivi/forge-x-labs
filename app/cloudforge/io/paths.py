@@ -55,5 +55,9 @@ class ScenarioPaths:
         return self.base / constants.OPA_RESULTS_FILENAME
 
     @property
+    def scanner_score(self) -> Path:
+        return self.base / constants.SCANNER_SCORE_FILENAME
+
+    @property
     def report(self) -> Path:
         return self.base / constants.REPORT_FILENAME

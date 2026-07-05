@@ -15,9 +15,9 @@ from app.cloudforge.io.paths import ScenarioPaths
 from app.cloudforge.models.findings import ExpectedFindings, GroundTruthPaths
 from app.cloudforge.models.graph import ScenarioGraph
 from app.cloudforge.models.scenario import ScenarioSpec
-from app.cloudforge.validate import external_scans, schema_checks
+from app.cloudforge.validate import external_scans, scanner_score, schema_checks
 from app.cloudforge.validate.graph_risk import GraphRiskEngine
-from app.cloudforge.validate.results import ValidationReport
+from app.cloudforge.validate.results import Status, ValidationOutcome, ValidationReport
 
 DEFAULT_POLICY_PATH = "policies/scenario.rego"
 
@@ -32,10 +32,26 @@ def run_validations(
     report.add(schema_checks.validate_graph(paths))
     report.add(external_scans.run_terraform(paths))
     report.add(external_scans.run_checkov(paths))
+    report.add(_score_scanner(paths))
     report.add(external_scans.run_opa(paths, policy_path))
     report.extend(_run_risk_engine(paths))
 
     return report
+
+
+def _score_scanner(paths: ScenarioPaths) -> ValidationOutcome:
+    """Score checkov output against expected findings (gap #10). Fail-soft when absent."""
+    written = scanner_score.write_scanner_score(paths)
+    if written is None:
+        return ValidationOutcome(Status.WARN, "scanner score", "not scored — no scanner output")
+    score = scanner_score.score_scenario(paths)
+    if score is None:
+        return ValidationOutcome(Status.WARN, "scanner score", "not scored — no scanner output")
+    detail = (
+        f"{score.matched_findings}/{score.expected_findings} expected findings detected "
+        f"(coverage {score.scanner_coverage_score})"
+    )
+    return ValidationOutcome(Status.PASS, "scanner score", detail)
 
 
 def _run_risk_engine(paths: ScenarioPaths) -> list:  # type: ignore[type-arg]
