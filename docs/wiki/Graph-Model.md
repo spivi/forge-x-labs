@@ -45,7 +45,7 @@ exactly what ground-truth paths reference.
 - **Referential integrity** — every edge endpoint must resolve to a node
   (`ScenarioGraph` model validator).
 - **Ground-truth consistency** — every node/edge a ground-truth path names must exist
-  (checked by the [risk engine](Validation-Pipeline.md)).
+  (checked by the [risk engine](Validation-Pipeline)).
 - **Resource budget** — `len(nodes) ≤ constraints.max_resources`.
 - **Safety** — no `IAMPolicy` node may grant a forbidden destructive action; each
   intentionally-broad grant must be documented by an expected finding.
