@@ -18,8 +18,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from app.cloudforge import constants
-from app.cloudforge.models.graph import GraphNode, NodeType
+from app.cloudforge.models.graph import GraphNode, NodeTags, NodeType
 from app.cloudforge.pipeline import terraform_resource_blocks as res
+from app.cloudforge.pipeline.terraform_resource_blocks import hcl_str
 
 _DUMMY = constants.DUMMY_ACCOUNT_ID
 _REGION = constants.DEFAULT_REGION
@@ -65,13 +66,26 @@ variable "account_id" {{
 """
 
 
-def build_main_tf() -> str:
+def derive_common_tags(nodes: list[GraphNode]) -> NodeTags:
+    """The family's representative tags: the Account/root node's, else the first node's.
+
+    Each family stamps every node with one tag set, so the Account node is a stable,
+    unambiguous source. Falling back to the first node keeps the emitter total for
+    graphs without an Account node.
+    """
+    accounts = _of_type(nodes, NodeType.ACCOUNT)
+    source = accounts[0] if accounts else nodes[0]
+    return source.tags
+
+
+def build_main_tf(tags: NodeTags) -> str:
+    """Emit ``locals.common_tags`` from the graph-derived tags (not hardcoded)."""
     return f"""locals {{
   fake_account_id = "{_DUMMY}"
   common_tags = {{
-    env   = "staging"
-    owner = "platform-team"
-    app   = "analytics-exporter"
+    env   = {hcl_str(tags.env)}
+    owner = {hcl_str(tags.owner)}
+    app   = {hcl_str(tags.app)}
   }}
 }}
 """

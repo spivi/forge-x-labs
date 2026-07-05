@@ -8,11 +8,19 @@ scenario graph nodes — not a single hardcoded family. The regression suite pin
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
 from app.cloudforge import constants
 from app.cloudforge.generate import ci_cd_iam_chain, public_data_exposure
-from app.cloudforge.models.graph import ScenarioGraph
+from app.cloudforge.models.graph import (
+    GraphNode,
+    NodeSecurity,
+    NodeTags,
+    NodeType,
+    ScenarioGraph,
+)
 from app.cloudforge.pipeline.terraform_emitter import TerraformEmitter
 
 
@@ -123,3 +131,130 @@ def test_static_files_carry_dummy_account_id(tmp_path: Path) -> None:
 
     assert constants.DUMMY_ACCOUNT_ID in files["main.tf"]
     assert constants.DUMMY_ACCOUNT_ID in files["variables.tf"]
+
+
+# --- per-family common_tags are graph-derived (FXL-35) -----------------------
+
+
+def test_main_tf_common_tags_match_pde_graph(tmp_path: Path) -> None:
+    files = _emit(public_data_exposure.build_graph(), tmp_path)
+    main = files["main.tf"]
+
+    assert 'env   = "prod"' in main
+    assert 'app   = "customer-data-lake"' in main
+    assert 'owner = "data-platform-team"' in main
+    # It must NOT carry the ci_cd family's hardcoded tags.
+    assert "staging" not in main
+    assert "analytics-exporter" not in main
+
+
+def test_main_tf_common_tags_match_ci_cd_graph(tmp_path: Path) -> None:
+    files = _emit(ci_cd_iam_chain.build_graph(), tmp_path)
+    main = files["main.tf"]
+
+    assert 'env   = "staging"' in main
+    assert 'app   = "analytics-exporter"' in main
+    assert 'owner = "platform-team"' in main
+    assert "prod" not in main
+
+
+# --- HCL escaping: a hostile node value must not break out (FXL-35) ----------
+
+
+def _hostile_ci_cd_graph(payload: str) -> ScenarioGraph:
+    """The ci_cd graph with one extra bucket whose name carries an attack payload."""
+    graph = ci_cd_iam_chain.build_graph()
+    hostile = GraphNode(
+        id="s3-hostile",
+        type=NodeType.S3_BUCKET,
+        name=payload,
+        tags=NodeTags(env="staging", owner="platform-team", app="analytics-exporter"),
+        security=NodeSecurity(criticality="low"),
+        attributes={},
+    )
+    return ScenarioGraph(nodes=[*graph.nodes, hostile], edges=graph.edges)
+
+
+_BREAKOUT_PAYLOAD = 'pwned"\n}\nresource "aws_iam_role" "injected" {\n  name = "x'
+
+
+def test_hostile_bucket_name_does_not_inject_new_resource(tmp_path: Path) -> None:
+    files = _emit(_hostile_ci_cd_graph(_BREAKOUT_PAYLOAD), tmp_path)
+    s3 = files["s3.tf"]
+
+    # The injected role block must NOT appear as a real HCL statement.
+    assert 'resource "aws_iam_role" "injected"' not in s3
+    # The exact bucket count is unchanged (3 bucket resources: 2 real + 1 hostile).
+    assert s3.count('resource "aws_s3_bucket" "') == 3
+    # The payload survives only inside a single escaped string literal.
+    assert "injected" in s3
+
+
+def test_hostile_hcl_is_terraform_valid(tmp_path: Path) -> None:
+    files = _emit(_hostile_ci_cd_graph(_BREAKOUT_PAYLOAD), tmp_path)
+    s3 = files["s3.tf"]
+
+    # A double-quote in the name is backslash-escaped inside the literal, never bare.
+    assert '\\"' in s3
+    # A newline in the name is escaped, so it cannot start a new HCL line.
+    assert 'pwned"\n}\nresource' not in s3
+
+
+# --- HCL interpolation ${...} / template %{...} must be neutralized (FXL-35) --
+
+
+def test_interpolation_payload_is_inert(tmp_path: Path) -> None:
+    # ``${...}`` is live interpolation in a double-quoted HCL string, not literal text.
+    files = _emit(_hostile_ci_cd_graph("x${local.fake_account_id}"), tmp_path)
+    s3 = files["s3.tf"]
+
+    # The opener is neutralized to the HCL literal-escape ``$${`` — no live ``${`` left.
+    assert "$${local.fake_account_id}" in s3
+    assert "${local.fake_account_id}" not in s3.replace("$${local.fake_account_id}", "")
+
+
+def test_template_directive_payload_is_inert(tmp_path: Path) -> None:
+    # ``%{...}`` is a live HCL template directive; it must be neutralized to ``%%{``.
+    payload = "%{ for x in [1,2] }${x}%{ endfor }"
+    files = _emit(_hostile_ci_cd_graph(payload), tmp_path)
+    s3 = files["s3.tf"]
+
+    assert "%%{ for x in [1,2] }$${x}%%{ endfor }" in s3
+    # No live template opener or interpolation opener survives.
+    inert = s3.replace("$$", "").replace("%%", "")
+    assert "${" not in inert
+    assert "%{" not in inert
+
+
+def test_interpolation_reference_does_not_break_validate(tmp_path: Path) -> None:
+    # A ``${data.nonexistent...}`` name would fail ``terraform validate`` if it were
+    # live (undeclared reference). Escaped, it is inert text and must NOT appear live.
+    payload = "${data.nonexistent.thing.value}"
+    files = _emit(_hostile_ci_cd_graph(payload), tmp_path)
+    s3 = files["s3.tf"]
+
+    assert "$${data.nonexistent.thing.value}" in s3
+    # No LIVE ``${`` opener survives (strip the escaped ``$$`` first — ``${`` is a
+    # substring of the inert ``$${``, so a bare ``not in`` would false-positive).
+    assert "${" not in s3.replace("$$", "")
+    _assert_terraform_validates(files, tmp_path)
+
+
+def _assert_terraform_validates(files: dict[str, str], tmp_path: Path) -> None:
+    """Run real ``terraform validate`` on the emitted tree when terraform is on PATH."""
+    if shutil.which("terraform") is None:
+        return
+    subprocess.run(  # noqa: S603 — fixed argv, no shell, terraform from PATH
+        ["terraform", "init", "-backend=false", "-input=false"],  # noqa: S607
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    result = subprocess.run(  # noqa: S603
+        ["terraform", "validate"],  # noqa: S607
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
