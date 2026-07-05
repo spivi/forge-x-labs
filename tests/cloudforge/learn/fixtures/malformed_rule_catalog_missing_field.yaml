@@ -1,0 +1,16 @@
+# Fixture: valid YAML but one entry is missing a required field (title) — tests the
+# adapter's clear-error-not-crash path for schema-invalid catalogs.
+entries:
+  - id: no-title-entry
+    summary: "This entry has no title field."
+    cloud_provider: aws
+    domains:
+      - storage
+    weakness_family: public_exposure
+    severity: medium
+    affected_resource_types:
+      - aws_s3_bucket
+    remediation: "N/A"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
