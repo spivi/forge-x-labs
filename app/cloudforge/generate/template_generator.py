@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from app.cloudforge.errors import UnknownScenarioTypeError
-from app.cloudforge.generate import ci_cd_iam_chain
+from app.cloudforge.generate import ci_cd_iam_chain, public_data_exposure
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.models.scenario import ScenarioSpec
 
@@ -23,8 +23,17 @@ def _build_ci_cd_iam_chain() -> ScenarioBundle:
     )
 
 
+def _build_public_data_exposure() -> ScenarioBundle:
+    return ScenarioBundle(
+        graph=public_data_exposure.build_graph(),
+        findings=public_data_exposure.build_findings(),
+        ground_truth=public_data_exposure.build_ground_truth(),
+    )
+
+
 _BUILDERS: dict[str, Callable[[], ScenarioBundle]] = {
     "ci_cd_iam_chain": _build_ci_cd_iam_chain,
+    "public_data_exposure": _build_public_data_exposure,
 }
 
 

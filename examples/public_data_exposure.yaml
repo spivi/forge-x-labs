@@ -1,0 +1,19 @@
+# Example scenario input — user intent for a direct public-data-exposure scenario.
+# This is the source of intent; the generated graph.json is the source of truth.
+cloud: aws
+scenario_type: public_data_exposure
+environment: prod
+difficulty: medium
+company_profile:
+  type: b2b_saas
+  size: medium
+  app_name: customer-data-lake
+requirements:
+  critical_chains: 1
+  medium_findings: 1
+  false_positives: 1
+constraints:
+  no_real_secrets: true
+  no_destructive_permissions: true
+  max_resources: 30
+  deployable: false
