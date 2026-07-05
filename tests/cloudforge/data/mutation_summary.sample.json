@@ -1,0 +1,30 @@
+{
+  "cosmetic_variants": 100,
+  "distinct_graph_hashes": 100,
+  "failures": [],
+  "families_preserved": 100,
+  "findings_preserved": 100,
+  "no_forbidden_permission": 100,
+  "path_preserved": 100,
+  "seed_range": [
+    1,
+    100
+  ],
+  "seeds_run": 100,
+  "severity_mix_preserved": 100,
+  "terraform_sampled_seeds": [
+    10,
+    20,
+    30,
+    40,
+    50,
+    60,
+    70,
+    80,
+    90,
+    100
+  ],
+  "terraform_sampled_valid": 10,
+  "terraform_sampling_note": "real `terraform validate` sampled on 10 of 100 seeds (every 10th); graph-risk (incl. forbidden-permission + path-reachability) ran on ALL 100 seeds. Provider shared via one TF_PLUGIN_CACHE_DIR so disk stays bounded.",
+  "validated_variants": 100
+}

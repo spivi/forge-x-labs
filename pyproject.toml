@@ -61,4 +61,12 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80"
+# `-m "not stress"` keeps the slow mutation stress suite (FXL-N3) OUT of the default
+# run — a bare `pytest` (local and CI, which invokes `pytest tests/ ...` with no `-m`)
+# deselects everything marked `stress`. Opt in explicitly with `pytest -m stress`.
+# The opt-in 1,000-seed variant is additionally gated behind CLOUDFORGE_STRESS_1K=1.
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80 -m 'not stress'"
+markers = [
+  "stress: slow, many-seed mutation risk-preservation stress tests (FXL-N3); deselected by default, run with `pytest -m stress`",
+  "slow: heavy/long-running tests; the pre-push backstop deselects these (`-m 'not slow'`)",
+]
