@@ -9,6 +9,7 @@ from __future__ import annotations
 from app.cloudforge import constants
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.models.scenario import ScenarioSpec
+from app.cloudforge.validate.scanner_score import ScannerScore
 
 _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
@@ -76,6 +77,22 @@ def build_scanner_summary(available: bool, detail: str) -> str:
 def build_opa_summary(available: bool, detail: str) -> str:
     body = detail if available else "OPA not run locally (tool absent)."
     return f"## OPA Policy Results\n\n{body}"
+
+
+def build_scanner_score(score: ScannerScore | None) -> str:
+    """Summarize how well the observed scanner covered the expected findings."""
+    if score is None:
+        return "## Scanner Score\n\nnot scored — no scanner output."
+    coverage_pct = f"{score.scanner_coverage_score * 100:.0f}%"
+    return (
+        "## Scanner Score\n\n"
+        f"- **Scanner:** {score.scanner}\n"
+        f"- **Expected findings:** {score.expected_findings}\n"
+        f"- **Matched (detected):** {score.matched_findings}\n"
+        f"- **Missed:** {score.missed_findings}\n"
+        f"- **Unexpected (observed false positives):** {score.unexpected_findings}\n"
+        f"- **Coverage score:** {score.scanner_coverage_score} ({coverage_pct})"
+    )
 
 
 def build_limitations() -> str:
