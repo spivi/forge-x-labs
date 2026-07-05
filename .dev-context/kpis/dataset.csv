@@ -3,3 +3,4 @@ FXL-14,feature,M,M5,,generation,P2,sonnet,120,0,0,0,,659,1,10.98,8000,85654,6.54
 FXL-26,feature,M,M1,,generation,P2,sonnet,120,0,0,0,,531,1,8.85,7000,77297,5.9023,opus,0.0737,0,0,0,0,0,,overkill
 FXL-31,fix,M,M2,,generation,P2,sonnet,45,0,0,0,,907,1,15.12,9000,84709,6.4882,opus,0.3359,0,0,0,0,0,,overkill
 FXL-35,fix,M,M2,,generation,P2,sonnet,25,0,0,0,,997,1,16.62,12000,175213,13.321,opus,0.6647,0,0,0,0,0,,well-matched
+FXL-39,fix,S,M2,,generation,P3,sonnet,45,0,0,0,,1179,1,19.65,11000,140068,10.6701,opus,0.4367,0,0,0,0,0,,overkill

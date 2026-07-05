@@ -17,10 +17,16 @@
       "ci_high": 0.844
     },
     "label:area:generation": {
-      "factor": 0.551,
-      "samples": 4,
-      "ci_low": 0.257,
-      "ci_high": 0.844
+      "factor": 0.585,
+      "samples": 5,
+      "ci_low": 0.342,
+      "ci_high": 0.828
+    },
+    "type:fix": {
+      "factor": 0.718,
+      "samples": 3,
+      "ci_low": 0.523,
+      "ci_high": 0.913
     }
   }
 }
