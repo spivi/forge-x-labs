@@ -1,11 +1,14 @@
 # Project Status
 
-**Current Phase:** Sprint wave 1 delivered + debriefed (MVP + 2 features)
+**Current Phase:** Wave 1 + FXL-31 delivered; learning loop calibrated
 **Last Updated:** 2026-07-05
 
-> **Debrief (2026-07-05):** 2 runs analyzed; calibration withheld (2 < min 3 samples — no
-> over-fit). lemmings fitted `agents.developer.cost_rate_per_min=0.0139`. Council review of the
-> debrief summary surfaced the per-family Terraform emitter defect → filed as **FXL-31** (#31, M2).
+> **Debrief (2026-07-05):** After FXL-31 (per-family Terraform emitter, PR #34, AI review gate
+> APPROVE), the loop has **3 samples** and committed real factors: `label:effort:M` /
+> `label:area:generation` estimate factor = **0.546** (CI 0.376–0.715); model policy → **sonnet**
+> (3/3 overkill); lemmings `cost_rate_per_min` 0.0139 → 0.0208. **Proof it's live:** FXL-35
+> (fix/M/generation) now estimates 25m/sonnet vs FXL-31's pre-cal 45m. PR-#34 review nits (per-family
+> tags + HCL escaping) filed as **FXL-35** (#35, M2).
 
 ## Recent Achievements
 - **MVP vertical slice** (PR #24): `generate → validate → report` end-to-end for the
@@ -26,22 +29,23 @@
   to the repo.
 
 ### Next Steps
-1. `/debrief` — the wave has real actuals (durations/tokens) to calibrate estimates + model routing.
+1. **FXL-35** (#35, planned 25m/sonnet) — emitter hardening: per-family `common_tags` + HCL escaping (from PR #34 review nits).
 2. More scenario families (cross-account trust, KMS key-policy, public snapshot) as new tickets.
-3. Parameterize the Terraform emitter per-family (currently emits the ci_cd resource set for all families).
-4. Wire checkov/OPA into CI once runners have the tools.
+3. Wire checkov/OPA into CI once runners have the tools.
+4. Route the next generation ticket through full `/sprint execute` so `SUBAGENT_LEDGER_CAPTURE` records exact tokens (not backfilled).
 
 ## Active Worktrees
 
 | Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
-|--------|-------------|--------|-------|--------|---------------|
+|---|---|---|---|---|---|
 | (none) | — | — | — | — | — |
 
 ## Active Tasks
 - **M0–M5 complete** (template, graph+generator, terraform, validators, reporting, mutation engine).
-- **M1 extended** — second scenario family delivered (`public_data_exposure`).
-- **M6 (docs/wiki)** — README + wiki published.
-- Backlog: additional families; per-family Terraform emitter; checkov/OPA in CI.
+- **M1 extended** — second scenario family (`public_data_exposure`).
+- **M2 complete** — per-family (graph-driven) Terraform emitter (FXL-31).
+- **M6** — README + wiki published.
+- Backlog: **FXL-35** (emitter hardening, planned); additional families; checkov/OPA in CI.
 
 ## Agent Pipeline Status
 

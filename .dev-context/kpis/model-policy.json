@@ -1,8 +1,26 @@
 {
   "_meta": {
-    "description": "Model routing learned from suitability verdicts (cheapest model that delivered without overrun or P1 finding). Learned by /debrief. scripts/estimator.py reads `learned`; routing never drops below the effort floor in base-estimates.yml.",
-    "updated": null
+    "description": "Model routing learned from suitability verdicts."
   },
   "base_policy": {},
-  "learned": {}
+  "learned": {
+    "label:effort:M": {
+      "recommended_model": "sonnet",
+      "samples": 3,
+      "verdicts": {
+        "overkill": 3
+      },
+      "avg_cost_usd": 6.3115,
+      "rationale": "0 underpowered / 3 overkill / 0 well-matched over 3 runs [floor: sonnet]"
+    },
+    "label:area:generation": {
+      "recommended_model": "sonnet",
+      "samples": 3,
+      "verdicts": {
+        "overkill": 3
+      },
+      "avg_cost_usd": 6.3115,
+      "rationale": "0 underpowered / 3 overkill / 0 well-matched over 3 runs [floor: sonnet]"
+    }
+  }
 }

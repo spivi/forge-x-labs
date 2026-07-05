@@ -1,11 +1,26 @@
 {
   "_meta": {
-    "description": "Per-dimension estimate factors (actual/estimate) applied by scripts/estimator.py. Learned by /debrief via empirical-Bayes shrinkage. Empty until enough real runs accrue.",
+    "description": "Per-dimension estimate factors learned by /debrief.",
     "min_samples": 3,
-    "clamp": [0.25, 4.0],
+    "clamp": [
+      0.25,
+      4.0
+    ],
     "prior": 1.0,
-    "prior_weight": 3,
-    "updated": null
+    "prior_weight": 3
   },
-  "factors": {}
+  "factors": {
+    "label:effort:M": {
+      "factor": 0.546,
+      "samples": 3,
+      "ci_low": 0.376,
+      "ci_high": 0.715
+    },
+    "label:area:generation": {
+      "factor": 0.546,
+      "samples": 3,
+      "ci_low": 0.376,
+      "ci_high": 0.715
+    }
+  }
 }
