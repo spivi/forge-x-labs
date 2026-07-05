@@ -1,0 +1,133 @@
+<!--
+Hand-authored RECORDED FIXTURE for unit tests only.
+
+This is a small, representative excerpt mimicking the table structure of the public
+Checkov Terraform policy index (https://www.checkov.io/5.Policy%20Index/terraform.html).
+It is NOT scraped from the live site and is NOT a full mirror. It contains only
+metadata columns (Id / Type / Entity / Policy / IaC / Resource Scanner / Severity) for a
+small, safe subset of well-known checks, per design doc §8:
+  - AWS S3 logging / encryption / public-access
+  - AWS security-group unrestricted ingress
+  - AWS KMS wildcard principal
+  - AWS RDS public exposure
+  - AWS CloudTrail logging / encryption / validation
+  - Azure / GCP storage public-access
+
+No rule source code or rule logic is embedded here — only the same short metadata a
+human browsing the public index page would see (id, resource type, title, iac type,
+severity, and a link back to the public page section).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Terraform Policy Index</title></head>
+<body>
+<main>
+<h1>Terraform Policy Index</h1>
+<table id="policy-index">
+<thead>
+<tr>
+<th>Id</th><th>Type</th><th>Entity</th><th>Policy</th><th>IaC</th><th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CKV_AWS_18</td>
+<td>resource</td>
+<td>aws_s3_bucket</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_18">Ensure the S3 bucket has access logging enabled</a></td>
+<td>terraform</td>
+<td>MEDIUM</td>
+</tr>
+<tr>
+<td>CKV_AWS_19</td>
+<td>resource</td>
+<td>aws_s3_bucket</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_19">Ensure all data stored in the S3 bucket is securely encrypted at rest</a></td>
+<td>terraform</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td>CKV_AWS_20</td>
+<td>resource</td>
+<td>aws_s3_bucket</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_20">Ensure the S3 bucket does not allow READ permissions to everyone</a></td>
+<td>terraform</td>
+<td>CRITICAL</td>
+</tr>
+<tr>
+<td>CKV_AWS_24</td>
+<td>resource</td>
+<td>aws_security_group</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_24">Ensure no security groups allow ingress from 0.0.0.0:0 to port 22</a></td>
+<td>terraform</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td>CKV_AWS_260</td>
+<td>resource</td>
+<td>aws_security_group</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_260">Ensure no security groups allow ingress from 0.0.0.0:0 to port 80</a></td>
+<td>terraform</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td>CKV_AWS_33</td>
+<td>resource</td>
+<td>aws_kms_key</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_33">Ensure KMS key policy does not contain wildcard (*) principal</a></td>
+<td>terraform</td>
+<td>CRITICAL</td>
+</tr>
+<tr>
+<td>CKV_AWS_17</td>
+<td>resource</td>
+<td>aws_db_instance</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_17">Ensure all data stored in RDS is not publicly accessible</a></td>
+<td>terraform</td>
+<td>CRITICAL</td>
+</tr>
+<tr>
+<td>CKV_AWS_36</td>
+<td>resource</td>
+<td>aws_cloudtrail</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_36">Ensure CloudTrail log file validation is enabled</a></td>
+<td>terraform</td>
+<td>MEDIUM</td>
+</tr>
+<tr>
+<td>CKV_AWS_35</td>
+<td>resource</td>
+<td>aws_cloudtrail</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_35">Ensure CloudTrail logs are encrypted at rest using KMS CMKs</a></td>
+<td>terraform</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td>CKV_AWS_67</td>
+<td>resource</td>
+<td>aws_cloudtrail</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AWS_67">Ensure CloudTrail logging is enabled in all regions</a></td>
+<td>terraform</td>
+<td>MEDIUM</td>
+</tr>
+<tr>
+<td>CKV_AZURE_35</td>
+<td>resource</td>
+<td>azurerm_storage_account</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_AZURE_35">Ensure default network access rule for storage accounts is set to deny</a></td>
+<td>terraform</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td>CKV_GCP_62</td>
+<td>resource</td>
+<td>google_storage_bucket</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_GCP_62">Ensure Google storage bucket have uniform bucket level access</a></td>
+<td>terraform</td>
+<td>MEDIUM</td>
+</tr>
+</tbody>
+</table>
+</main>
+</body>
+</html>
