@@ -2,4 +2,4 @@ ticket,estimate_minutes,type,labels,effort,milestone,risk,area,priority,recommen
 FXL-14,120,feature,effort:M,M,M5,,generation,P2,sonnet,,,done,,,,
 FXL-26,120,feature,effort:M,M,M1,,generation,P2,sonnet,,,done,,,,
 FXL-31,45,fix,effort:M,M,M2,,generation,P2,sonnet,,,done,,,,
-FXL-35,25,fix,effort:M,M,M2,,generation,P2,sonnet,,,planned,,,,
+FXL-35,25,fix,effort:M,M,M2,,generation,P2,sonnet,,,done,,,,

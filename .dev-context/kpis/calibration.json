@@ -11,16 +11,16 @@
   },
   "factors": {
     "label:effort:M": {
-      "factor": 0.546,
-      "samples": 3,
-      "ci_low": 0.376,
-      "ci_high": 0.715
+      "factor": 0.551,
+      "samples": 4,
+      "ci_low": 0.257,
+      "ci_high": 0.844
     },
     "label:area:generation": {
-      "factor": 0.546,
-      "samples": 3,
-      "ci_low": 0.376,
-      "ci_high": 0.715
+      "factor": 0.551,
+      "samples": 4,
+      "ci_low": 0.257,
+      "ci_high": 0.844
     }
   }
 }

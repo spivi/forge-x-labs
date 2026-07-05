@@ -13,3 +13,8 @@ Prioritized call-to-action emitted by `/debrief` after each run. **P1** = act no
 
 - **[TUNE] label:effort:M is overkill -> sonnet** (P3) -- 0 underpowered / 3 overkill / 0 well-matched over 3 runs [floor: sonnet]. Target: `kpis/model-policy.json`. Down-tier label:effort:M to sonnet (saves cost).
 - **[TUNE] label:area:generation is overkill -> sonnet** (P3) -- 0 underpowered / 3 overkill / 0 well-matched over 3 runs [floor: sonnet]. Target: `kpis/model-policy.json`. Down-tier label:area:generation to sonnet (saves cost).
+
+## debrief run
+
+- **[TUNE] label:effort:M is overkill -> sonnet** (P3) -- 0 underpowered / 3 overkill / 1 well-matched over 4 runs [floor: sonnet]. Target: `kpis/model-policy.json`. Down-tier label:effort:M to sonnet (saves cost).
+- **[TUNE] label:area:generation is overkill -> sonnet** (P3) -- 0 underpowered / 3 overkill / 1 well-matched over 4 runs [floor: sonnet]. Target: `kpis/model-policy.json`. Down-tier label:area:generation to sonnet (saves cost).
