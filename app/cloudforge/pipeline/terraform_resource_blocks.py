@@ -2,12 +2,9 @@
 
 Each builder takes a single ``GraphNode`` and returns a valid Terraform block
 rendered from that node's ``type`` + ``attributes``. The emitter's per-file
-assemblers (:mod:`terraform_blocks`) map a node list through these. Splitting the
-blocks out keeps every module under the 200-line limit and every function under
-30 lines.
-
-All values are safe fakes; the dummy account id is clearly marked. Only what the
-graph declares is rendered — no destructive permissions are ever synthesized here.
+assemblers (:mod:`terraform_blocks`) map a node list through these. All values are
+safe fakes; the dummy account id is clearly marked. Only what the graph declares is
+rendered — no destructive permissions are ever synthesized here.
 """
 
 from __future__ import annotations
@@ -25,34 +22,45 @@ _INGRESS_PORT = constants.DEFAULT_INGRESS_PORT
 _COMPENSATING_CONTROL = "compensating_control"
 
 
+def neutralize_hcl_openers(value: str) -> str:
+    """Rewrite HCL's live ``${`` / ``%{`` openers to their literal-escape form.
+
+    HCL evaluates ``${...}`` / ``%{...}`` inside ANY double-quoted string — including the
+    JSON string ``jsonencode(...)`` receives — so each opener is rewritten to HCL's own
+    escape (``$${`` / ``%%{``). ``$``/``%`` are JSON-safe, so a later ``json.dumps`` keeps
+    them. Shared core of :func:`hcl_str` AND the guard for untrusted scalars entering
+    ``jsonencode``-wrapped policy documents, whose bytes are inert as JSON but LIVE HCL
+    once wrapped (FXL-N2).
+    """
+    return value.replace("${", "$${").replace("%{", "%%{")
+
+
 def hcl_str(value: str) -> str:
     """The single source of truth for a safely-quoted HCL string literal.
 
-    Two escaping layers, both required:
+    Layers: (1) :func:`neutralize_hcl_openers` defuses live ``${``/``%{``; (2)
+    ``json.dumps`` quotes and escapes ``"`` / ``\\`` / control chars so a hostile value
+    cannot break out. Values entering ``jsonencode``-wrapped policy documents do NOT
+    pass here and are neutralized at their own sinks (FXL-N2).
 
-    1. HCL evaluates ``${...}`` (interpolation) and ``%{...}`` (template directives)
-       *inside* a double-quoted string. ``json.dumps`` leaves ``$``/``%``/``{``
-       untouched, so those openers would stay live. We first neutralize them with
-       HCL's own literal-escape sequences (``$${`` / ``%%{``) on the raw value —
-       ``$``/``%`` are JSON-safe, so the later ``json.dumps`` preserves them verbatim.
-    2. ``json.dumps`` then quotes and escapes ``"``, ``\\`` and control chars
-       (newlines), so a hostile value can no longer break out of the string.
-
-    Every scalar string entering emitted HCL must pass through here; JSON policy
-    documents built via ``json.dumps`` are already inert (they are not HCL strings).
+    ``ensure_ascii=False`` (FXL-N2): the default escapes astral-plane chars (e.g. an
+    emoji) as a UTF-16 surrogate pair (``\\ud83d\\ude00``) that HCL cannot decode,
+    breaking ``terraform validate``. Raw UTF-8 (the ``.tf`` files are UTF-8) is valid HCL.
     """
-    neutralized = value.replace("${", "$${").replace("%{", "%%{")
-    return json.dumps(neutralized)
+    return json.dumps(neutralize_hcl_openers(value), ensure_ascii=False)
 
 
 def _actions(node: GraphNode) -> list[str]:
+    """The node's declared IAM actions, neutralized for the ``jsonencode`` policy sink."""
     raw = node.attributes.get("actions", [])
-    return list(raw) if isinstance(raw, list) else [raw]
+    values = list(raw) if isinstance(raw, list) else [raw]
+    return [neutralize_hcl_openers(action) for action in values]
 
 
 def _resource_arn(node: GraphNode) -> str:
+    """The node's declared resource arn, neutralized for the ``jsonencode`` policy sink."""
     raw = node.attributes.get("resource", "*")
-    return raw if isinstance(raw, str) else "*"
+    return neutralize_hcl_openers(raw) if isinstance(raw, str) else "*"
 
 
 def _str_attr(node: GraphNode, key: str, default: str) -> str:
@@ -88,17 +96,16 @@ def role_block(node: GraphNode) -> str:
 def policy_block(node: GraphNode) -> str:
     """A standalone IAM policy from the node's declared actions + resource arn."""
     ref = resource_name(node)
+    # ``ensure_ascii=False``: astral chars stay raw UTF-8, not HCL-undecodable surrogate
+    # ``\\uXXXX`` pairs, inside this ``jsonencode`` string; scalars pre-neutralized (FXL-N2).
     document = json.dumps(
         {
             "Version": "2012-10-17",
             "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": _actions(node),
-                    "Resource": _resource_arn(node),
-                }
+                {"Effect": "Allow", "Action": _actions(node), "Resource": _resource_arn(node)}
             ],
-        }
+        },
+        ensure_ascii=False,
     )
     return (
         f'resource "aws_iam_policy" "{ref}" {{\n'
@@ -124,18 +131,17 @@ def bucket_block(node: GraphNode) -> str:
 
 def _bucket_policy_block(node: GraphNode) -> str:
     ref = resource_name(node)
+    # ``_bucket_name`` carries untrusted ``node.name`` into this LIVE ``jsonencode`` HCL
+    # string: neutralize openers + emit raw UTF-8 (not surrogate escapes) — FXL-N2.
+    arn = neutralize_hcl_openers(f"arn:aws:s3:::{_bucket_name(node)}/public/*")
     document = json.dumps(
         {
             "Version": "2012-10-17",
             "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": "*",
-                    "Action": "s3:GetObject",
-                    "Resource": f"arn:aws:s3:::{_bucket_name(node)}/public/*",
-                }
+                {"Effect": "Allow", "Principal": "*", "Action": "s3:GetObject", "Resource": arn}
             ],
-        }
+        },
+        ensure_ascii=False,
     )
     return (
         f'\nresource "aws_s3_bucket_policy" "{ref}" {{\n'

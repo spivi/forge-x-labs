@@ -38,8 +38,8 @@ jobs:
       # scaffolding (lemmings/, .claude/skills/, flavors/) that this project keeps inert;
       # gating on it would block product PRs for code the project doesn't own. ruff's
       # own config also excludes flavors/ (placeholder TOML).
-      - run: ruff check app/ tests/cloudforge/
-      - run: ruff format --check app/ tests/cloudforge/
+      - run: ruff check app/ tests/cloudforge/ tests/security/
+      - run: ruff format --check app/ tests/cloudforge/ tests/security/
       - if: steps.tpl.outputs.is_template == 'false'
         run: mypy app/ --ignore-missing-imports
 

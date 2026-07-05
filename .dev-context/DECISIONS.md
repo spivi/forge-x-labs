@@ -105,3 +105,35 @@ on the 12-point definition (FXL-D003) being enforceable, not just authorable.
 
 **Consequences**: Near-term roadmap is validation depth, not scenario breadth. The
 `ScenarioGenerator` seam stays ready; new families wait.
+
+## FXL-D005: `jsonencode` policy documents are LIVE HCL, and astral chars need raw UTF-8
+
+**Status**: accepted
+**Date**: 2026-07-05
+
+**Context**: The FXL-N2 adversarial corpus, run against every string sink under real
+`terraform validate`, uncovered two emitter bypasses the FXL-35/FXL-39 hardening missed.
+The prior `hcl_str` docstring asserted "JSON policy documents built via `json.dumps` are
+already inert (they are not HCL strings)" — this was FALSE.
+
+**Decision**: Two invariants for every untrusted value reaching emitted HCL:
+1. **`jsonencode(...)` arguments are LIVE HCL strings.** HCL evaluates `${}`/`%{}` inside
+   the JSON string handed to `jsonencode`. A hostile IAM `resource`/`actions` value or a
+   bucket-policy `Resource` (which embeds `node.name`) was therefore live: e.g.
+   `${data.nonexistent.thing.value}` broke `terraform validate` (undeclared reference), and
+   `%{ for x in [1,2] }${x}%{ endfor }` silently evaluated to `12`. Fix: neutralize `${`→`$${`,
+   `%{`→`%%{` (extracted as `neutralize_hcl_openers`) at those JSON sinks too — not only in
+   `hcl_str`.
+2. **Astral-plane characters must be emitted as raw UTF-8, not surrogate escapes.**
+   `json.dumps` defaults to `ensure_ascii=True`, escaping e.g. an emoji as a UTF-16 surrogate
+   pair `😀`; HCL cannot decode `\uD800`–`\uDFFF` ("Cannot encode character U+d83d"),
+   breaking `terraform validate`. Fix: `json.dumps(..., ensure_ascii=False)` (the `.tf` files
+   are UTF-8); `"` / `\` / control chars stay escaped. BMP unicode (`café`, `日本`, Cyrillic)
+   was already fine via `\uXXXX`.
+
+**Consequences**: `neutralize_hcl_openers` is now the shared HCL-opener guard, applied at
+`hcl_str` AND the `jsonencode` policy-document sinks. AWS provider *content-schema* rejections
+(S3 bucket name > 63 chars, IAM role name charset, non-CIDR `cidr_block`) are the
+acceptance-criteria "OR rejected with a clear validation error" branch — NOT a breakout — so
+the corpus terraform-validate test isolates the pure HCL-injection surface (generic `locals`
+strings) from provider naming/CIDR rules.
