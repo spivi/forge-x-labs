@@ -1,0 +1,103 @@
+# cloudforge learning-corpus — source registry (allow-list)
+#
+# This file is the ONLY set of sources the corpus fetcher/ingester is allowed to touch.
+# There is NO broad crawling and NO spider — the fetcher refuses anything not listed here
+# (and anything with `enabled: false`). Every entry's provenance is stamped onto the
+# RiskPatterns it produces. See docs/plans/2026-07-05-FXL-E2-learning-corpus-design.md §4
+# and (once written) docs/wiki/Source-Registry.md + Provenance-and-Licensing.md.
+#
+# Per-entry schema:
+#   id                    stable slug; used in provenance + raw-cache path data/raw/<id>/
+#   name                  human-readable name
+#   type                  scanner_rule_index | scanner_rule_catalog | provider_guidance |
+#                         control_framework | local_scenario_dir | local_rule_catalog | iac_repo
+#   url  OR  path         remote URL (approved) OR local path (no network)
+#   adapter               which adapter ingests it (app/cloudforge/learn/adapters/)
+#   enabled               fetcher/ingester skip anything false
+#   license               SPDX id, or "unknown"
+#   reuse_status          full_reuse | attribution | metadata_only | restricted | unknown
+#   allowed_for_training  governance-derived (see rules below); unknown/restricted/metadata_only => false
+#   notes                 human notes (why this posture)
+#
+# Governance rules (enforced by the registry loader):
+#   1. license: unknown          -> allowed_for_training forced false
+#   2. reuse_status: restricted  -> excluded from the training export
+#   3. reuse_status: metadata_only -> extract IDs / resource-types / summaries ONLY;
+#                                     never copy rule source or benchmark control text
+#   4. unsafe-operational content -> rejected at classification (never enters the corpus)
+#
+# HUMAN CALL NEEDED (coordinator): CSA CCM and CIS Benchmarks reuse rights. Both default to
+# `restricted` / not-training-eligible until a human confirms. Do not upgrade without a
+# recorded FXL-D decision.
+
+sources:
+  # ── Tier 1: scanner rule corpora (metadata-only) ──────────────────────────────
+  - id: checkov-terraform-index
+    name: "Checkov Terraform policy index"
+    type: scanner_rule_index
+    url: "https://www.checkov.io/5.Policy%20Index/terraform.html"
+    adapter: checkov_policy_index
+    enabled: true
+    license: "Apache-2.0"
+    reuse_status: metadata_only
+    allowed_for_training: false
+    notes: >-
+      Metadata only: extract policy IDs, resource types, titles, severities. NEVER copy
+      rule source or logic. Apache-2.0 permits more, but we stay metadata-only by policy.
+      Ingested from a recorded fixture HTML in unit tests (no live Checkov, no internet).
+
+  # ── Tier 4: public "bad-env" IaC — LOCAL curated registry ONLY (no broad scraping) ──
+  - id: local-rule-catalog
+    name: "cloudforge local curated rule catalog (seed patterns)"
+    type: local_rule_catalog
+    path: "data/rule_catalog/seed_patterns.yaml"
+    adapter: rule_catalog_yaml
+    enabled: true
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+    notes: >-
+      Hand-authored seed RiskPatterns (>=12, AWS/Azure/GCP mix). Fully owned by this repo,
+      defensive patterns only. The dependable core of the corpus. Authored under ticket
+      #14 (Add seed rule catalog).
+
+  # ── Example local source: existing generated scenarios (adapter: cloudforge_scenario) ──
+  - id: local-scenarios-out
+    name: "cloudforge generated scenario dirs"
+    type: local_scenario_dir
+    path: "out/"
+    adapter: cloudforge_scenario
+    enabled: false   # enable once out/ scenarios exist to ingest
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+    notes: >-
+      Ingests existing out/<scenario> dirs (scenario.yaml / graph.json /
+      expected_findings.json / ground_truth_paths.json). Already validated & self-consistent.
+
+  # ── Scaffolded-for-the-future (disabled): control frameworks — HUMAN CALL on reuse ──
+  - id: csa-ccm
+    name: "CSA Cloud Controls Matrix (CCM v4) — 197 controls / 17 domains"
+    type: control_framework
+    url: "https://cloudsecurityalliance.org/research/cloud-controls-matrix"
+    adapter: rule_catalog_yaml   # placeholder; a CCM adapter is future work, not this epic
+    enabled: false
+    license: "unknown"
+    reuse_status: restricted
+    allowed_for_training: false
+    notes: >-
+      Control-ID MAPPINGS only are safe (our IDs -> CCM control IDs). Copying CCM control
+      TEXT is NOT permitted without a human/legal call. Stays restricted until confirmed.
+
+  - id: cis-benchmarks
+    name: "CIS Benchmarks (cloud) — metadata only"
+    type: control_framework
+    url: "https://www.cisecurity.org/cis-benchmarks"
+    adapter: rule_catalog_yaml   # placeholder; not ingested this epic
+    enabled: false
+    license: "unknown"
+    reuse_status: metadata_only
+    allowed_for_training: false
+    notes: >-
+      Benchmark metadata only (section IDs, titles). CIS content is restricted; never copy
+      control text. Human call needed before any reuse beyond ID mappings.
