@@ -52,6 +52,10 @@ node_modules/
 # cloudforge generated scenario artifacts (never committed — regenerated locally)
 out/
 
+# cloudforge learning-corpus raw fetch cache (regenerated locally, content-addressed)
+data/raw/*
+!data/raw/.gitkeep
+
 # Social media animation assets (generated)
 social-assets/
 .tmp.driveupload/
