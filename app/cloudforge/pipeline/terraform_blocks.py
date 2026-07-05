@@ -25,6 +25,8 @@ from app.cloudforge.pipeline.terraform_resource_blocks import hcl_str
 _DUMMY = constants.DUMMY_ACCOUNT_ID
 _REGION = constants.DEFAULT_REGION
 _EMPTY = constants.EMPTY_TF_HEADER
+# Safe placeholder tags for a graph with no nodes (keeps ``derive_common_tags`` total).
+_UNKNOWN_TAG = "unknown"
 
 
 # --- static, family-independent files ----------------------------------------
@@ -70,9 +72,12 @@ def derive_common_tags(nodes: list[GraphNode]) -> NodeTags:
     """The family's representative tags: the Account/root node's, else the first node's.
 
     Each family stamps every node with one tag set, so the Account node is a stable,
-    unambiguous source. Falling back to the first node keeps the emitter total for
-    graphs without an Account node.
+    unambiguous source; falling back to the first node covers graphs without one. An
+    empty node list has no source at all, so the function stays total by returning a
+    safe ``"unknown"`` placeholder tag set instead of indexing ``nodes[0]``.
     """
+    if not nodes:
+        return NodeTags(env=_UNKNOWN_TAG, owner=_UNKNOWN_TAG, app=_UNKNOWN_TAG)
     accounts = _of_type(nodes, NodeType.ACCOUNT)
     source = accounts[0] if accounts else nodes[0]
     return source.tags
