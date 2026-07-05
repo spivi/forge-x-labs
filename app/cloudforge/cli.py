@@ -14,6 +14,8 @@ from rich.console import Console
 
 from app.cloudforge import __version__
 from app.cloudforge.errors import CloudforgeError
+from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.mutation_generator import MutationGenerator
 from app.cloudforge.generate.template_generator import TemplateGenerator
 from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.io.paths import ScenarioPaths
@@ -33,16 +35,30 @@ _STATUS_STYLE = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "red"
 def generate(
     scenario: Annotated[Path, typer.Argument(help="Path to a scenario YAML file.")],
     out: Annotated[Path, typer.Option("--out", help="Output scenario directory.")],
+    mutate_seed: Annotated[
+        int | None,
+        typer.Option("--mutate-seed", help="Emit a seeded, ground-truth-preserving variant."),
+    ] = None,
 ) -> None:
-    """Generate the full artifact tree for a scenario."""
+    """Generate the full artifact tree for a scenario (optionally a seeded variant)."""
     try:
         spec = ScenarioSpec.model_validate(load_yaml(scenario))
         bundle = TemplateGenerator().generate(spec)
+        bundle = _apply_mutation(bundle, spec, mutate_seed)
     except CloudforgeError as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     ScenarioArtifacts(ScenarioPaths.from_dir(out)).write_all(spec, bundle)
     console.print(f"[green]generated[/green] scenario at {out}")
+
+
+def _apply_mutation(
+    bundle: ScenarioBundle, spec: ScenarioSpec, seed: int | None
+) -> ScenarioBundle:
+    """Return a seeded variant when ``--mutate-seed`` is set, else the bundle as-is."""
+    if seed is None:
+        return bundle
+    return MutationGenerator(bundle, seed, spec.constraints.max_resources).generate()
 
 
 @app.command()
