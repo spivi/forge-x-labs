@@ -58,9 +58,9 @@ def _node_with_id(node_id: str, node_type: NodeType = NodeType.S3_BUCKET) -> Gra
 def test_resource_name_is_always_a_legal_identifier(hostile: HostileValue) -> None:
     """Every corpus value as a ``node.id`` sanitizes to a legal Terraform label."""
     label = resource_name(_node_with_id(hostile.value))
-    assert _TF_IDENTIFIER.match(
-        label
-    ), f"illegal identifier {label!r} from id {hostile.id!r} ({hostile.value!r})"
+    assert _TF_IDENTIFIER.match(label), (
+        f"illegal identifier {label!r} from id {hostile.id!r} ({hostile.value!r})"
+    )
 
 
 def test_resource_name_never_starts_with_a_digit(hostile: HostileValue) -> None:

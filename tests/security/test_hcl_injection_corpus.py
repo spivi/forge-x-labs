@@ -100,9 +100,9 @@ def _node(node_type: NodeType, *, name: str = "n", **attrs: str) -> GraphNode:
 def test_hcl_str_literal_has_no_live_opener(hostile: HostileValue) -> None:
     """Every corpus value, quoted via ``hcl_str``, carries no LIVE ``${``/``%{``."""
     literal = hcl_str(hostile.value)
-    assert not _has_live_hcl_opener(
-        literal
-    ), f"live HCL opener survived for {hostile.id!r}: {literal!r}"
+    assert not _has_live_hcl_opener(literal), (
+        f"live HCL opener survived for {hostile.id!r}: {literal!r}"
+    )
 
 
 def test_hcl_str_never_breaks_out_of_its_quotes(hostile: HostileValue) -> None:
@@ -136,9 +136,9 @@ def test_hcl_str_never_emits_a_raw_newline(hostile: HostileValue) -> None:
 
 def _emit_and_scan(builder_output: str, hostile: HostileValue) -> None:
     """Shared assertions for a rendered block that embeds a hostile value."""
-    assert not _has_live_hcl_opener(
-        builder_output
-    ), f"sink emitted a live HCL opener for {hostile.id!r}"
+    assert not _has_live_hcl_opener(builder_output), (
+        f"sink emitted a live HCL opener for {hostile.id!r}"
+    )
     # No injected resource block appears (the value must stay inside a string literal).
     assert '"PWNED"' not in builder_output
     assert '"injected"' not in builder_output
