@@ -10,7 +10,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from app.cloudforge.io.paths import ScenarioPaths
+from app.cloudforge.report.renderer import ReportRenderer
 from app.cloudforge.validate import scanner_score
 
 # Terraform resource address -> the checkov ``resource`` field. The scorer strips the
@@ -128,6 +131,45 @@ def test_malformed_checkov_json_is_fail_soft(generated_scenario: Path) -> None:
 
     # Never crash on garbage scanner output — treat as "not scored".
     assert scanner_score.score_scenario(paths) is None
+
+
+# Valid JSON but a structurally-unexpected shape — e.g. a truncated/interrupted checkov
+# write or a scanner error object. The chained ``.get`` on a non-dict ``results`` (or a
+# non-list ``failed_checks``) must NOT raise: fail-soft to None ("not scored").
+_STRUCTURALLY_BROKEN_PAYLOADS = [
+    {"results": None},
+    {"results": 42},
+    {"results": {"failed_checks": None}},
+    {"results": {"failed_checks": 7}},
+    {"results": []},
+]
+
+
+@pytest.mark.parametrize("payload", _STRUCTURALLY_BROKEN_PAYLOADS)
+def test_non_dict_results_is_fail_soft_not_raise(
+    generated_scenario: Path, payload: dict[str, object]
+) -> None:
+    paths = ScenarioPaths.from_dir(generated_scenario)
+    paths.checkov_results.parent.mkdir(parents=True, exist_ok=True)
+    paths.checkov_results.write_text(json.dumps(payload), encoding="utf-8")
+
+    # score_scenario is documented to never raise; a structurally-broken shape -> None.
+    assert scanner_score.score_scenario(paths) is None
+
+
+@pytest.mark.parametrize("payload", _STRUCTURALLY_BROKEN_PAYLOADS)
+def test_render_is_fail_soft_on_structurally_broken_checkov(
+    generated_scenario: Path, payload: dict[str, object]
+) -> None:
+    paths = ScenarioPaths.from_dir(generated_scenario)
+    paths.checkov_results.parent.mkdir(parents=True, exist_ok=True)
+    paths.checkov_results.write_text(json.dumps(payload), encoding="utf-8")
+
+    # The report path calls score_scenario — it must not crash on such input.
+    report = ReportRenderer(generated_scenario).render()
+
+    assert "## Scanner Score" in report
+    assert "not scored — no scanner output." in report
 
 
 def test_score_to_file_writes_json(generated_scenario: Path) -> None:

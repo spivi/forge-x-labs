@@ -45,7 +45,8 @@ def _score_scanner(paths: ScenarioPaths) -> ValidationOutcome:
     if written is None:
         return ValidationOutcome(Status.WARN, "scanner score", "not scored — no scanner output")
     score = scanner_score.score_scenario(paths)
-    assert score is not None  # write succeeded, so a score exists
+    if score is None:
+        return ValidationOutcome(Status.WARN, "scanner score", "not scored — no scanner output")
     detail = (
         f"{score.matched_findings}/{score.expected_findings} expected findings detected "
         f"(coverage {score.scanner_coverage_score})"

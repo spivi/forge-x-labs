@@ -100,12 +100,20 @@ def _score(
 def _unexpected_count(
     graph: ScenarioGraph, failed_resources: list[str], matched_nodes: set[str]
 ) -> int:
-    """Distinct failed-check resources that map to no expected-finding node."""
+    """Distinct failed-check targets that touch no expected-finding node.
+
+    Deduped by graph node when the resource resolves to one (so a node emitting two
+    Terraform resources — e.g. a bucket + its bucket policy sharing one label — counts
+    once, consistent with the node-set matched/missed counts); an unresolvable resource
+    (mapping to no node at all) is keyed by its address, as it has no node to dedup by.
+    """
     unexpected: set[str] = set()
     for resource in failed_resources:
         node_id = _resolve_node_id(graph, resource)
-        if node_id is None or node_id not in matched_nodes:
+        if node_id is None:
             unexpected.add(resource)
+        elif node_id not in matched_nodes:
+            unexpected.add(node_id)
     return len(unexpected)
 
 
@@ -141,7 +149,10 @@ def _load_failed_resources(paths: ScenarioPaths) -> list[str] | None:
         return None
     if not isinstance(payload, dict):
         return None
-    failed = payload.get("results", {}).get("failed_checks", [])
+    results = payload.get("results", {})
+    if not isinstance(results, dict):
+        return None
+    failed = results.get("failed_checks", [])
     if not isinstance(failed, list):
         return None
     return [
