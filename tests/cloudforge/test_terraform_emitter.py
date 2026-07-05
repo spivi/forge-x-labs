@@ -8,6 +8,7 @@ scenario graph nodes — not a single hardcoded family. The regression suite pin
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -21,7 +22,12 @@ from app.cloudforge.models.graph import (
     NodeType,
     ScenarioGraph,
 )
+from app.cloudforge.pipeline.terraform_blocks import derive_common_tags
 from app.cloudforge.pipeline.terraform_emitter import TerraformEmitter
+from app.cloudforge.pipeline.terraform_resource_blocks import resource_name
+
+# A Terraform label must start with a letter/underscore, then letters/digits/underscores.
+_TF_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def _emit(graph: ScenarioGraph, tmp_path: Path) -> dict[str, str]:
@@ -238,6 +244,70 @@ def test_interpolation_reference_does_not_break_validate(tmp_path: Path) -> None
     # substring of the inert ``$${``, so a bare ``not in`` would false-positive).
     assert "${" not in s3.replace("$$", "")
     _assert_terraform_validates(files, tmp_path)
+
+
+# --- resource-LABEL injection: node.id must be sanitized to a legal id (FXL-39) --
+
+
+_HOSTILE_IDS = ('a" { evil }', "123start", "", "x\ny", "a b-c", 'a" { evil }" {')
+
+
+def test_resource_name_is_always_a_legal_identifier() -> None:
+    for hostile in _HOSTILE_IDS:
+        node = _node_with_id(hostile)
+        assert _TF_IDENTIFIER.match(resource_name(node)), f"illegal id from {hostile!r}"
+
+
+def test_resource_name_maps_hyphen_to_underscore() -> None:
+    # Preserve the pre-FXL-39 behavior for the common, benign case.
+    assert resource_name(_node_with_id("deploy-role-1")) == "deploy_role_1"
+
+
+def _node_with_id(node_id: str) -> GraphNode:
+    return GraphNode(
+        id=node_id,
+        type=NodeType.S3_BUCKET,
+        name="hostile-id-bucket",
+        tags=NodeTags(env="staging", owner="platform-team", app="analytics-exporter"),
+        security=NodeSecurity(criticality="low"),
+        attributes={},
+    )
+
+
+def _hostile_id_ci_cd_graph(node_id: str) -> ScenarioGraph:
+    """The ci_cd graph plus one extra bucket whose *id* carries a label-breakout payload."""
+    graph = ci_cd_iam_chain.build_graph()
+    return ScenarioGraph(nodes=[*graph.nodes, _node_with_id(node_id)], edges=graph.edges)
+
+
+def test_hostile_id_does_not_inject_new_block(tmp_path: Path) -> None:
+    # An id crafted to break out of the resource-LABEL position must not create a block.
+    files = _emit(_hostile_id_ci_cd_graph('a" { evil }" { injected'), tmp_path)
+    s3 = files["s3.tf"]
+
+    # Still exactly 3 bucket resources (2 real + 1 hostile) — no injected extra block.
+    assert s3.count('resource "aws_s3_bucket" "') == 3
+    # The emitted label is the sanitized identifier (every non-[A-Za-z0-9_] -> ``_``),
+    # never the raw payload — so no breakout `{ evil }`/`{ injected` block is created.
+    expected_label = resource_name(_node_with_id('a" { evil }" { injected'))
+    assert expected_label == "a____evil______injected"
+    assert f'resource "aws_s3_bucket" "{expected_label}"' in s3
+    assert 'resource "aws_s3_bucket" "a"' not in s3
+
+
+def test_hostile_id_hcl_is_terraform_valid(tmp_path: Path) -> None:
+    files = _emit(_hostile_id_ci_cd_graph('a" { evil }\nbad'), tmp_path)
+    _assert_terraform_validates(files, tmp_path)
+
+
+# --- derive_common_tags is total on an empty graph (FXL-39) ------------------
+
+
+def test_derive_common_tags_on_empty_graph_does_not_raise() -> None:
+    tags = derive_common_tags([])
+
+    assert isinstance(tags, NodeTags)
+    assert tags == NodeTags(env="unknown", owner="unknown", app="unknown")
 
 
 def _assert_terraform_validates(files: dict[str, str], tmp_path: Path) -> None:

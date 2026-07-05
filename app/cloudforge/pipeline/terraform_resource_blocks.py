@@ -16,6 +16,9 @@ import json
 
 from app.cloudforge import constants
 from app.cloudforge.models.graph import GraphNode
+from app.cloudforge.pipeline.identifiers import resource_name
+
+__all__ = ["resource_name"]  # re-exported so existing call sites stay unchanged
 
 _ACCOUNT = constants.DUMMY_ACCOUNT_ID
 _INGRESS_PORT = constants.DEFAULT_INGRESS_PORT
@@ -40,11 +43,6 @@ def hcl_str(value: str) -> str:
     """
     neutralized = value.replace("${", "$${").replace("%{", "%%{")
     return json.dumps(neutralized)
-
-
-def resource_name(node: GraphNode) -> str:
-    """A Terraform-safe local resource name derived from the node id."""
-    return node.id.replace("-", "_")
 
 
 def _actions(node: GraphNode) -> list[str]:
