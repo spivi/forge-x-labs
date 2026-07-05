@@ -16,13 +16,23 @@
     },
     "label:area:generation": {
       "recommended_model": "sonnet",
-      "samples": 4,
+      "samples": 5,
       "verdicts": {
-        "overkill": 3,
+        "overkill": 4,
         "well-matched": 1
       },
-      "avg_cost_usd": 8.0639,
-      "rationale": "0 underpowered / 3 overkill / 1 well-matched over 4 runs [floor: sonnet]"
+      "avg_cost_usd": 8.5851,
+      "rationale": "0 underpowered / 4 overkill / 1 well-matched over 5 runs [floor: sonnet]"
+    },
+    "type:fix": {
+      "recommended_model": "sonnet",
+      "samples": 3,
+      "verdicts": {
+        "overkill": 2,
+        "well-matched": 1
+      },
+      "avg_cost_usd": 10.1598,
+      "rationale": "0 underpowered / 2 overkill / 1 well-matched over 3 runs [floor: sonnet]"
     }
   }
 }
