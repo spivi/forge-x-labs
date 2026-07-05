@@ -48,6 +48,9 @@ alembic/versions/__pycache__/
 # Node (Playwright)
 node_modules/
 
+# cloudforge generated scenario artifacts (never committed — regenerated locally)
+out/
+
 # Social media animation assets (generated)
 social-assets/
 .tmp.driveupload/

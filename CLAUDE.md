@@ -5,8 +5,8 @@
 
 ## Project
 
-- **Name**: `{{PROJECT_NAME}}` — {{PROJECT_DESCRIPTION}}
-- **Identifiers**: `{{PROJECT_ID}}` for decisions/branches (`{{PROJECT_ID}}-D001`, `feat/{{PROJECT_ID}}-42-foo`), `{{TICKET_PREFIX}}` for Linear issues (`{{TICKET_PREFIX}}-157`)
+- **Name**: `cloudforge` — Local-first generation of validated cloud-risk scenarios for scanner benchmarking, training, and prioritization research.
+- **Identifiers**: `FXL` for decisions/branches (`FXL-D001`, `feat/FXL-42-foo`), `FXL` for Linear issues (`FXL-157`)
 - **Config**: `.dev-context/project.conf`
 
 ## Stack
@@ -51,16 +51,16 @@ bash tests/hooks/test_log_session_cost.sh         # Budget review hook tests
 > use the appropriate entry point. Never skip phases within a tier unless the human approves.
 >
 > - New feature idea → `/develop <describe the idea>` (Feature tier — full pipeline)
-> - Existing ticket → `/develop {{TICKET_PREFIX}}-NNN` (auto-detects tier from labels)
-> - Bug fix → `/develop fix {{TICKET_PREFIX}}-NNN` (Fix tier — skip brainstorm/PRD)
+> - Existing ticket → `/develop FXL-NNN` (auto-detects tier from labels)
+> - Bug fix → `/develop fix FXL-NNN` (Fix tier — skip brainstorm/PRD)
 > - Small change → `/develop tweak <desc>` (Tweak tier — minimal ceremony)
-> - Production emergency → `/hotfix {{TICKET_PREFIX}}-NNN` (5-phase fast path)
+> - Production emergency → `/hotfix FXL-NNN` (5-phase fast path)
 > - Production health → `/monitor` (read-only diagnostics)
 > - Debug investigation → `/diagnose <error>` (root cause analysis, no code changes)
 > - Post-sprint calibration → `/debrief` (learn estimate factors + model routing from real actuals)
-> - Resume interrupted work → `/develop resume {{TICKET_PREFIX}}-NNN`
-> - Review + PR only → `/develop review {{TICKET_PREFIX}}-NNN`
-> - Post-merge cleanup → `/develop cleanup {{TICKET_PREFIX}}-NNN`
+> - Resume interrupted work → `/develop resume FXL-NNN`
+> - Review + PR only → `/develop review FXL-NNN`
+> - Post-merge cleanup → `/develop cleanup FXL-NNN`
 >
 > If the user describes a feature without invoking `/develop`, remind them of this workflow.
 
@@ -70,7 +70,7 @@ bash tests/hooks/test_log_session_cost.sh         # Budget review hook tests
 2. **On end**: Update `STATUS.md` and **`.claude/cc10x/activeContext.md`** (current focus, learnings); append durable lessons to `.claude/cc10x/patterns.md`
 3. **Before architectural choices**: Check `DECISIONS.md` — don't re-litigate accepted decisions
 4. **New decisions**: Add entry to `DECISIONS.md` before implementing
-5. **Task references**: Use `{{TICKET_PREFIX}}-NNN` format in commits, branches, STATUS.md
+5. **Task references**: Use `FXL-NNN` format in commits, branches, STATUS.md
 6. **Planning gate (HARD STOP)**: Never code a ticket until `python scripts/tracker.py ready <TICKET>` passes (estimate + model stamped via `/prd`). See `rules/planning-gate.md`.
 
 ## Closed Learning Loop
@@ -96,8 +96,8 @@ to close the loop.
 
 - **Default branch**: `master`
 - **Branch from**: `master`
-- **Branch naming**: `feat/{{TICKET_PREFIX}}-<number>-<short-desc>` or `fix/{{TICKET_PREFIX}}-<number>-<short-desc>`
-- **Commits**: Conventional format — `feat({{TICKET_PREFIX}}-157): add response time optimization`
+- **Branch naming**: `feat/FXL-<number>-<short-desc>` or `fix/FXL-<number>-<short-desc>`
+- **Commits**: Conventional format — `feat(FXL-157): add response time optimization`
 - **Sign-off**: All commits MUST use `--signoff` — `Signed-off-by: Alex Spivakovsky <alex.spivakovsky@gmail.com>`
 - **Worktrees**: Every feature gets `git worktree add` — see parallel-dev rules
 - **PR workflow**: Open PR → poll checks → auto-merge if green → ask user if red

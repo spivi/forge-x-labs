@@ -1,7 +1,7 @@
 # Project Status
 
 **Current Phase:** Setup
-**Last Updated:** {{SETUP_DATE}}
+**Last Updated:** 2026-07-05
 
 ## Recent Achievements
 - Project initialized from dev-template

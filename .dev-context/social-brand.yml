@@ -1,5 +1,5 @@
 brand:
-  name: "{{PROJECT_NAME}}"
+  name: "cloudforge"
   tagline: "Your project tagline"
   tagline_secondary: ""
 
