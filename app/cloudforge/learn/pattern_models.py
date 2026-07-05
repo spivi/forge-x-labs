@@ -14,94 +14,33 @@ and its ``reuse_status`` is not restricted/metadata_only/unknown. ``mappings_onl
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from app.cloudforge.learn.pattern_enums import (
+    TRAINABLE_CLASSIFICATIONS,
+    CloudProvider,
+    Domain,
+    SafetyClassification,
+    ValidationStatus,
+    WeaknessFamily,
+)
 from app.cloudforge.learn.source_models import NON_TRAINING_REUSE, ReuseStatus, SourceType
 from app.cloudforge.models.findings import ExpectedFinding, Severity
 from app.cloudforge.models.graph import ScenarioGraph
 
-
-class CloudProvider(StrEnum):
-    AWS = "aws"
-    AZURE = "azure"
-    GCP = "gcp"
-    KUBERNETES = "kubernetes"
-    MULTI_CLOUD = "multi_cloud"
-    GENERIC = "generic"
-
-
-class Domain(StrEnum):
-    IAM = "iam"
-    STORAGE = "storage"
-    NETWORK = "network"
-    LOGGING = "logging"
-    ENCRYPTION = "encryption"
-    CI_CD = "ci_cd"
-    SECRETS = "secrets"
-    DATA = "data"
-    COMPUTE = "compute"
-    DATABASE = "database"
-    SERVERLESS = "serverless"
-    CONTAINERS = "containers"
-    MONITORING = "monitoring"
-    GOVERNANCE = "governance"
-
-
-class WeaknessFamily(StrEnum):
-    """cloudforge families (mirroring ``findings.FindingFamily``) plus a generic list.
-
-    The first six values are kept identical to ``models.findings.FindingFamily`` so a
-    weakness family and a finding family share a vocabulary; the rest are the generic,
-    provider-agnostic families from design §6.
-    """
-
-    # cloudforge families (aligned with FindingFamily).
-    IAM_EXCESSIVE_PRIVILEGE = "iam_excessive_privilege"
-    IAM_PASSROLE_RISK = "iam_passrole_risk"
-    S3_LOGGING_MISSING = "s3_logging_missing"
-    S3_PUBLIC_EXPOSURE = "s3_public_exposure"
-    SECURITY_GROUP_OVEREXPOSED = "security_group_overexposed"
-    PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL = (
-        "public_looking_bucket_with_compensating_control"
-    )
-    # generic, provider-agnostic families.
-    PUBLIC_EXPOSURE = "public_exposure"
-    EXCESSIVE_PRIVILEGE = "excessive_privilege"
-    MISSING_ENCRYPTION = "missing_encryption"
-    MISSING_LOGGING = "missing_logging"
-    WEAK_NETWORK_BOUNDARY = "weak_network_boundary"
-    INSECURE_DEFAULTS = "insecure_defaults"
-    SECRETS_EXPOSURE = "secrets_exposure"
-    UNRESTRICTED_ACCESS = "unrestricted_access"
-    MISCONFIGURED_CONTROL = "misconfigured_control"
-    OTHER = "other"
-
-
-class SafetyClassification(StrEnum):
-    DEFENSIVE_PATTERN = "defensive_pattern"
-    BENCHMARK_PATTERN = "benchmark_pattern"
-    TRAINING_PATTERN = "training_pattern"
-    RESTRICTED_SOURCE = "restricted_source"
-    UNSAFE_OPERATIONAL = "unsafe_operational"
-    UNKNOWN = "unknown"
-
-
-class ValidationStatus(StrEnum):
-    UNVALIDATED = "unvalidated"
-    VALID = "valid"
-    INVALID = "invalid"
-
-
-# Classifications that may be exported for training (design §6/§9.6).
-TRAINABLE_CLASSIFICATIONS: frozenset[SafetyClassification] = frozenset(
-    {
-        SafetyClassification.DEFENSIVE_PATTERN,
-        SafetyClassification.BENCHMARK_PATTERN,
-        SafetyClassification.TRAINING_PATTERN,
-    }
-)
+# Re-exported so callers may import every ontology name from ``pattern_models`` too.
+__all__ = [
+    "TRAINABLE_CLASSIFICATIONS",
+    "CloudProvider",
+    "Domain",
+    "PatternProvenance",
+    "RawPatternRecord",
+    "RiskPattern",
+    "SafetyClassification",
+    "ValidationStatus",
+    "WeaknessFamily",
+]
 
 
 class PatternProvenance(BaseModel):
