@@ -6,9 +6,7 @@ import pytest
 
 from app.cloudforge.generate.template_generator import TemplateGenerator
 from app.cloudforge.models.graph import (
-    EdgeSecurity,
     EdgeType,
-    GraphEdge,
     GraphNode,
     NodeSecurity,
     NodeTags,
@@ -46,7 +44,9 @@ def test_missing_edge_returns_fail(example_spec: ScenarioSpec) -> None:
     "action",
     ["iam:DeleteRole", "s3:DeleteBucket", "ec2:TerminateInstances", "organizations:CreateAccount"],
 )
-def test_forbidden_permission_present_returns_fail(example_spec: ScenarioSpec, action: str) -> None:
+def test_forbidden_permission_present_returns_fail(
+    example_spec: ScenarioSpec, action: str
+) -> None:
     bundle = TemplateGenerator().generate(example_spec)
     bundle.graph.nodes.append(_policy_node_with_action(action))
 

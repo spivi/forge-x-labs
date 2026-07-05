@@ -58,7 +58,9 @@ def test_terraform_config_error_classified_as_fail(
 def test_opa_denial_returns_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(tool_probe, "detect_tool", lambda name: True)
     denial = '{"result":[{"expressions":[{"value":["forbidden permission"]}]}]}'
-    monkeypatch.setattr(external_scans.tool_probe, "run_tool", lambda *a, **k: ToolRun(0, denial, ""))
+    monkeypatch.setattr(
+        external_scans.tool_probe, "run_tool", lambda *a, **k: ToolRun(0, denial, "")
+    )
 
     outcome = external_scans.run_opa(_paths(tmp_path), "policies/scenario.rego")
 
@@ -68,7 +70,9 @@ def test_opa_denial_returns_fail(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 def test_opa_no_denial_returns_pass(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(tool_probe, "detect_tool", lambda name: True)
     clean = '{"result":[{"expressions":[{"value":[]}]}]}'
-    monkeypatch.setattr(external_scans.tool_probe, "run_tool", lambda *a, **k: ToolRun(0, clean, ""))
+    monkeypatch.setattr(
+        external_scans.tool_probe, "run_tool", lambda *a, **k: ToolRun(0, clean, "")
+    )
 
     outcome = external_scans.run_opa(_paths(tmp_path), "policies/scenario.rego")
 

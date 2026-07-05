@@ -35,6 +35,10 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 99
 target-version = "py312"
+# `flavors/` holds un-instantiated project templates whose pyproject.toml files still
+# contain `{{PLACEHOLDER}}` tokens (invalid TOML/keys). They are scaffolding, not source,
+# so exclude them from linting/parsing (CI runs `ruff check .` over the whole repo).
+extend-exclude = ["flavors/"]
 
 [tool.ruff.lint]
 # TCH/TC intentionally omitted: this codebase resolves type annotations at runtime
