@@ -1,0 +1,18 @@
+{
+  "paths": [
+    {
+      "id": "path-critical-pde-01",
+      "severity": "critical",
+      "nodes": [
+        "acct-main",
+        "s3-public-data",
+        "data-customer-pii"
+      ],
+      "edges": [
+        "acct-main->exposed_to_internet->s3-public-data",
+        "s3-public-data->stores_sensitive_data->data-customer-pii"
+      ],
+      "explanation": "The customer-pii bucket has public-read access with no compensating control, so it is reachable directly from the internet -> anonymous read of the sensitive customer-PII dataset it stores."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "findings": [
+    {
+      "id": "find-pde-public-01",
+      "severity": "critical",
+      "family": "s3_public_exposure",
+      "resource_ids": [
+        "s3-public-data",
+        "data-customer-pii"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "customer-pii allows public read and stores sensitive data.",
+      "remediation": "Enable S3 Block Public Access and remove the public-read ACL/bucket policy."
+    },
+    {
+      "id": "find-pde-logging-01",
+      "severity": "medium",
+      "family": "s3_logging_missing",
+      "resource_ids": [
+        "s3-public-data",
+        "trail-main"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "The public bucket has no access logging / CloudTrail data events.",
+      "remediation": "Enable S3 access logging and CloudTrail data events for the bucket."
+    },
+    {
+      "id": "find-pde-fp-01",
+      "severity": "low",
+      "family": "public_looking_bucket_with_compensating_control",
+      "resource_ids": [
+        "s3-locked-backups"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "benign",
+      "remediation": "None needed \u2014 a bucket policy restricts access despite the public-looking name."
+    }
+  ]
+}

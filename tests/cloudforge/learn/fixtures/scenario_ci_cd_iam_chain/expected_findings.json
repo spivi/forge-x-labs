@@ -1,0 +1,65 @@
+{
+  "findings": [
+    {
+      "id": "find-passrole-01",
+      "severity": "critical",
+      "family": "iam_passrole_risk",
+      "resource_ids": [
+        "role-deploy",
+        "role-runtime",
+        "pol-deploy-passrole"
+      ],
+      "expected_scanner_visibility": "partial",
+      "ground_truth": "DeployRole can pass RuntimeRole, completing the CI-to-data chain.",
+      "remediation": "Scope iam:PassRole to the exact RuntimeRole ARN and add a role condition."
+    },
+    {
+      "id": "find-s3read-01",
+      "severity": "high",
+      "family": "iam_excessive_privilege",
+      "resource_ids": [
+        "role-runtime",
+        "pol-runtime-s3read",
+        "s3-customer-exports"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "RuntimeRole has broader S3 read than intended over the exports bucket.",
+      "remediation": "Replace s3:Get*/List* wildcards with least-privilege object prefixes."
+    },
+    {
+      "id": "find-logging-01",
+      "severity": "medium",
+      "family": "s3_logging_missing",
+      "resource_ids": [
+        "s3-customer-exports",
+        "trail-main"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "The sensitive bucket has no access logging / CloudTrail data events.",
+      "remediation": "Enable S3 access logging and CloudTrail data events for the bucket."
+    },
+    {
+      "id": "find-sg-01",
+      "severity": "medium",
+      "family": "security_group_overexposed",
+      "resource_ids": [
+        "sg-web",
+        "subnet-public-a"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "web-sg allows ingress from 0.0.0.0/0.",
+      "remediation": "Restrict ingress from 0.0.0.0/0 to known corporate/CI CIDRs."
+    },
+    {
+      "id": "find-fp-01",
+      "severity": "low",
+      "family": "public_looking_bucket_with_compensating_control",
+      "resource_ids": [
+        "s3-public-assets"
+      ],
+      "expected_scanner_visibility": "visible",
+      "ground_truth": "benign",
+      "remediation": "None needed \u2014 public read is intentional; a bucket policy limits it to GetObject."
+    }
+  ]
+}

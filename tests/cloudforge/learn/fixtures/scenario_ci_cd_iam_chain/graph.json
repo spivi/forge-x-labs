@@ -1,0 +1,311 @@
+{
+  "nodes": [
+    {
+      "id": "acct-main",
+      "type": "Account",
+      "name": "staging-account",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "medium"
+      },
+      "attributes": {}
+    },
+    {
+      "id": "vpc-staging",
+      "type": "VPC",
+      "name": "staging-vpc",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "low"
+      },
+      "attributes": {
+        "cidr": "10.0.0.0/16"
+      }
+    },
+    {
+      "id": "subnet-public-a",
+      "type": "Subnet",
+      "name": "public-a",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "medium"
+      },
+      "attributes": {
+        "cidr": "10.0.1.0/24"
+      }
+    },
+    {
+      "id": "sg-web",
+      "type": "SecurityGroup",
+      "name": "web-sg",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "high"
+      },
+      "attributes": {
+        "ingress_cidr": "0.0.0.0/0"
+      }
+    },
+    {
+      "id": "cicd-github",
+      "type": "CICDIdentity",
+      "name": "github-actions-oidc",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "high"
+      },
+      "attributes": {}
+    },
+    {
+      "id": "role-deploy",
+      "type": "IAMRole",
+      "name": "DeployRole",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "high"
+      },
+      "attributes": {}
+    },
+    {
+      "id": "role-runtime",
+      "type": "IAMRole",
+      "name": "RuntimeRole",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "critical"
+      },
+      "attributes": {}
+    },
+    {
+      "id": "pol-deploy-passrole",
+      "type": "IAMPolicy",
+      "name": "DeployPassRolePolicy",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "high"
+      },
+      "attributes": {
+        "actions": [
+          "iam:PassRole"
+        ],
+        "resource": "arn:aws:iam::000000000000:role/RuntimeRole"
+      }
+    },
+    {
+      "id": "pol-runtime-s3read",
+      "type": "IAMPolicy",
+      "name": "RuntimeS3ReadPolicy",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "high"
+      },
+      "attributes": {
+        "actions": [
+          "s3:Get*",
+          "s3:List*"
+        ],
+        "resource": "arn:aws:s3:::customer-exports/*"
+      }
+    },
+    {
+      "id": "s3-customer-exports",
+      "type": "S3Bucket",
+      "name": "customer-exports",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "critical"
+      },
+      "attributes": {
+        "logging": "disabled"
+      }
+    },
+    {
+      "id": "s3-public-assets",
+      "type": "S3Bucket",
+      "name": "public-assets",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "medium"
+      },
+      "attributes": {
+        "compensating_control": "true"
+      }
+    },
+    {
+      "id": "app-analytics-exporter",
+      "type": "Application",
+      "name": "analytics-exporter",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "medium"
+      },
+      "attributes": {}
+    },
+    {
+      "id": "data-customer-exports",
+      "type": "DataSet",
+      "name": "customer-export-data",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "critical"
+      },
+      "attributes": {}
+    },
+    {
+      "id": "trail-main",
+      "type": "LogTrail",
+      "name": "main-trail",
+      "tags": {
+        "env": "staging",
+        "owner": "platform-team",
+        "app": "analytics-exporter"
+      },
+      "security": {
+        "criticality": "medium"
+      },
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "cicd-github",
+      "to": "role-deploy",
+      "type": "assumes",
+      "security": {
+        "risk": "high"
+      }
+    },
+    {
+      "from": "role-deploy",
+      "to": "pol-deploy-passrole",
+      "type": "attached_policy",
+      "security": {
+        "risk": "high"
+      }
+    },
+    {
+      "from": "role-deploy",
+      "to": "role-runtime",
+      "type": "can_pass_role",
+      "security": {
+        "risk": "critical"
+      }
+    },
+    {
+      "from": "role-runtime",
+      "to": "pol-runtime-s3read",
+      "type": "attached_policy",
+      "security": {
+        "risk": "high"
+      }
+    },
+    {
+      "from": "role-runtime",
+      "to": "s3-customer-exports",
+      "type": "can_read",
+      "security": {
+        "risk": "critical"
+      }
+    },
+    {
+      "from": "s3-customer-exports",
+      "to": "data-customer-exports",
+      "type": "stores_sensitive_data",
+      "security": {
+        "risk": "critical"
+      }
+    },
+    {
+      "from": "app-analytics-exporter",
+      "to": "cicd-github",
+      "type": "deployed_by",
+      "security": {
+        "risk": "medium"
+      }
+    },
+    {
+      "from": "s3-customer-exports",
+      "to": "app-analytics-exporter",
+      "type": "belongs_to_app",
+      "security": {
+        "risk": "low"
+      }
+    },
+    {
+      "from": "sg-web",
+      "to": "subnet-public-a",
+      "type": "exposed_to_internet",
+      "security": {
+        "risk": "high"
+      }
+    },
+    {
+      "from": "subnet-public-a",
+      "to": "app-analytics-exporter",
+      "type": "belongs_to_app",
+      "security": {
+        "risk": "low"
+      }
+    },
+    {
+      "from": "s3-public-assets",
+      "to": "subnet-public-a",
+      "type": "exposed_to_internet",
+      "security": {
+        "risk": "low"
+      }
+    }
+  ]
+}
