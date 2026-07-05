@@ -33,6 +33,14 @@ TERRAFORM_FILES: Final = (
 DUMMY_ACCOUNT_ID: Final = "000000000000"
 DEFAULT_REGION: Final = "us-east-1"
 
+# --- terraform emitter defaults ----------------------------------------------
+# The scenario graph declares the ingress CIDR (the modeled risk); the port is not
+# part of any finding, so the emitter renders a fixed HTTPS port for every SG.
+DEFAULT_INGRESS_PORT: Final = 443
+# Header for a ``.tf`` file whose node type is absent for a family. Keeps the file
+# present and ``terraform validate``-clean without emitting stray resources.
+EMPTY_TF_HEADER: Final = "# No resources of this kind in this scenario family.\n"
+
 # --- forbidden destructive permissions (risk engine rejects these) -----------
 # Broad read/list is intentionally allowed (it is the modeled misconfiguration);
 # destructive actions are never valid in a generated scenario.
