@@ -15,7 +15,7 @@
 #   adapter               which adapter ingests it (app/cloudforge/learn/adapters/)
 #   enabled               fetcher/ingester skip anything false
 #   license               SPDX id, or "unknown"
-#   reuse_status          full_reuse | attribution | metadata_only | restricted | unknown
+#   reuse_status          full_reuse | attribution | metadata_only | mappings_only | restricted | unknown
 #   allowed_for_training  governance-derived (see rules below); unknown/restricted/metadata_only => false
 #   notes                 human notes (why this posture)
 #
@@ -24,11 +24,13 @@
 #   2. reuse_status: restricted  -> excluded from the training export
 #   3. reuse_status: metadata_only -> extract IDs / resource-types / summaries ONLY;
 #                                     never copy rule source or benchmark control text
-#   4. unsafe-operational content -> rejected at classification (never enters the corpus)
+#   4. reuse_status: mappings_only -> our-id -> external control-ID MAPPINGS only are
+#                                     training-eligible; never copy the source's control body text
+#   5. unsafe-operational content -> rejected at classification (never enters the corpus)
 #
-# HUMAN CALL NEEDED (coordinator): CSA CCM and CIS Benchmarks reuse rights. Both default to
-# `restricted` / not-training-eligible until a human confirms. Do not upgrade without a
-# recorded FXL-D decision.
+# LICENSE DECISION (FXL-D007, DECISIONS.md): CSA CCM = mappings_only / training-eligible
+# (control-ID mappings only, never control text). CIS Benchmarks = metadata_only /
+# not-training-eligible until reuse rights are confirmed.
 
 sources:
   # ── Tier 1: scanner rule corpora (metadata-only) ──────────────────────────────
@@ -82,12 +84,13 @@ sources:
     url: "https://cloudsecurityalliance.org/research/cloud-controls-matrix"
     adapter: rule_catalog_yaml   # placeholder; a CCM adapter is future work, not this epic
     enabled: false
-    license: "unknown"
-    reuse_status: restricted
-    allowed_for_training: false
+    license: "CSA CCM — machine-readable (JSON/YAML/OSCAL); mappings reusable, text not"
+    reuse_status: mappings_only   # control-ID mappings reusable; control TEXT is not
+    allowed_for_training: true     # per FXL-D007: CCM control-ID MAPPINGS are training-eligible
     notes: >-
-      Control-ID MAPPINGS only are safe (our IDs -> CCM control IDs). Copying CCM control
-      TEXT is NOT permitted without a human/legal call. Stays restricted until confirmed.
+      FXL-D007: CSA publishes CCM machine-readably (JSON/YAML/OSCAL). Only our-id -> CCM
+      control-ID MAPPINGS are training-eligible. Copying CCM control TEXT into the corpus or
+      export is NOT permitted. Adapters must emit control_mappings only, never control body text.
 
   - id: cis-benchmarks
     name: "CIS Benchmarks (cloud) — metadata only"
