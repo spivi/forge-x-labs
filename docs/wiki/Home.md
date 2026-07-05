@@ -35,6 +35,13 @@ cloudforge report   out/scenario_001
 | [Modal & Diffusion Future Integration](Modal-and-Diffusion-Future-Integration) | Optional future engines |
 | [Safety & Scope](Safety-and-Scope) | Local-only guarantees, forbidden permissions |
 | [Template Feedback](Template-Feedback) | Feedback on the base agentic template |
+| [Learning Corpus](Learning-Corpus) | The FXL-E2 data pipeline: fetch → ingest → normalize → validate → dedup → score → export |
+| [Source Registry](Source-Registry) | The corpus allow-list: schema, governance, source tiers |
+| [Risk Pattern Ontology](Risk-Pattern-Ontology) | The `RiskPattern` fields, enums, graph-fragment compatibility |
+| [Source Adapters](Source-Adapters) | The `PatternAdapter` protocol and the 3 shipped adapters |
+| [Provenance and Licensing](Provenance-and-Licensing) | Provenance model, reuse-status vocabulary, FXL-D007 |
+| [Corpus Quality Scoring](Corpus-Quality-Scoring) | Quality/realism scoring design, dedup key, export gate |
+| [Future Diffusion Training](Future-Diffusion-Training) | How the corpus prepares (but does not implement) diffusion |
 
 ## Scope in one line
 

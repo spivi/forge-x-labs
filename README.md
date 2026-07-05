@@ -128,6 +128,63 @@ false-positive** (a public-looking bucket with a compensating control).
   validators remain the source of truth regardless of the generation engine. See the
   [wiki](docs/wiki/Roadmap.md).
 
+## Learning corpus (FXL-E2)
+
+`cloudforge` also has a **local-first learning-corpus pipeline** (`app/cloudforge/learn/`)
+that builds the **DATA foundation** for a possible future graph-generation/diffusion
+effort: fetch → ingest → normalize → validate → dedup → score → export cloud-risk
+**patterns** from approved sources into a validated, provenance-complete corpus of
+`RiskPattern`s.
+
+**What it does:**
+
+- Fetches from an **allow-list only** — `data/source_registry.yaml`. There is **no broad
+  crawling and no spider**; the fetcher refuses anything not listed in the registry.
+- Ingests via typed adapters (three ship today: `cloudforge_scenario`, `rule_catalog_yaml`,
+  `checkov_policy_index`) into `RawPatternRecord`s, each carrying full provenance.
+- Normalizes, validates, dedups, and quality-scores patterns into `RiskPattern`s whose
+  `graph_fragment` reuses the existing `ScenarioGraph` model — the same graph vocabulary
+  `generate`/`validate`/`report` already speak.
+- Gates a training export on validation, safety classification, and licensing — see below.
+
+**What it does NOT do:**
+
+- ❌ Does **not** train a model. No diffusion, no GNN, no embeddings, no training loop.
+- ❌ Does **not** use Modal or any GPU.
+- ❌ Does **not** crawl the internet — registry-gated fetching only.
+- ❌ Does **not** ingest exploit/offensive/operational-attack content — rejected at
+  classification.
+
+**Source governance:** every source in the registry has a `license` and a `reuse_status`
+(`full_reuse` / `attribution` / `metadata_only` / `mappings_only` / `restricted` /
+`unknown`). `unknown` license and `restricted`/`metadata_only` reuse status are always
+forced to `allowed_for_training: false` — **unknown or restricted material is excluded
+from the training export by default**, no matter what a registry entry claims. See
+[Source Registry](docs/wiki/Source-Registry.md) and
+[Provenance and Licensing](docs/wiki/Provenance-and-Licensing.md).
+
+**Training-export rules:** a pattern is exported only if it is validated, safely
+classified (`defensive_pattern` / `benchmark_pattern` / `training_pattern`), its
+provenance allows training, its `reuse_status` permits reuse, and its `quality_score` is
+at least 0.70. `unsafe_operational` content is never exportable, under any flag.
+
+**Example commands** (the `cloudforge learn` CLI is planned in issue #73 — not yet
+runnable):
+
+```bash
+cloudforge learn fetch-sources              # fetch every enabled registry source
+cloudforge learn ingest --adapter <name>    # run one adapter -> normalized patterns
+cloudforge learn validate-corpus            # corpus + fragment validation, PASS/WARN/FAIL
+cloudforge learn summarize                  # coverage: provider / domain / family / quality
+cloudforge learn export-training            # apply the export gate; write the training bundle
+```
+
+This epic **prepares** a future diffusion effort without implementing it: a future
+generator would consume this corpus's export and emit candidate graphs, which then go
+through the same local validators every scenario already goes through — no model is
+trained here. See [Learning Corpus](docs/wiki/Learning-Corpus.md) and
+[Future Diffusion Training](docs/wiki/Future-Diffusion-Training.md).
+
 ## Development
 
 ```bash
@@ -140,7 +197,9 @@ poetry run pytest tests/cloudforge/ --cov=app            # tests (95%+ coverage)
 
 Full docs are staged under [`docs/wiki/`](docs/wiki/) (mirroring the GitHub Wiki):
 Home, Architecture, Scenario Schema, Graph Model, Validation Pipeline, Scenario Families,
-Roadmap, Modal & Diffusion, Safety & Scope, and Template Feedback.
+Roadmap, Modal & Diffusion, Safety & Scope, Template Feedback, and the learning-corpus
+pages (Learning Corpus, Source Registry, Risk Pattern Ontology, Source Adapters,
+Provenance and Licensing, Corpus Quality Scoring, Future Diffusion Training).
 
 ---
 
