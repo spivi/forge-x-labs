@@ -1,7 +1,11 @@
 # Project Status
 
-**Current Phase:** Sprint wave 1 delivered (MVP + 2 features)
+**Current Phase:** Sprint wave 1 delivered + debriefed (MVP + 2 features)
 **Last Updated:** 2026-07-05
+
+> **Debrief (2026-07-05):** 2 runs analyzed; calibration withheld (2 < min 3 samples — no
+> over-fit). lemmings fitted `agents.developer.cost_rate_per_min=0.0139`. Council review of the
+> debrief summary surfaced the per-family Terraform emitter defect → filed as **FXL-31** (#31, M2).
 
 ## Recent Achievements
 - **MVP vertical slice** (PR #24): `generate → validate → report` end-to-end for the
