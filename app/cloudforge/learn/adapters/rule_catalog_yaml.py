@@ -1,12 +1,185 @@
-"""``rule_catalog_yaml`` adapter (STUB — implemented in ticket #5).
+"""``rule_catalog_yaml`` adapter — parses a LOCAL curated YAML rule catalog.
 
-Parses a LOCAL curated YAML catalog (the seed patterns, Tier-4 local registry) — one
-``RawPatternRecord`` per catalog entry. Confidence default 0.75; training-eligible by
-default (``full_reuse``). No parsing logic lives here in the foundation ticket.
-
-See design §8; the seed catalog itself is authored in ticket #14.
+Reads a Tier-4 local rule catalog (design §8, adapter 2): a YAML file with a top-level
+``entries:`` list, each describing a hand-authored defensive cloud-risk pattern. Emits
+one ``RawPatternRecord`` per entry with complete provenance. Confidence default 0.75;
+reuse/license/training-eligibility come from the ``SourceEntry`` (``local-rule-catalog``
+is ``full_reuse`` / ``allowed_for_training: true``). This adapter does NOT normalize into
+``RiskPattern`` (ticket #66) and does not build graph fragments.
 """
 
 from __future__ import annotations
 
-# Implemented in ticket #5 (Implement rule catalog YAML adapter).
+import hashlib
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+from app.cloudforge.errors import CloudforgeError
+from app.cloudforge.io.loaders import load_yaml
+from app.cloudforge.learn.pattern_models import CloudProvider, PatternProvenance, RawPatternRecord
+from app.cloudforge.learn.source_models import SourceEntry
+from app.cloudforge.models.findings import Severity
+
+ADAPTER_NAME = "rule_catalog_yaml"
+ADAPTER_VERSION = "0.1.0"
+NORMALIZER_VERSION_UNSET = "unset"  # normalizer (ticket #66) stamps its own version later
+_EXTRACTION_METHOD = "yaml_parse"
+_DEFAULT_CONFIDENCE = 0.75
+
+
+class RuleCatalogEntryError(CloudforgeError):
+    """A rule catalog file is missing, unreadable, or one entry fails schema validation."""
+
+
+class _RuleCatalogEntry(BaseModel):
+    """Schema for one entry in a local rule catalog YAML file (design §8)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    title: str
+    summary: str = ""
+    cloud_provider: CloudProvider
+    domains: list[str] = []
+    weakness_family: str = ""
+    severity: Severity
+    affected_resource_types: list[str] = []
+    remediation: str = ""
+    references: list[str] = []
+
+
+def _content_hash(raw_path: Path) -> str:
+    try:
+        return hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise RuleCatalogEntryError(f"cannot read rule catalog {raw_path}: {exc}") from exc
+
+
+def _coerce_scalar(value: object) -> str:
+    """Stringify a scalar catalog value so it fits ``RawPatternRecord.raw_payload``.
+
+    ``raw_payload`` is typed ``dict[str, str | list[str]]`` (pattern_models.py, not
+    modified here); catalog entries may carry bools/ints/None for a few fields
+    (e.g. ``allowed_for_training: true``), so scalars are coerced to their YAML-ish
+    string form rather than dropped.
+    """
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _coerce_raw_payload(raw_entry: dict[str, Any]) -> dict[str, str | list[str]]:
+    """Narrow an arbitrary parsed catalog entry into ``raw_payload``'s declared shape."""
+    payload: dict[str, str | list[str]] = {}
+    for key, value in raw_entry.items():
+        if isinstance(value, list):
+            payload[key] = [_coerce_scalar(item) for item in value]
+        else:
+            payload[key] = _coerce_scalar(value)
+    return payload
+
+
+def _load_catalog_entries(raw_path: Path) -> list[dict[str, Any]]:
+    try:
+        catalog = load_yaml(raw_path)
+    except CloudforgeError as exc:
+        raise RuleCatalogEntryError(f"cannot load rule catalog {raw_path}: {exc}") from exc
+
+    entries = catalog.get("entries")
+    if not isinstance(entries, list):
+        raise RuleCatalogEntryError(
+            f"rule catalog {raw_path} must have a top-level 'entries' list"
+        )
+    return entries
+
+
+def _parse_entry(raw_entry: object, raw_path: Path) -> _RuleCatalogEntry:
+    if not isinstance(raw_entry, dict):
+        raise RuleCatalogEntryError(f"rule catalog {raw_path} has a non-mapping entry")
+    try:
+        return _RuleCatalogEntry.model_validate(raw_entry)
+    except ValidationError as exc:
+        entry_id = raw_entry.get("id", "<unknown>")
+        raise RuleCatalogEntryError(
+            f"rule catalog {raw_path} entry {entry_id!r} failed validation: {exc}"
+        ) from exc
+
+
+def _build_provenance(
+    *, source: SourceEntry, content_hash: str, extracted_at: datetime
+) -> PatternProvenance:
+    return PatternProvenance(
+        source_id=source.id,
+        source_name=source.name,
+        source_type=source.type,
+        source_url_or_path=source.location,
+        source_license=source.license,
+        reuse_status=source.reuse_status,
+        allowed_for_training=source.allowed_for_training,
+        extraction_method=_EXTRACTION_METHOD,
+        fetched_at=extracted_at,
+        extracted_at=extracted_at,
+        content_hash=content_hash,
+        adapter_name=ADAPTER_NAME,
+        adapter_version=ADAPTER_VERSION,
+        normalizer_version=NORMALIZER_VERSION_UNSET,
+        confidence=_DEFAULT_CONFIDENCE,
+        notes="parsed from local curated YAML rule catalog",
+    )
+
+
+def _to_record(
+    entry: _RuleCatalogEntry, raw_entry: dict[str, Any], provenance: PatternProvenance
+) -> RawPatternRecord:
+    return RawPatternRecord(
+        source_id=provenance.source_id,
+        raw_id=entry.id,
+        title=entry.title,
+        summary=entry.summary,
+        cloud_provider=entry.cloud_provider,
+        resource_types=list(entry.affected_resource_types),
+        severity=entry.severity,
+        category=entry.domains[0] if entry.domains else None,
+        remediation=entry.remediation,
+        references=list(entry.references),
+        raw_payload=_coerce_raw_payload(raw_entry),
+        provenance=provenance,
+    )
+
+
+class RuleCatalogYamlAdapter:
+    """Parses a local curated YAML rule catalog into ``RawPatternRecord``s (design §8)."""
+
+    adapter_name = ADAPTER_NAME
+    adapter_version = ADAPTER_VERSION
+
+    def extract(
+        self,
+        source: SourceEntry,
+        raw_path: Path,
+        *,
+        extracted_at: datetime | None = None,
+    ) -> list[RawPatternRecord]:
+        """Parse ``raw_path`` (a rule catalog YAML file) into ``RawPatternRecord``s.
+
+        Raises ``RuleCatalogEntryError`` (a ``CloudforgeError``) on a missing file,
+        malformed YAML, or an entry that fails schema validation — never crashes with a
+        bare parser/attribute exception.
+        """
+        stamp = extracted_at if extracted_at is not None else datetime.now(UTC)
+        content_hash = _content_hash(raw_path)
+        raw_entries = _load_catalog_entries(raw_path)
+
+        provenance = _build_provenance(
+            source=source, content_hash=content_hash, extracted_at=stamp
+        )
+        records: list[RawPatternRecord] = []
+        for raw_entry in raw_entries:
+            entry = _parse_entry(raw_entry, raw_path)
+            records.append(_to_record(entry, raw_entry, provenance))
+        return records

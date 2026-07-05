@@ -1,0 +1,6 @@
+# Fixture: intentionally malformed YAML (unbalanced brackets) to test the adapter's
+# clear-error-not-crash path (FXL-63 acceptance criteria).
+entries:
+  - id: broken
+    title: "Missing bracket close"
+    domains: [storage, data

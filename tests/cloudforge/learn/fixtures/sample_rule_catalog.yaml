@@ -1,0 +1,103 @@
+# Fixture: a SMALL local rule catalog for adapter unit tests (FXL-63).
+#
+# This is NOT the real seed catalog (that's ticket #14's >=12-entry data). It exists only
+# to exercise the rule_catalog_yaml adapter: an AWS + a GCP entry, spanning a couple of
+# domains, one entry with a compensating control to exercise optional-field mapping.
+
+entries:
+  - id: s3-public-read-aws-001
+    title: "Public-read S3 bucket"
+    summary: "An S3 bucket is world-readable via a public-read ACL."
+    cloud_provider: aws
+    domains:
+      - storage
+      - data
+    weakness_family: s3_public_exposure
+    severity: high
+    affected_resource_types:
+      - aws_s3_bucket
+    risky_relationships:
+      - can_read
+    missing_controls:
+      - block_public_access
+    negative_controls:
+      - public_read_acl
+    compensating_controls: []
+    remediation: "Enable S3 Block Public Access and remove the public-read ACL."
+    references:
+      - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: iam-passrole-wildcard-aws-002
+    title: "IAM PassRole wildcard resource"
+    summary: "A role permits iam:PassRole on a wildcard resource, enabling privilege escalation."
+    cloud_provider: aws
+    domains:
+      - iam
+    weakness_family: iam_passrole_risk
+    severity: critical
+    affected_resource_types:
+      - aws_iam_role
+      - aws_iam_policy
+    risky_relationships:
+      - can_pass_role
+    missing_controls:
+      - resource_scoped_passrole
+    negative_controls:
+      - wildcard_passrole_resource
+    compensating_controls:
+      - scp_deny_passrole_boundary
+    remediation: "Scope iam:PassRole to specific role ARNs and attach a permissions boundary."
+    references:
+      - "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: gcs-public-bucket-gcp-003
+    title: "Publicly readable GCS bucket"
+    summary: "A Cloud Storage bucket grants allUsers objectViewer, exposing objects publicly."
+    cloud_provider: gcp
+    domains:
+      - storage
+    weakness_family: public_exposure
+    severity: high
+    affected_resource_types:
+      - google_storage_bucket
+    risky_relationships:
+      - can_read
+    missing_controls:
+      - public_access_prevention
+    negative_controls:
+      - all_users_object_viewer
+    compensating_controls: []
+    remediation: "Remove allUsers/allAuthenticatedUsers IAM bindings and enable Public Access Prevention."
+    references:
+      - "https://cloud.google.com/storage/docs/access-control/making-data-public"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
+
+  - id: kms-key-no-rotation-gcp-004
+    title: "KMS key without rotation policy"
+    summary: "A Cloud KMS crypto key has no automatic rotation period configured."
+    cloud_provider: gcp
+    domains:
+      - encryption
+    weakness_family: insecure_defaults
+    severity: medium
+    affected_resource_types:
+      - google_kms_crypto_key
+    risky_relationships: []
+    missing_controls:
+      - key_rotation_policy
+    negative_controls: []
+    compensating_controls: []
+    remediation: "Set rotation_period on the crypto key (e.g. 90 days)."
+    references:
+      - "https://cloud.google.com/kms/docs/key-rotation"
+    license: "CC0-1.0"
+    reuse_status: full_reuse
+    allowed_for_training: true
