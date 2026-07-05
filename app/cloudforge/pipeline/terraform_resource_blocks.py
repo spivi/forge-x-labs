@@ -13,19 +13,16 @@ graph declares is rendered — no destructive permissions are ever synthesized h
 from __future__ import annotations
 
 import json
-import re
 
 from app.cloudforge import constants
 from app.cloudforge.models.graph import GraphNode
+from app.cloudforge.pipeline.identifiers import resource_name
+
+__all__ = ["resource_name"]  # re-exported so existing call sites stay unchanged
 
 _ACCOUNT = constants.DUMMY_ACCOUNT_ID
 _INGRESS_PORT = constants.DEFAULT_INGRESS_PORT
 _COMPENSATING_CONTROL = "compensating_control"
-
-# Any char outside the Terraform-legal identifier charset collapses to ``_``.
-_ILLEGAL_ID_CHAR = re.compile(r"[^A-Za-z0-9_]")
-# A Terraform label must start with a letter or underscore, never a digit.
-_LEADING_DIGIT = re.compile(r"^[0-9]")
 
 
 def hcl_str(value: str) -> str:
@@ -46,22 +43,6 @@ def hcl_str(value: str) -> str:
     """
     neutralized = value.replace("${", "$${").replace("%{", "%%{")
     return json.dumps(neutralized)
-
-
-def resource_name(node: GraphNode) -> str:
-    """A Terraform-legal local resource-label identifier for ANY ``node.id``.
-
-    The label sits at the resource-LABEL position (``resource "type" "<label>"``),
-    which is a bare identifier — not a quotable string — so ``hcl_str`` cannot guard
-    it. We map every char outside ``[A-Za-z0-9_]`` to ``_`` (closing the label-breakout
-    surface) and guarantee a valid leading char: a Terraform label must start with a
-    letter or underscore, so an empty or digit-leading result is prefixed with ``_``.
-    The output always matches ``^[A-Za-z_][A-Za-z0-9_]*$``.
-    """
-    sanitized = _ILLEGAL_ID_CHAR.sub("_", node.id)
-    if not sanitized or _LEADING_DIGIT.match(sanitized):
-        return f"_{sanitized}"
-    return sanitized
 
 
 def _actions(node: GraphNode) -> list[str]:
