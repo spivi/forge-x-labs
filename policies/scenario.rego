@@ -41,34 +41,38 @@ deny contains msg if {
 	msg := sprintf("resource count %d exceeds max %d", [count(input.nodes), max_resources])
 }
 
-# --- required critical chain must exist --------------------------------------
-# The CI/CD -> DeployRole -> RuntimeRole -> sensitive bucket chain must be present.
-has_assume if {
+# --- a coherent critical risk path must exist (family-agnostic) --------------
+# FXL-54: this used to hardcode the ci_cd_iam_chain edge types (`assumes`,
+# `can_pass_role`, `can_read`) as a *universal* requirement, wrongly denying every
+# other family (e.g. `public_data_exposure`, whose critical path is
+# `exposed_to_internet -> stores_sensitive_data`, no IAM role chain).
+#
+# The Python graph-risk engine owns per-family ground-truth path validation. This
+# rego is only a coarse sanity gate, so it asserts — without naming any one
+# family's edges — that the graph contains a critical risk terminating in a
+# sensitive-data sink:
+#   (a) at least one edge whose `security.risk == "critical"`, AND
+#   (b) at least one `stores_sensitive_data` edge (the sensitive-data sink).
+# Both shipped families satisfy this (ci_cd: `can_pass_role`/`can_read` are risk
+# critical + `stores_sensitive_data`; pde: `exposed_to_internet` is risk critical +
+# `stores_sensitive_data`), while a graph with no critical-risk edge or no sink is
+# still denied.
+has_critical_edge if {
 	some e in input.edges
-	e.type == "assumes"
+	e.security.risk == "critical"
 }
 
-has_passrole if {
+has_sensitive_sink if {
 	some e in input.edges
-	e.type == "can_pass_role"
-}
-
-has_sensitive_read if {
-	some e in input.edges
-	e.type == "can_read"
+	e.type == "stores_sensitive_data"
 }
 
 deny contains msg if {
-	not has_assume
-	msg := "missing required 'assumes' edge (CI/CD identity -> deploy role)"
+	not has_critical_edge
+	msg := "no critical-risk edge — scenario has no coherent critical risk path"
 }
 
 deny contains msg if {
-	not has_passrole
-	msg := "missing required 'can_pass_role' edge (deploy role -> runtime role)"
-}
-
-deny contains msg if {
-	not has_sensitive_read
-	msg := "missing required 'can_read' edge (runtime role -> sensitive bucket)"
+	not has_sensitive_sink
+	msg := "no 'stores_sensitive_data' edge — critical risk has no sensitive-data sink"
 }
