@@ -45,10 +45,13 @@ def generate(
         spec = ScenarioSpec.model_validate(load_yaml(scenario))
         bundle = TemplateGenerator().generate(spec)
         bundle = _apply_mutation(bundle, spec, mutate_seed)
+        # ``write_all`` runs the emitter, whose pre-emission collision guard raises a
+        # ``GraphIntegrityError`` (a ``CloudforgeError``) — keep it inside the catch so
+        # a colliding graph surfaces as a clean CLI error, not a raw traceback (FXL-N4).
+        ScenarioArtifacts(ScenarioPaths.from_dir(out)).write_all(spec, bundle)
     except CloudforgeError as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
-    ScenarioArtifacts(ScenarioPaths.from_dir(out)).write_all(spec, bundle)
     console.print(f"[green]generated[/green] scenario at {out}")
 
 

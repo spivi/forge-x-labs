@@ -137,3 +137,35 @@ already inert (they are not HCL strings)" — this was FALSE.
 acceptance-criteria "OR rejected with a clear validation error" branch — NOT a breakout — so
 the corpus terraform-validate test isolates the pure HCL-injection surface (generic `locals`
 strings) from provider naming/CIDR rules.
+
+## FXL-D006: Duplicate resource labels are rejected pre-emission, scoped per resource TYPE
+
+**Status**: accepted
+**Date**: 2026-07-05
+
+**Context**: `identifiers.resource_name` (FXL-39) sanitizes any `node.id` to a Terraform-legal
+label (`[^A-Za-z0-9_]` → `_`, leading-char guard). Distinct ids that differ ONLY by an
+illegal-char / `-` / `_` swap collapse to the SAME label (`a-b` and `a_b` both → `a_b`).
+Terraform then errors on a duplicate resource label (`Duplicate resource "aws_s3_bucket"`),
+turning an externally-authored / generatively-authored graph into a `terraform validate` DoS.
+The two shipped families have zero collisions today, but the FXL-39 review flagged this as a
+follow-up reachable once a generative engine authors graphs.
+
+**Decision**: Detect the collision BEFORE emission and **reject** it with a `GraphIntegrityError`
+naming BOTH colliding node ids + the shared label — do NOT silently uniquify (a generator
+producing a collision is a generator bug; fail loud). The check is **scoped per emitted
+resource TYPE**, not global: Terraform labels only clash within the same `resource "<type>"`
+namespace, so `a_b` as an `aws_s3_bucket` label and `a_b` as an `aws_iam_role` label do NOT
+collide. Per-type is the *correct* scope (a global over-approximation would raise false
+positives on legitimately distinct-type nodes sharing a label) and costs little extra code:
+a static `NodeType → resource_type` map mirroring the block assemblers. Node types that emit
+no resource (Account / CICDIdentity / Application / DataSet / LogTrail) carry no label and are
+skipped. The guard lives in `pipeline/label_collisions.py`, called first in
+`TerraformEmitter.emit` (before any file is written). The CLI `generate` command's
+`write_all` call was moved INSIDE the existing `except CloudforgeError` block so the error
+surfaces as a clean `error: …` exit-1, not a raw traceback.
+
+**Consequences**: A collision fails fast and loud at `generate` time with a diagnosable
+message, never as an opaque downstream `terraform validate` duplicate-resource error. The
+`NodeType → resource_type` map in `label_collisions.py` must stay in sync with the block
+assemblers in `terraform_blocks.py` if a new resource-emitting node type is added.

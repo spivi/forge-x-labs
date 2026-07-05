@@ -13,7 +13,10 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from app.cloudforge import constants
+from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate import ci_cd_iam_chain, public_data_exposure
 from app.cloudforge.models.graph import (
     GraphNode,
@@ -308,6 +311,86 @@ def test_derive_common_tags_on_empty_graph_does_not_raise() -> None:
 
     assert isinstance(tags, NodeTags)
     assert tags == NodeTags(env="unknown", owner="unknown", app="unknown")
+
+
+# --- per-type label-collision detection: distinct ids must not collide (FXL-N4) --
+
+
+def _node(node_id: str, node_type: NodeType, name: str = "n") -> GraphNode:
+    return GraphNode(
+        id=node_id,
+        type=node_type,
+        name=name,
+        tags=NodeTags(env="staging", owner="platform-team", app="analytics-exporter"),
+        security=NodeSecurity(criticality="low"),
+        attributes={},
+    )
+
+
+def test_colliding_ids_same_type_raise_graph_integrity_error(tmp_path: Path) -> None:
+    # ``a-b`` and ``a_b`` both sanitize to the label ``a_b`` — Terraform would then
+    # error on a duplicate ``aws_s3_bucket`` label. Reject BEFORE emission instead.
+    graph = ScenarioGraph(
+        nodes=[_node("a-b", NodeType.S3_BUCKET), _node("a_b", NodeType.S3_BUCKET)],
+        edges=[],
+    )
+
+    with pytest.raises(GraphIntegrityError) as excinfo:
+        TerraformEmitter(graph).emit(tmp_path)
+
+    message = str(excinfo.value)
+    # The error must name BOTH colliding node ids and the shared label.
+    assert "a-b" in message
+    assert "a_b" in message
+    assert resource_name(_node("a-b", NodeType.S3_BUCKET)) in message
+
+
+def test_colliding_ids_rejected_before_any_file_is_written(tmp_path: Path) -> None:
+    graph = ScenarioGraph(
+        nodes=[_node("a-b", NodeType.S3_BUCKET), _node("a_b", NodeType.S3_BUCKET)],
+        edges=[],
+    )
+
+    with pytest.raises(GraphIntegrityError):
+        TerraformEmitter(graph).emit(tmp_path)
+
+    # Fail loud, fail early: no partial ``.tf`` tree is left behind.
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_colliding_labels_across_different_types_do_not_collide(tmp_path: Path) -> None:
+    # Terraform labels are namespaced by resource TYPE, so ``a_b`` as an
+    # ``aws_s3_bucket`` label and ``a_b`` as an ``aws_iam_role`` label never clash.
+    graph = ScenarioGraph(
+        nodes=[_node("a-b", NodeType.S3_BUCKET), _node("a_b", NodeType.IAM_ROLE)],
+        edges=[],
+    )
+
+    written = TerraformEmitter(graph).emit(tmp_path)
+
+    assert {p.name for p in written} == set(constants.TERRAFORM_FILES)
+
+
+def test_non_emitting_node_types_never_trigger_a_collision(tmp_path: Path) -> None:
+    # ACCOUNT / CICDIdentity / Application / DataSet / LogTrail emit NO resource,
+    # so ids that would sanitize to the same label carry no Terraform label to clash.
+    graph = ScenarioGraph(
+        nodes=[_node("a-b", NodeType.ACCOUNT), _node("a_b", NodeType.CICD_IDENTITY)],
+        edges=[],
+    )
+
+    written = TerraformEmitter(graph).emit(tmp_path)
+
+    assert {p.name for p in written} == set(constants.TERRAFORM_FILES)
+
+
+def test_shipped_families_emit_without_false_positive_collision(tmp_path: Path) -> None:
+    # Zero collisions today: both real families must still emit all six files.
+    for build_graph in (ci_cd_iam_chain.build_graph, public_data_exposure.build_graph):
+        family_dir = tmp_path / build_graph.__module__.rsplit(".", 1)[-1]
+        family_dir.mkdir()
+        written = TerraformEmitter(build_graph()).emit(family_dir)
+        assert {p.name for p in written} == set(constants.TERRAFORM_FILES)
 
 
 def _assert_terraform_validates(files: dict[str, str], tmp_path: Path) -> None:
