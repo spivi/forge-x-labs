@@ -22,6 +22,17 @@ _INGRESS_PORT = constants.DEFAULT_INGRESS_PORT
 _COMPENSATING_CONTROL = "compensating_control"
 
 
+def hcl_str(value: str) -> str:
+    """The single source of truth for a safely-quoted HCL string literal.
+
+    HCL string literals accept JSON-style quoting/escaping, so ``json.dumps``
+    yields a valid, injection-proof literal (a ``"`` + newline in ``value`` can no
+    longer break out of the string). Every scalar string entering emitted HCL must
+    pass through here; JSON policy documents built via ``json.dumps`` are already safe.
+    """
+    return json.dumps(value)
+
+
 def resource_name(node: GraphNode) -> str:
     """A Terraform-safe local resource name derived from the node id."""
     return node.id.replace("-", "_")
@@ -35,6 +46,12 @@ def _actions(node: GraphNode) -> list[str]:
 def _resource_arn(node: GraphNode) -> str:
     raw = node.attributes.get("resource", "*")
     return raw if isinstance(raw, str) else "*"
+
+
+def _str_attr(node: GraphNode, key: str, default: str) -> str:
+    """A single scalar attribute value as ``str`` (list-valued attrs fall back)."""
+    raw = node.attributes.get(key, default)
+    return raw if isinstance(raw, str) else default
 
 
 def _bucket_name(node: GraphNode) -> str:
@@ -54,7 +71,7 @@ def role_block(node: GraphNode) -> str:
     )
     return (
         f'resource "aws_iam_role" "{ref}" {{\n'
-        f'  name               = "{node.name}"\n'
+        f"  name               = {hcl_str(node.name)}\n"
         f"  assume_role_policy = jsonencode({trust})\n"
         f"  tags               = local.common_tags\n"
         f"}}\n"
@@ -78,7 +95,7 @@ def policy_block(node: GraphNode) -> str:
     )
     return (
         f'resource "aws_iam_policy" "{ref}" {{\n'
-        f'  name   = "{node.name}"\n'
+        f"  name   = {hcl_str(node.name)}\n"
         f"  policy = jsonencode({document})\n"
         f"}}\n"
     )
@@ -89,7 +106,7 @@ def bucket_block(node: GraphNode) -> str:
     ref = resource_name(node)
     block = (
         f'resource "aws_s3_bucket" "{ref}" {{\n'
-        f'  bucket = "{_bucket_name(node)}"\n'
+        f"  bucket = {hcl_str(_bucket_name(node))}\n"
         f"  tags   = local.common_tags\n"
         f"}}\n"
     )
@@ -122,22 +139,22 @@ def _bucket_policy_block(node: GraphNode) -> str:
 
 
 def vpc_block(node: GraphNode) -> str:
-    cidr = node.attributes.get("cidr", "10.0.0.0/16")
+    cidr = _str_attr(node, "cidr", "10.0.0.0/16")
     return (
         f'resource "aws_vpc" "{resource_name(node)}" {{\n'
-        f'  cidr_block = "{cidr}"\n'
+        f"  cidr_block = {hcl_str(cidr)}\n"
         f"  tags       = local.common_tags\n"
         f"}}\n"
     )
 
 
 def subnet_block(node: GraphNode, vpc_ref: str | None) -> str:
-    cidr = node.attributes.get("cidr", "10.0.1.0/24")
+    cidr = _str_attr(node, "cidr", "10.0.1.0/24")
     vpc_line = f"  vpc_id     = aws_vpc.{vpc_ref}.id\n" if vpc_ref else ""
     return (
         f'resource "aws_subnet" "{resource_name(node)}" {{\n'
         f"{vpc_line}"
-        f'  cidr_block = "{cidr}"\n'
+        f"  cidr_block = {hcl_str(cidr)}\n"
         f"  tags       = local.common_tags\n"
         f"}}\n"
     )
@@ -146,17 +163,17 @@ def subnet_block(node: GraphNode, vpc_ref: str | None) -> str:
 def security_group_block(node: GraphNode, vpc_ref: str | None) -> str:
     """A security group whose ingress CIDR is the modeled exposure risk."""
     ref = resource_name(node)
-    ingress_cidr = node.attributes.get("ingress_cidr", "0.0.0.0/0")
+    ingress_cidr = _str_attr(node, "ingress_cidr", "0.0.0.0/0")
     vpc_line = f"  vpc_id = aws_vpc.{vpc_ref}.id\n" if vpc_ref else ""
     return (
         f'resource "aws_security_group" "{ref}" {{\n'
-        f'  name   = "{node.name}"\n'
+        f"  name   = {hcl_str(node.name)}\n"
         f"{vpc_line}\n"
         f"  ingress {{\n"
         f"    from_port   = {_INGRESS_PORT}\n"
         f"    to_port     = {_INGRESS_PORT}\n"
         f'    protocol    = "tcp"\n'
-        f'    cidr_blocks = ["{ingress_cidr}"]\n'
+        f"    cidr_blocks = [{hcl_str(ingress_cidr)}]\n"
         f"  }}\n\n"
         f"  egress {{\n"
         f"    from_port   = 0\n"
