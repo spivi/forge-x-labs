@@ -1,1 +1,4 @@
 ticket,type,effort,milestone,risk,area,priority,recommended_model,estimate_minutes,scope_changed,architectural_deviation,clarifying_questions_asked,caused_by,actual_duration_sec,session_count,session_min,tokens_in,tokens_out,cost_usd,effective_model,estimate_ratio,review_cycles,findings_total,p1,p2,p3,review_stale_s,suitability_verdict
+FXL-14,feature,M,M5,,generation,P2,sonnet,120,0,0,0,,659,1,10.98,8000,85654,6.5441,opus,0.0915,0,0,0,0,0,,overkill
+FXL-26,feature,M,M1,,generation,P2,sonnet,120,0,0,0,,531,1,8.85,7000,77297,5.9023,opus,0.0737,0,0,0,0,0,,overkill
+FXL-31,fix,M,M2,,generation,P2,sonnet,45,0,0,0,,907,1,15.12,9000,84709,6.4882,opus,0.3359,0,0,0,0,0,,overkill
