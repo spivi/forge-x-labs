@@ -1,21 +1,32 @@
-"""Pure HCL string builders — one per Terraform file.
+"""HCL string builders — static provider files plus graph-driven assemblers.
 
 Terraform is a *compiled artifact* of the graph. It must be valid enough for
 ``terraform validate`` and for static scanners (checkov/opa) to have real
 resources to flag, but it is never applied. All values are safe fakes; the dummy
 account id is clearly marked.
 
-The intentional misconfigurations (broad S3 read, missing bucket logging, a
-0.0.0.0/0 security group) are deliberate — they are the modeled risks. No
-destructive permissions appear here.
+``providers.tf`` / ``variables.tf`` / ``main.tf`` are family-independent (provider
+config + fake account id + common tags). ``iam.tf`` / ``s3.tf`` / ``network.tf`` are
+assembled per-family from the scenario graph nodes via
+:mod:`terraform_resource_blocks`. The intentional misconfigurations (broad S3 read,
+missing logging, a 0.0.0.0/0 security group) come straight from the graph — they are
+the modeled risks. No destructive permissions are ever synthesized.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from app.cloudforge import constants
+from app.cloudforge.models.graph import GraphNode, NodeType
+from app.cloudforge.pipeline import terraform_resource_blocks as res
 
 _DUMMY = constants.DUMMY_ACCOUNT_ID
 _REGION = constants.DEFAULT_REGION
+_EMPTY = constants.EMPTY_TF_HEADER
+
+
+# --- static, family-independent files ----------------------------------------
 
 
 def build_providers_tf() -> str:
@@ -66,124 +77,40 @@ def build_main_tf() -> str:
 """
 
 
-def build_iam_tf() -> str:
-    return """# DeployRole: assumed by the GitHub Actions OIDC identity.
-resource "aws_iam_role" "deploy_role" {
-  name               = "DeployRole"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Federated = "arn:aws:iam::${local.fake_account_id}:oidc-provider/token.actions.githubusercontent.com" }
-      Action    = "sts:AssumeRoleWithWebIdentity"
-    }]
-  })
-  tags = local.common_tags
-}
-
-resource "aws_iam_role" "runtime_role" {
-  name               = "RuntimeRole"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { AWS = aws_iam_role.deploy_role.arn }
-      Action    = "sts:AssumeRole"
-    }]
-  })
-  tags = local.common_tags
-}
-
-# INTENDED MISCONFIG: iam:PassRole (the privilege-chain link). Not destructive.
-resource "aws_iam_role_policy" "deploy_passrole" {
-  name   = "DeployPassRolePolicy"
-  role   = aws_iam_role.deploy_role.id
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "iam:PassRole"
-      Resource = aws_iam_role.runtime_role.arn
-    }]
-  })
-}
-
-# INTENDED MISCONFIG: broad S3 read over the sensitive bucket.
-resource "aws_iam_role_policy" "runtime_s3read" {
-  name   = "RuntimeS3ReadPolicy"
-  role   = aws_iam_role.runtime_role.id
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:Get*", "s3:List*"]
-      Resource = ["${aws_s3_bucket.customer_exports.arn}", "${aws_s3_bucket.customer_exports.arn}/*"]
-    }]
-  })
-}
-"""
+# --- graph-driven files ------------------------------------------------------
 
 
-def build_s3_tf() -> str:
-    return """# Sensitive bucket. INTENDED MISCONFIG: no logging / no CloudTrail data events.
-resource "aws_s3_bucket" "customer_exports" {
-  bucket = "customer-exports-staging-000000000000"
-  tags   = local.common_tags
-}
-
-# Public-looking bucket WITH a compensating control (the false-positive case).
-resource "aws_s3_bucket" "public_assets" {
-  bucket = "public-assets-staging-000000000000"
-  tags   = local.common_tags
-}
-
-# Compensating control: policy limits public access to GetObject on a public prefix.
-resource "aws_s3_bucket_policy" "public_assets" {
-  bucket = aws_s3_bucket.public_assets.id
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = "*"
-      Action    = "s3:GetObject"
-      Resource  = "${aws_s3_bucket.public_assets.arn}/public/*"
-    }]
-  })
-}
-"""
+def _render(nodes: list[GraphNode], builder: Callable[[GraphNode], str]) -> str:
+    """Join per-node blocks, or the empty-file header when no node matches."""
+    blocks = [builder(node) for node in nodes]
+    return "\n".join(blocks) if blocks else _EMPTY
 
 
-def build_network_tf() -> str:
-    return """resource "aws_vpc" "staging" {
-  cidr_block = "10.0.0.0/16"
-  tags       = local.common_tags
-}
+def _of_type(nodes: list[GraphNode], *types: NodeType) -> list[GraphNode]:
+    wanted = set(types)
+    return [node for node in nodes if node.type in wanted]
 
-resource "aws_subnet" "public_a" {
-  vpc_id     = aws_vpc.staging.id
-  cidr_block = "10.0.1.0/24"
-  tags       = local.common_tags
-}
 
-# INTENDED MISCONFIG: ingress open to the whole internet.
-resource "aws_security_group" "web" {
-  name   = "web-sg"
-  vpc_id = aws_vpc.staging.id
+def build_iam_tf(nodes: list[GraphNode]) -> str:
+    """Render one role per IAMRole node and one policy per IAMPolicy node."""
+    roles = _of_type(nodes, NodeType.IAM_ROLE)
+    policies = _of_type(nodes, NodeType.IAM_POLICY)
+    blocks = [res.role_block(n) for n in roles] + [res.policy_block(n) for n in policies]
+    return "\n".join(blocks) if blocks else _EMPTY
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+def build_s3_tf(nodes: list[GraphNode]) -> str:
+    """Render one bucket per S3Bucket node (+ policy for compensating controls)."""
+    return _render(_of_type(nodes, NodeType.S3_BUCKET), res.bucket_block)
 
-  tags = local.common_tags
-}
-"""
+
+def build_network_tf(nodes: list[GraphNode]) -> str:
+    """Render VPC / Subnet / SecurityGroup nodes, wiring both to the VPC."""
+    vpcs = _of_type(nodes, NodeType.VPC)
+    vpc_ref = res.resource_name(vpcs[0]) if vpcs else None
+    blocks: list[str] = [res.vpc_block(n) for n in vpcs]
+    blocks += [res.subnet_block(n, vpc_ref) for n in _of_type(nodes, NodeType.SUBNET)]
+    blocks += [
+        res.security_group_block(n, vpc_ref) for n in _of_type(nodes, NodeType.SECURITY_GROUP)
+    ]
+    return "\n".join(blocks) if blocks else _EMPTY

@@ -25,5 +25,5 @@ class ScenarioArtifacts:
         dump_json(self._paths.graph, bundle.graph.model_dump(by_alias=True))
         dump_json(self._paths.expected_findings, bundle.findings.model_dump())
         dump_json(self._paths.ground_truth_paths, bundle.ground_truth.model_dump())
-        TerraformEmitter().emit(self._paths.terraform_dir)
+        TerraformEmitter(bundle.graph).emit(self._paths.terraform_dir)
         self._paths.scanner_results_dir.mkdir(parents=True, exist_ok=True)
