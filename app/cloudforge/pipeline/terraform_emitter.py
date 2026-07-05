@@ -15,6 +15,7 @@ from pathlib import Path
 from app.cloudforge.io.loaders import write_text
 from app.cloudforge.models.graph import GraphNode, ScenarioGraph
 from app.cloudforge.pipeline import terraform_blocks as blocks
+from app.cloudforge.pipeline.label_collisions import check_label_collisions
 
 _STATIC_BUILDERS: dict[str, Callable[[], str]] = {
     "providers.tf": blocks.build_providers_tf,
@@ -38,6 +39,10 @@ class TerraformEmitter:
         self._graph = graph
 
     def emit(self, terraform_dir: Path) -> list[Path]:
+        # Fail loud BEFORE writing any file: distinct node ids that sanitize to the
+        # same per-type resource label would make ``terraform validate`` reject a
+        # duplicate resource (FXL-N4).
+        check_label_collisions(self._graph.nodes)
         written: list[Path] = []
         for filename, static_builder in _STATIC_BUILDERS.items():
             written.append(self._write(terraform_dir, filename, static_builder()))
