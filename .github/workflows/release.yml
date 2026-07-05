@@ -1,0 +1,194 @@
+name: Release Notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: "Override version (e.g. v1.0.0). Leave empty for auto minor bump."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get last tag
+        id: last_tag
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+          if [ -z "$LAST_TAG" ]; then
+            echo "range=HEAD" >> "$GITHUB_OUTPUT"
+            echo "base=v0.0.0" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=${LAST_TAG}..HEAD" >> "$GITHUB_OUTPUT"
+            echo "base=$LAST_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect and parse commits
+        id: commits
+        run: |
+          RANGE="${{ steps.last_tag.outputs.range }}"
+          BASE="${{ steps.last_tag.outputs.base }}"
+
+          # Collect non-merge commits
+          COMMITS=$(git log "$RANGE" --format="%h %s" --no-merges 2>/dev/null || echo "")
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits since $BASE. Skipping release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+          # Count by type (grep -c returns 1 on no match, so use || true)
+          FEAT_COUNT=$(echo "$COMMITS" | grep -cE "^[a-f0-9]+ feat" || true)
+          FIX_COUNT=$(echo "$COMMITS" | grep -cE "^[a-f0-9]+ fix" || true)
+          TOTAL=$(echo "$COMMITS" | wc -l | tr -d ' ')
+
+          echo "feat_count=$FEAT_COUNT" >> "$GITHUB_OUTPUT"
+          echo "fix_count=$FIX_COUNT" >> "$GITHUB_OUTPUT"
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+
+      - name: Compute next version
+        id: version
+        if: steps.commits.outputs.skip != 'true'
+        run: |
+          OVERRIDE="${{ github.event.inputs.version_override }}"
+          BASE="${{ steps.last_tag.outputs.base }}"
+
+          if [ -n "$OVERRIDE" ]; then
+            NEXT="$OVERRIDE"
+            REASON="manual override"
+          else
+            # Always bump minor (+0.1)
+            VERSION="${BASE#v}"
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            MINOR=$((MINOR + 1))
+            NEXT="v${MAJOR}.${MINOR}.0"
+            REASON="project completion — minor bump"
+          fi
+
+          # Handle tag collision
+          if git rev-parse "$NEXT" >/dev/null 2>&1; then
+            echo "::error::Tag $NEXT already exists. Use version_override input."
+            exit 1
+          fi
+
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "reason=$REASON" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        if: steps.commits.outputs.skip != 'true'
+        run: |
+          RANGE="${{ steps.last_tag.outputs.range }}"
+          BASE="${{ steps.last_tag.outputs.base }}"
+          NEXT="${{ steps.version.outputs.next }}"
+          REPO="${{ github.repository }}"
+
+          # Helper: extract commits by type and format them
+          format_section() {
+            local TYPE="$1" HEADER="$2"
+            local ITEMS
+            ITEMS=$(git log "$RANGE" --format="%h %s" --no-merges \
+              | grep -E "^[a-f0-9]+ ${TYPE}(\(|!|:)" \
+              | sed -E "s/^([a-f0-9]+) ${TYPE}(\(([^)]+)\))?(!)?: (.+)/- \5 (\1) [\3]/" \
+              | sed 's/ \[\]$//' \
+              || echo "")
+            if [ -n "$ITEMS" ]; then
+              echo "### $HEADER"
+              echo "$ITEMS"
+              echo ""
+            fi
+          }
+
+          {
+            echo "## What's Changed"
+            echo ""
+            format_section "feat" "New Features"
+            format_section "fix" "Bug Fixes"
+            format_section "refactor" "Refactoring"
+            format_section "test" "Tests"
+            format_section "docs" "Documentation"
+            format_section "chore" "Chores"
+            format_section "perf" "Performance"
+
+            # Breaking changes (commits with ! suffix)
+            BREAKING_ITEMS=$(git log "$RANGE" --format="%h %s" --no-merges \
+              | grep -E "^[a-f0-9]+ [a-z]+(\([^)]+\))?!:" \
+              | sed -E "s/^([a-f0-9]+) [a-z]+(\(([^)]+)\))?!: (.+)/- \4 (\1) [\3] -- BREAKING/" \
+              | sed 's/ \[\] -- BREAKING$/ -- BREAKING/' \
+              || echo "")
+            if [ -n "$BREAKING_ITEMS" ]; then
+              echo "### Breaking Changes"
+              echo "$BREAKING_ITEMS"
+              echo ""
+            fi
+
+            # Non-conventional commits
+            OTHERS=$(git log "$RANGE" --format="%h %s" --no-merges \
+              | grep -vE "^[a-f0-9]+ (feat|fix|refactor|test|docs|chore|perf)(\(|!|:)" \
+              || echo "")
+            if [ -n "$OTHERS" ]; then
+              echo "### Other Changes"
+              echo "$OTHERS" | sed 's/^/- /'
+              echo ""
+            fi
+
+            echo "**Full Changelog**: https://github.com/${REPO}/compare/${BASE}...${NEXT}"
+          } > release-notes.md
+
+      - name: Create draft release
+        if: steps.commits.outputs.skip != 'true'
+        run: |
+          gh release create "${{ steps.version.outputs.next }}" \
+            --title "${{ steps.version.outputs.next }}" \
+            --notes-file release-notes.md \
+            --draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post summary
+        if: steps.commits.outputs.skip != 'true'
+        run: |
+          NEXT="${{ steps.version.outputs.next }}"
+          REASON="${{ steps.version.outputs.reason }}"
+          TOTAL="${{ steps.commits.outputs.total }}"
+          FEAT="${{ steps.commits.outputs.feat_count }}"
+          FIX="${{ steps.commits.outputs.fix_count }}"
+
+          {
+            echo "## Draft Release Created: ${NEXT}"
+            echo ""
+            echo "- **Version**: ${NEXT} (${REASON})"
+            echo "- **Commits**: ${TOTAL} total (${FEAT} features, ${FIX} fixes)"
+            echo ""
+            echo "Review and publish at:"
+            echo "https://github.com/${{ github.repository }}/releases"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Log KPIs
+        if: steps.commits.outputs.skip != 'true'
+        run: |
+          NEXT="${{ steps.version.outputs.next }}"
+          DATE=$(date -u +%Y-%m-%d)
+          FEAT="${{ steps.commits.outputs.feat_count }}"
+          FIX="${{ steps.commits.outputs.fix_count }}"
+
+          echo "${NEXT},${DATE},${FEAT},${FIX},true,true,0" >> .dev-context/kpis/release-log.csv
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .dev-context/kpis/release-log.csv
+          git diff --cached --quiet || git commit -m "chore: update release KPI log for ${NEXT}"
+          git push || echo "Could not push KPI log (non-fatal)"

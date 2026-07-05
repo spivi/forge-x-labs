@@ -1,0 +1,43 @@
+# Ticket-labeling taxonomy — the single source of truth for the TYPED dimensions
+# promoted out of the free-form `labels` string into first-class estimates.csv
+# columns. /prd stamps them; /debrief slices calibration + model-policy on them;
+# scripts/dataset.py emits them as ML features.
+#
+# EXTENSION POINT: add a dimension here (column + allowed + default + label_prefix)
+# and it flows through the migrator (back-fill from `labels`) and dataset.py with
+# no code edits. `allowed: []` means open vocabulary (any string).
+#
+# BACK-COMPAT: any value still encoded inside the semicolon `labels` string
+# (e.g. "effort:L;area:api") is read as a fallback when the typed column is blank.
+# `labels` is intentionally KEPT for open-ended tags and legacy rows.
+
+version: 1
+
+dimensions:
+  effort:
+    column: effort
+    allowed: [S, M, L, XL]        # XL added vs the legacy S/M/L
+    default: ""                    # blank = unknown; estimator falls back to default_floor
+    label_prefix: "effort:"
+    role: feature
+  milestone:
+    column: milestone
+    allowed: []                    # open vocabulary (e.g. M0, M1, beta)
+    default: ""
+    label_prefix: "milestone:"
+    role: feature
+  risk:
+    column: risk
+    allowed: [low, medium, high]
+    default: ""
+    label_prefix: "risk:"
+    role: feature
+  area:
+    column: area
+    allowed: []                    # open vocabulary (e.g. api, ui, infra, data)
+    default: ""
+    label_prefix: "area:"
+    role: feature
+
+# Feature columns that already exist and are NOT taxonomy-extensible here.
+fixed_feature_columns: [type, priority]

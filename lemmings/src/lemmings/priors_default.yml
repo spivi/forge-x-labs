@@ -1,0 +1,63 @@
+# Default priors for the Lemmings SEM.
+#
+# These are hand-specified educated guesses — coarse calibration. Run
+# `lemmings fit` against a project's KPI ledgers to fit a priors.override.yml
+# from real data (cost rates, bug lambda, review duration); knobs without
+# enough samples keep these synthetic defaults.
+
+agents:
+  scrum_master:
+    skill: 1.0
+    cost_rate_per_min: 0.01
+    false_positive_rate: 0.0
+  developer:
+    skill: 1.0
+    cost_rate_per_min: 0.10
+    false_positive_rate: 0.0
+  code_reviewer:
+    skill: 1.0
+    cost_rate_per_min: 0.05
+    false_positive_rate: 0.05
+  budget_review:
+    skill: 1.0
+    cost_rate_per_min: 0.02
+    false_positive_rate: 0.0
+
+ticket:
+  complexity_mean: 1.0
+  complexity_sd: 0.4
+  novelty_alpha: 2.0
+  novelty_beta: 5.0
+  lines_planned_mean: 150.0
+  lines_planned_sd: 80.0
+
+bugs:
+  base_lambda: 0.5
+  complexity_coef: 1.0
+  novelty_coef: 1.5
+
+violations:
+  alpha_per_line: 0.02
+  beta_per_bug: 1.5
+  noise_sd: 1.0
+
+review:
+  duration_mu: 1.0
+  duration_lines_coef: 0.4
+  duration_sigma: 0.3
+  violation_threshold: 5
+
+developer:
+  duration_mu: 2.5
+  duration_lines_coef: 0.5
+  duration_sigma: 0.4
+
+process:
+  developer_quality_sd: 0.3
+
+budget:
+  sprint_budget_usd: 50.0
+  hard_cap_factor: 1.2
+
+retry:
+  max_attempts: 3

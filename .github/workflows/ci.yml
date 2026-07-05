@@ -1,0 +1,63 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches-ignore: [master, main]
+  pull_request:
+    branches: [master]
+
+# The dev-template repo ships with un-substituted {{PLACEHOLDER}} tokens (e.g.
+# pyproject.toml `name = "{{PROJECT_NAME}}"`) until setup.sh runs in a derived
+# project. `pip install -e .` cannot build a package whose name is a placeholder,
+# so on the un-instantiated template we SKIP the editable install + the steps that
+# depend on it (mypy on app/, coverage against the installed package) and run only
+# the placeholder-safe gates: ruff over the whole repo, and pytest via PYTHONPATH.
+# Each job detects the template state inline (a step output) to avoid cross-job
+# output plumbing. Once setup.sh substitutes the tokens, the full path runs.
+
+jobs:
+  lint-and-type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: tpl
+        run: |
+          if grep -q '{{' pyproject.toml; then
+            echo "is_template=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Un-instantiated dev-template — placeholder-safe gates only."
+          else
+            echo "is_template=false" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pip install ruff mypy
+      - if: steps.tpl.outputs.is_template == 'false'
+        run: pip install poetry-core && pip install -e .
+      - run: ruff check .
+      - run: ruff format --check .
+      - if: steps.tpl.outputs.is_template == 'false'
+        run: mypy app/ --ignore-missing-imports
+
+  test:
+    needs: [lint-and-type-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: tpl
+        run: |
+          if grep -q '{{' pyproject.toml; then
+            echo "is_template=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_template=false" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pip install pytest pytest-asyncio pytest-cov httpx pytest-mock
+      - if: steps.tpl.outputs.is_template == 'false'
+        run: pip install poetry-core && pip install -e .
+      - if: steps.tpl.outputs.is_template == 'false'
+        run: python -m pytest tests/ --cov=app --cov-report=xml -q || test $? -eq 5
+      - if: steps.tpl.outputs.is_template == 'true'
+        run: PYTHONPATH=. python -m pytest tests/ -q --no-cov || test $? -eq 5

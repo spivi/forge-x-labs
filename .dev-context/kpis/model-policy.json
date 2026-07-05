@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "Model routing learned from suitability verdicts (cheapest model that delivered without overrun or P1 finding). Learned by /debrief. scripts/estimator.py reads `learned`; routing never drops below the effort floor in base-estimates.yml.",
+    "updated": null
+  },
+  "base_policy": {},
+  "learned": {}
+}

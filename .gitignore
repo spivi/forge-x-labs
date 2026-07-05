@@ -1,0 +1,58 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Poetry
+poetry.lock
+dist/
+*.egg-info/
+
+# Cursor/VSCode
+.vscode/
+.idea/
+
+# Claude Code
+.claude/env
+.claude/settings.local.json
+
+# Mac
+.DS_Store
+
+# Credentials
+service_account.json
+credentials.json
+.coverage
+
+# Alembic
+alembic/versions/__pycache__/
+
+# mypy
+.mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# ruff
+.ruff_cache/
+
+# Node (Playwright)
+node_modules/
+
+# Social media animation assets (generated)
+social-assets/
+.tmp.driveupload/
+
+# Vendored third-party clones (reconstructed from pins in .dev-context/vendor/README.md).
+# The clone keeps its own .git and is not committed as content; our README is tracked.
+.dev-context/vendor/*
+!.dev-context/vendor/README.md

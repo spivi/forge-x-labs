@@ -1,0 +1,54 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        exclude: ^(scripts/|tests/|lemmings/)
+        additional_dependencies:
+          - pydantic>=2.10
+          - pydantic-settings
+          - fastapi
+          - starlette
+          - sqlalchemy
+          - asyncpg
+          - alembic
+  - repo: local
+    hooks:
+      - id: no-master-commit
+        name: Block direct commits to master
+        entry: bash scripts/no-master-commit.sh
+        language: system
+        always_run: true
+        stages: [pre-commit]
+      - id: check-signoff
+        name: Require Signed-off-by trailer
+        entry: bash scripts/check-signoff.sh
+        language: system
+        stages: [commit-msg]
+      - id: tool-config-sync
+        name: AI tool config sync check
+        entry: python scripts/sync-tool-configs.py --check
+        language: system
+        pass_filenames: false
+        always_run: false
+        files: '(\.dev-context/rules/|\.cursor/rules/|\.antigravity/rules/)'
+      - id: pre-push-tests
+        name: Fast pre-push test backstop
+        entry: bash scripts/pre_push_tests.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: ci-scoped-gates
+        name: Diff-scoped CI gates
+        entry: bash scripts/ci_scoped_gates.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

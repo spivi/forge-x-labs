@@ -1,0 +1,83 @@
+# AI Cost Budgets
+# Human-owned. Budget Review agent reads this. Only the human changes it.
+# See .dev-context/agents/budget_review.md for how these are enforced.
+
+currency: USD
+
+budgets:
+  daily:
+    anthropic: 25.00
+    openai: 5.00
+    total: 35.00
+
+  weekly:
+    anthropic: 100.00
+    openai: 25.00
+    total: 150.00
+
+  monthly:
+    anthropic: 300.00
+    openai: 75.00
+    total: 500.00
+
+  per_session:
+    max_tokens: 500000
+    max_cost: 10.00
+
+  per_ticket:
+    max_cost: 30.00
+    alert_at: 20.00
+
+alerts:
+  warn_at_percent: 70
+  critical_at_percent: 90
+  circuit_break_at: 100
+
+notification:
+  channel: console  # console | whatsapp | email | slack
+
+# Subscription quota gate (scripts/subscription_quota.py). DISABLED by default:
+# set `provider` (e.g. anthropic) + window limits to enable. /sprint then runs it
+# alongside the dollar gate and the most-restrictive band wins. The usage source is
+# project-specific (injected) — this block only carries the ceilings + thresholds.
+subscription:
+  provider: null            # null => gate disabled (no-op)
+  window_limit_5h: 0        # weighted-token ceiling per 5h rolling window
+  window_limit_weekly: 0    # weighted-token ceiling per week
+  warn_at_5h_pct: 70
+  critical_at_5h_pct: 90
+  warn_at_weekly_pct: 70
+  critical_at_weekly_pct: 90
+  # quota_weight: { opus: 5.0, sonnet: 1.0, haiku: 0.2 }
+
+# Pricing reference for cost estimation from token counts.
+# Update when provider pricing changes.
+#
+# FAMILY keys (opus/sonnet/haiku) are version-proof and are matched FIRST by
+# scripts/ledger_append.py + scripts/billing_costs.py (model_family lookup), so a
+# new model id like `claude-opus-4-8` prices correctly without a config edit.
+# VERSION-PINNED keys are kept for the SessionEnd bash hook's exact-match lookup.
+pricing:
+  anthropic:
+    opus:
+      input_per_1m: 15.00
+      output_per_1m: 75.00
+    sonnet:
+      input_per_1m: 3.00
+      output_per_1m: 15.00
+    haiku:
+      input_per_1m: 0.80
+      output_per_1m: 4.00
+    claude-opus-4-6:
+      input_per_1m: 15.00
+      output_per_1m: 75.00
+    claude-sonnet-4-5:
+      input_per_1m: 3.00
+      output_per_1m: 15.00
+    claude-haiku-4-5:
+      input_per_1m: 0.80
+      output_per_1m: 4.00
+  openai:
+    gpt-4o-mini:
+      input_per_1m: 0.15
+      output_per_1m: 0.60

@@ -1,0 +1,5 @@
+ts_iso,ticket,document,doc_type,providers,members_run,chair_model,status,autofix
+2026-07-02T12:42:14Z,auto:m0049_build_summary,/Users/spivi/dev-projects/ai-video-workspace/ai-video-benchmark/../ai-video-benchmark-vault/06_claude_reports/m0049_build_summary.md,summary,"codex,antigravity",2,claude-sonnet-4-6,ok,drafted:2ok/0fail
+2026-07-02T13:36:47Z,,docs/plans/2026-07-02-m0048-reference-fidelity-evidence-design-rev2.md,plan,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
+2026-07-03T07:53:22Z,,docs/plans/2026-07-02-m0048-reference-fidelity-evidence-design-rev2.md,plan,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
+2026-07-03T08:42:45Z,,/Users/spivi/.claude/plans/go-over-wxisting-summaring-floating-aurora.md,plan,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
