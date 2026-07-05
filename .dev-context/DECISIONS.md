@@ -59,3 +59,49 @@ the same interface — not built.
 **Consequences**: First slice is narrow (one `ci_cd_iam_chain` family) but every artifact
 is self-consistent and machine-checkable. The generator seam keeps future engines additive.
 
+
+## FXL-D003: A scenario is "validated" only against a 12-point definition (benchmark-grade)
+
+**Status**: accepted
+**Date**: 2026-07-05
+
+**Context**: External engineering review distinguished *engineering-valid* ("does the code
+work?") from *product-valid* ("are the scenarios useful, realistic, benchmarkable, and hard
+to fake?"). "terraform validates" proves syntax, not cloud semantics or scanner-measurement
+value. Without a stricter bar, the project risks false confidence.
+
+**Decision**: A generated scenario is "validated" only if it passes ALL of:
+1. Schema-valid (scenario.yaml + graph.json).
+2. Graph-consistent (every edge references real nodes).
+3. Ground-truth paths resolve (nodes + edges exist; path reachable).
+4. Expected findings point to real graph resources.
+5. No forbidden destructive permissions.
+6. Broad grants documented by an expected finding.
+7. Terraform emitted successfully.
+8. Terraform validates, or fails only for a known environmental/tooling reason (network/provider).
+9. Optional scanners either run or warn clearly (fail-soft).
+10. Scanner output is scored against expected findings when a scanner ran.
+11. Report renders and includes a limitations section.
+12. Mutation, if used, preserves ground truth.
+
+Today the pipeline covers ~1–9 and 11; gaps are **#10 (scanner scoring)** and stronger
+**#12 (mutation stress)**, plus adversarial generator hardening feeding #7/#8.
+
+**Consequences**: Drives the M7 backlog (FXL-N1 scanner scorer, FXL-N2 adversarial corpus,
+FXL-N3 mutation stress, FXL-N4 emitter dedup, FXL-N5 quality rubric). The tracked coverage
+metric is "X/12 gates", not "tests pass".
+
+## FXL-D004: Harden validation before adding a third scenario family
+
+**Status**: accepted
+**Date**: 2026-07-05
+
+**Context**: The differentiator is *trusted labeled scenarios*, not scenario count. Adding
+families before hardening validation multiplies surface area and false confidence.
+
+**Decision**: Complete the M7 validation-hardening wave (scanner scorer, adversarial corpus,
+mutation stress, emitter dedup) BEFORE adding any new scenario family. A new family is gated
+on the 12-point definition (FXL-D003) being enforceable, not just authorable.
+
+**Consequences**: Near-term roadmap is validation depth, not scenario breadth. The
+`ScenarioGenerator` seam stays ready; new families wait.
