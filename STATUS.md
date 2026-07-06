@@ -50,7 +50,7 @@
 
 | Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
 |---|---|---|---|---|---|
-| (none) | — | — | — | — | — |
+| fix/FXL-90-checkov-parse-column | ../cloudforge--FXL-90 | FXL-90 | Task Agent (sonnet) | fix-cycle-1 (CKV2 regex) | adapters/checkov_policy_index.py, fixture, test |
 
 ## Active Tasks
 - **M0–M5 complete** (template, graph+generator, terraform, validators, reporting, mutation engine).
