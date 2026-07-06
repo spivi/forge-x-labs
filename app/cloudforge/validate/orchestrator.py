@@ -18,6 +18,7 @@ from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.validate import external_scans, scanner_score, schema_checks
 from app.cloudforge.validate.graph_risk import GraphRiskEngine
 from app.cloudforge.validate.results import Status, ValidationOutcome, ValidationReport
+from app.cloudforge.validate.scanner_score_diagnostics import not_scored_reason
 
 DEFAULT_POLICY_PATH = "policies/scenario.rego"
 
@@ -60,17 +61,27 @@ def run_local_validations(base_dir: Path | str) -> ValidationReport:
 
 
 def _score_scanner(paths: ScenarioPaths) -> ValidationOutcome:
-    """Score checkov output against expected findings (gap #10). Fail-soft when absent."""
+    """Score checkov output against expected findings (gap #10). Fail-soft when absent.
+
+    A ``None`` score is never reported with the same generic detail regardless of
+    cause (clause S12): :func:`not_scored_reason` distinguishes "the scanner never
+    ran" from "checkov.json exists but was unusable", so a corrupted scanner run
+    is never indistinguishable from one that was never invoked.
+    """
     written = scanner_score.write_scanner_score(paths)
     if written is None:
-        return ValidationOutcome(Status.WARN, "scanner score", "not scored — no scanner output")
+        reason = not_scored_reason(paths) or "no scanner output"
+        return ValidationOutcome(Status.WARN, "scanner score", f"not scored — {reason}")
     score = scanner_score.score_scenario(paths)
     if score is None:
-        return ValidationOutcome(Status.WARN, "scanner score", "not scored — no scanner output")
+        reason = not_scored_reason(paths) or "no scanner output"
+        return ValidationOutcome(Status.WARN, "scanner score", f"not scored — {reason}")
     detail = (
         f"{score.matched_findings}/{score.expected_findings} expected findings detected "
         f"(coverage {score.scanner_coverage_score})"
     )
+    if score.warnings:
+        detail += f" — caveats: {'; '.join(score.warnings)}"
     return ValidationOutcome(Status.PASS, "scanner score", detail)
 
 

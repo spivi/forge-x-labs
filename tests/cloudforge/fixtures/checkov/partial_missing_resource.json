@@ -1,0 +1,17 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_60",
+        "check_name": "Missing the resource field entirely (truncated write?)",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV_AWS_23",
+        "resource": "aws_security_group.sg_web",
+        "file_path": "/network.tf"
+      }
+    ],
+    "passed_checks": []
+  }
+}

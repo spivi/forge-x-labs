@@ -1,0 +1,37 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_60",
+        "check_name": "Ensure IAM role allows only specific principals to assume it",
+        "resource": "aws_iam_role.role_deploy",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV_AWS_60",
+        "check_name": "Ensure IAM role allows only specific principals to assume it",
+        "resource": "aws_iam_role.role_runtime",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV_AWS_23",
+        "check_name": "Ensure every security group rule has a description",
+        "resource": "aws_security_group.sg_web",
+        "file_path": "/network.tf"
+      },
+      {
+        "check_id": "CKV_AWS_382",
+        "check_name": "Ensure no security group allows ingress from 0.0.0.0:0 to port -1",
+        "resource": "aws_security_group.sg_web",
+        "file_path": "/network.tf"
+      },
+      {
+        "check_id": "CKV_AWS_70",
+        "check_name": "Ensure S3 bucket policy is not overly permissive",
+        "resource": "aws_s3_bucket_policy.s3_public_assets",
+        "file_path": "/s3.tf"
+      }
+    ],
+    "passed_checks": []
+  }
+}

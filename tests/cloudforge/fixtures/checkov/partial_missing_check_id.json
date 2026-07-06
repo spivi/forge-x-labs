@@ -1,0 +1,11 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "resource": "aws_iam_role.role_deploy",
+        "file_path": "/iam.tf"
+      }
+    ],
+    "passed_checks": []
+  }
+}

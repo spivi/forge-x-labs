@@ -152,20 +152,35 @@ def build_opa_summary(available: bool, detail: str) -> str:
     return f"## OPA Policy Results\n\n{body}"
 
 
-def build_scanner_score(score: ScannerScore | None) -> str:
-    """Summarize how well the observed scanner covered the expected findings."""
+def build_scanner_score(score: ScannerScore | None, not_scored_reason: str | None = None) -> str:
+    """Summarize how well the observed scanner covered the expected findings.
+
+    ``not_scored_reason`` (clause S12) lets a caller distinguish "the scanner was
+    never run" from "checkov.json existed but was unusable" instead of always
+    printing the same generic message for both — a corrupted scanner run must not
+    look identical to one that never happened. Any ``score.warnings`` (malformed
+    entries skipped, empty-file, etc.) are rendered as explicit caveats, never
+    silently dropped.
+    """
     if score is None:
-        return "## Scanner Score\n\nnot scored — no scanner output."
+        reason = not_scored_reason or "no scanner output"
+        return f"## Scanner Score\n\nnot scored — {reason}."
     coverage_pct = f"{score.scanner_coverage_score * 100:.0f}%"
-    return (
-        "## Scanner Score\n\n"
-        f"- **Scanner:** {score.scanner}\n"
-        f"- **Expected findings:** {score.expected_findings}\n"
-        f"- **Matched (detected):** {score.matched_findings}\n"
-        f"- **Missed:** {score.missed_findings}\n"
-        f"- **Unexpected (observed false positives):** {score.unexpected_findings}\n"
-        f"- **Coverage score:** {score.scanner_coverage_score} ({coverage_pct})"
-    )
+    lines = [
+        "## Scanner Score",
+        "",
+        f"- **Scanner:** {score.scanner}",
+        f"- **Expected findings:** {score.expected_findings}",
+        f"- **Matched (detected):** {score.matched_findings}",
+        f"- **Missed:** {score.missed_findings}",
+        f"- **Unexpected (observed false positives):** {score.unexpected_findings}",
+        f"- **Coverage score:** {score.scanner_coverage_score} ({coverage_pct})",
+        f"- **Match strategy:** {score.match_strategy}",
+    ]
+    if score.warnings:
+        lines.append("- **Caveats:**")
+        lines.extend(f"  - {warning}" for warning in score.warnings)
+    return "\n".join(lines)
 
 
 def build_limitations() -> str:
