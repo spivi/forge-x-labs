@@ -24,7 +24,14 @@ _CI_CD_DIR = _FIXTURES / "scenario_ci_cd_iam_chain"
 _PDE_DIR = _FIXTURES / "scenario_public_data_exposure"
 
 
-def _source_entry(path: str) -> SourceEntry:
+def _source_entry(path: str = "out/") -> SourceEntry:
+    # The entry's ``path`` is a provenance LABEL only — the directory the adapter actually
+    # reads is passed as ``extract``'s second argument. Since FXL-109 added path-traversal
+    # containment to ``SourceEntry.path`` (absolute/escaping paths are rejected at the
+    # model boundary), this label defaults to the real registry's in-tree relative value
+    # (``out/``) rather than an absolute ``tmp_path``. The read location stays wherever the
+    # test points ``extract`` — decoupling the (contained) provenance label from the
+    # (test-local, absolute) read path.
     return SourceEntry(
         id="local-scenarios-out",
         name="cloudforge generated scenario dirs",
@@ -41,7 +48,7 @@ def _source_entry(path: str) -> SourceEntry:
 
 def test_extract_ci_cd_iam_chain_maps_critical_path_to_record() -> None:
     adapter = CloudforgeScenarioAdapter()
-    records = adapter.extract(_source_entry(str(_CI_CD_DIR)), _CI_CD_DIR)
+    records = adapter.extract(_source_entry(), _CI_CD_DIR)
 
     assert len(records) == 1
     record = records[0]
@@ -63,7 +70,7 @@ def test_extract_ci_cd_iam_chain_maps_critical_path_to_record() -> None:
 
 def test_extract_public_data_exposure_maps_critical_path_to_record() -> None:
     adapter = CloudforgeScenarioAdapter()
-    records = adapter.extract(_source_entry(str(_PDE_DIR)), _PDE_DIR)
+    records = adapter.extract(_source_entry(), _PDE_DIR)
 
     assert len(records) == 1
     record = records[0]
@@ -75,7 +82,7 @@ def test_extract_public_data_exposure_maps_critical_path_to_record() -> None:
 
 def test_extract_stamps_complete_provenance() -> None:
     adapter = CloudforgeScenarioAdapter()
-    records = adapter.extract(_source_entry(str(_CI_CD_DIR)), _CI_CD_DIR)
+    records = adapter.extract(_source_entry(), _CI_CD_DIR)
     provenance = records[0].provenance
 
     assert provenance.adapter_name == ADAPTER_NAME == "cloudforge_scenario"
@@ -91,7 +98,7 @@ def test_extract_stamps_complete_provenance() -> None:
 
 def test_extract_parent_dir_ingests_all_child_scenarios() -> None:
     adapter = CloudforgeScenarioAdapter()
-    records = adapter.extract(_source_entry(str(_FIXTURES)), _FIXTURES)
+    records = adapter.extract(_source_entry(), _FIXTURES)
 
     raw_ids = {r.raw_id for r in records}
     assert raw_ids == {"path-critical-01", "path-critical-pde-01"}
@@ -102,7 +109,7 @@ def test_extract_missing_scenario_dir_raises_cloudforge_error(tmp_path: Path) ->
     adapter = CloudforgeScenarioAdapter()
 
     with pytest.raises(CloudforgeError):
-        adapter.extract(_source_entry(str(missing)), missing)
+        adapter.extract(_source_entry(), missing)
 
 
 def test_extract_incomplete_scenario_dir_raises_cloudforge_error(tmp_path: Path) -> None:
@@ -115,7 +122,7 @@ def test_extract_incomplete_scenario_dir_raises_cloudforge_error(tmp_path: Path)
     adapter = CloudforgeScenarioAdapter()
 
     with pytest.raises(CloudforgeError):
-        adapter.extract(_source_entry(str(incomplete)), incomplete)
+        adapter.extract(_source_entry(), incomplete)
 
 
 def test_extract_empty_parent_dir_returns_no_records(tmp_path: Path) -> None:
@@ -123,7 +130,7 @@ def test_extract_empty_parent_dir_returns_no_records(tmp_path: Path) -> None:
     empty_parent.mkdir()
     adapter = CloudforgeScenarioAdapter()
 
-    records = adapter.extract(_source_entry(str(empty_parent)), empty_parent)
+    records = adapter.extract(_source_entry(), empty_parent)
 
     assert records == []
 

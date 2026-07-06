@@ -266,11 +266,15 @@ def _local_rule_catalog_source() -> SourceEntry:
 
 
 def _scenario_source() -> SourceEntry:
+    # ``path`` is a provenance LABEL only (the adapter reads the dir passed as extract()'s
+    # 2nd arg). Since FXL-109 added path-traversal containment to ``SourceEntry.path``,
+    # this uses the real registry's in-tree relative value (``out/``) rather than the
+    # absolute fixture path.
     return SourceEntry(
         id="local-scenarios-out",
         name="cloudforge generated scenario dirs",
         type=SourceType.LOCAL_SCENARIO_DIR,
-        path=str(_CI_CD_DIR),
+        path="out/",
         adapter="cloudforge_scenario",
         enabled=True,
         license="CC0-1.0",

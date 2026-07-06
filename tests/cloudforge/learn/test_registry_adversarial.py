@@ -25,7 +25,7 @@ import pytest
 from app.cloudforge.learn._ingest import ADAPTERS, UnknownAdapterError, resolve_adapter
 from app.cloudforge.learn.fetch import FetchedResponse, fetch_all_sources
 from app.cloudforge.learn.registry import RegistryError, get_entry, load_registry
-from app.cloudforge.learn.source_models import ReuseStatus
+from app.cloudforge.learn.source_models import ReuseStatus, SourceEntry, SourceType
 
 
 def _write(tmp_path: Path, text: str) -> Path:
@@ -305,7 +305,19 @@ sources:
     assert not (tmp_path / "raw" / entry.id).exists()
 
 
-# --- path traversal in the local `path` field -----------------------------------------
+# --- path traversal in the local `path` field (FXL-109: FIXED, now a regression) -------
+#
+# The registry is the trusted allow-list, but before FXL-109 a malicious/corrupted entry
+# with `path: ../../../etc/passwd` (or an absolute path) parsed cleanly and
+# `_ingest.resolve_raw_path` handed it straight to an adapter -- ingestion-time arbitrary
+# file read outside the data roots. The fix is a two-layer containment guard:
+#   1. `SourceEntry._path_stays_in_tree` (model validator) -- rejects an escaping `path`
+#      at LOAD time, so every consumer (ingest, provenance stamping, any future reader) is
+#      protected by a single chokepoint. Lexical + CWD-independent.
+#   2. `_ingest._resolve_local_path` -- a second resolve-time containment check
+#      (`Path.resolve()` + `is_relative_to(base)`), so even a `SourceEntry` reaching
+#      `resolve_raw_path` through a BYPASSED validator (`model_construct`) still cannot
+#      escape. Raises `PathTraversalError`.
 
 
 @pytest.mark.parametrize(
@@ -314,19 +326,16 @@ sources:
         "../../../../../etc/passwd",
         "/etc/passwd",
         "data/rule_catalog/../../../../etc/passwd",
+        "../data/rule_catalog/seed_patterns.yaml",  # single climb out of root still escapes
     ],
 )
-def test_path_traversal_location_is_accepted_by_schema_no_traversal_guard(
+def test_path_traversal_is_rejected_at_registry_load_time(
     tmp_path: Path, traversal_path: str
 ) -> None:
-    """``SourceEntry.path`` is a bare ``str`` -- ``load_registry`` performs NO path-traversal
-    guard (no containment check against a project root / allow-listed directory).
-
-    This is a genuine gap: a hostile registry entry with ``path: ../../../../etc/passwd``
-    parses and validates cleanly, and ``resolve_raw_path``/adapters would happily
-    ``Path(entry.path)`` it and attempt to read arbitrary filesystem content the next
-    time an adapter runs over this entry. Captured as a strict-xfail reproducer -- see
-    ``test_path_traversal_reaches_resolve_raw_path`` below for the concrete exploit path.
+    """A hostile registry entry whose local ``path`` escapes the project tree (via ``..``
+    traversal or an absolute path) is now REJECTED at ``load_registry`` time by the
+    ``SourceEntry._path_stays_in_tree`` model validator (surfaced as ``RegistryError``).
+    Rejection-with-a-clear-error IS the guarantee -- no silent pass, no arbitrary read.
     """
     path = _write(
         tmp_path,
@@ -343,36 +352,26 @@ sources:
     allowed_for_training: true
 """,
     )
-    registry = load_registry(path)
-    entry = get_entry(registry, "traversal-src")
-    # the registry accepts the traversal string verbatim -- no guard at this layer.
-    assert entry.path == traversal_path
+    with pytest.raises(RegistryError) as exc_info:
+        load_registry(path)
+    assert "escapes the project tree" in str(exc_info.value)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "BUG(HIGH): registry.SourceEntry.path has no path-traversal/containment guard -- "
-        "a local source entry with path='../../../../../etc/passwd' resolves via "
-        "_ingest.resolve_raw_path to an absolute Path() outside the project tree with no "
-        "error, so any adapter pointed at it would read arbitrary filesystem content "
-        "(not the training-export boundary itself, but an ingestion-time traversal gap "
-        "feeding directly into the same pipeline S8/S9 are supposed to gate). Expected: "
-        "resolve_raw_path (or SourceEntry validation) should reject a path escaping an "
-        "allow-listed root."
-    ),
-)
-def test_path_traversal_reaches_resolve_raw_path(tmp_path: Path) -> None:
+def test_in_tree_local_path_still_loads_and_resolves_normally(tmp_path: Path) -> None:
+    """The containment guard must NOT break legitimate local sources: an ordinary in-tree
+    relative path (like the real ``local-rule-catalog`` seed catalog) still loads cleanly
+    and ``resolve_raw_path`` resolves it to a contained, in-project absolute path.
+    """
     from app.cloudforge.learn._ingest import resolve_raw_path
 
     path = _write(
         tmp_path,
         """
 sources:
-  - id: traversal-src-2
-    name: traversal 2
+  - id: in-tree-src
+    name: in tree
     type: local_rule_catalog
-    path: "../../../../../../../etc/passwd"
+    path: "data/rule_catalog/seed_patterns.yaml"
     adapter: rule_catalog_yaml
     enabled: true
     license: "CC0-1.0"
@@ -381,17 +380,48 @@ sources:
 """,
     )
     registry = load_registry(path)
-    entry = get_entry(registry, "traversal-src-2")
+    entry = get_entry(registry, "in-tree-src")
+    assert entry.path == "data/rule_catalog/seed_patterns.yaml"
 
     resolved = resolve_raw_path(entry, tmp_path / "raw")
+    base = Path.cwd().resolve()
+    assert resolved.is_relative_to(base)
+    assert resolved == (base / "data/rule_catalog/seed_patterns.yaml").resolve()
 
-    # A defended implementation would raise (e.g. RegistryError/FetchError) before ever
-    # producing a path outside the project/allow-listed root. Today it resolves happily.
-    project_root = Path(__file__).resolve().parents[3]
-    assert str(resolved.resolve()).startswith(str(project_root)), (
-        f"resolved path {resolved.resolve()} escaped the project root {project_root} "
-        "-- unguarded path traversal via SourceEntry.path"
+
+def test_path_traversal_via_bypassed_validator_is_blocked_by_resolve_raw_path(
+    tmp_path: Path,
+) -> None:
+    """Defense in depth: a ``SourceEntry`` that reaches ``resolve_raw_path`` through a
+    BYPASSED validator (``model_construct`` skips the after-validators -- the same threat
+    model the corpus checks call out) is STILL blocked at resolve time by
+    ``_ingest._resolve_local_path``'s ``is_relative_to`` containment check, raising
+    ``PathTraversalError``. This is the regression for the original FXL-109 finding: the
+    resolved path can no longer escape the project root.
+    """
+    from app.cloudforge.learn._ingest import PathTraversalError, resolve_raw_path
+
+    bypassed = SourceEntry.model_construct(
+        id="traversal-bypassed",
+        name="traversal bypassed",
+        type=SourceType.LOCAL_RULE_CATALOG,
+        url=None,
+        path="../../../../../../../etc/passwd",
+        adapter="rule_catalog_yaml",
+        enabled=True,
+        license="CC0-1.0",
+        reuse_status=ReuseStatus.FULL_REUSE,
+        allowed_for_training=True,
+        notes="",
     )
+
+    with pytest.raises(PathTraversalError) as exc_info:
+        resolve_raw_path(bypassed, tmp_path / "raw")
+
+    resolved_root = Path.cwd().resolve()
+    message = str(exc_info.value)
+    assert "outside the allowed base directory" in message
+    assert str(resolved_root) in message
 
 
 # --- unsupported / mismatched adapter --------------------------------------------------
@@ -536,8 +566,6 @@ def test_fetcher_only_calls_fetch_fn_with_the_exact_registry_url(tmp_path: Path)
     never a derived, guessed, or expanded URL (no query-string injection, no host
     substitution, no protocol upgrade smuggling).
     """
-    from app.cloudforge.learn.source_models import SourceEntry, SourceType
-
     entries = [
         SourceEntry(
             id=f"src-{i}",
