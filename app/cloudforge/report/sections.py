@@ -9,13 +9,72 @@ from __future__ import annotations
 from app.cloudforge import constants
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.models.scenario import ScenarioSpec
+from app.cloudforge.validate.results import Status, ValidationReport
 from app.cloudforge.validate.scanner_score import ScannerScore
 
 _SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
+# Check labels whose FAIL means the ground-truth risk paths are NOT trustworthy —
+# the printed chain may be a disconnected/dangling fiction, so the report must not
+# present it as an authoritative, confirmed path (clause S15).
+_PATH_INTEGRITY_LABELS = frozenset(
+    {
+        "ground-truth nodes exist",
+        "ground-truth edges exist",
+        "ground-truth path exists",
+        "critical-sink connectivity",
+    }
+)
+
+_VALIDATION_FAILED_BANNER = (
+    "> ⚠ **THIS SCENARIO FAILED VALIDATION** — the risk paths and findings below "
+    "may be inaccurate. Do not treat them as a confirmed ground truth until the "
+    "failing checks are resolved."
+)
+_VALIDATION_UNAVAILABLE = (
+    "Validation could not be run for this scenario (an artifact may be missing or "
+    "unreadable). This report makes **no** claim that the scenario passed validation."
+)
+
 
 def build_banner() -> str:
     return f"> **Local-only.** {constants.LOCAL_ONLY_BANNER}"
+
+
+def build_validation(report: ValidationReport | None) -> str:
+    """Render the validation-outcome section (clause S15).
+
+    ``report`` is ``None`` when validation could not be run (fail-soft): the section
+    then says so explicitly rather than letting the report imply success. Otherwise
+    it lists every check's PASS/WARN/FAIL and — when any check FAILed — leads with a
+    prominent banner so a reader cannot mistake a FAILed scenario for a sound one.
+    """
+    lines = ["## Validation", ""]
+    if report is None:
+        lines.append(_VALIDATION_UNAVAILABLE)
+        return "\n".join(lines)
+    if report.has_failure:
+        lines.extend([_VALIDATION_FAILED_BANNER, ""])
+    else:
+        lines.extend(["> ✅ All validation checks passed (no failures).", ""])
+    for outcome in report.outcomes:
+        detail = f" — {outcome.detail}" if outcome.detail else ""
+        lines.append(f"- **[{outcome.status.value}]** {outcome.label}{detail}")
+    return "\n".join(lines)
+
+
+def path_integrity_failed(report: ValidationReport | None) -> bool:
+    """``True`` iff a ground-truth-path integrity check FAILed (clause S15).
+
+    Signals to :func:`build_critical_path` that the printed chain must NOT be
+    presented as a confirmed path. ``None`` (validation unavailable) is treated as
+    "cannot confirm", so the path is likewise not asserted as authoritative.
+    """
+    if report is None:
+        return True
+    return any(
+        o.status is Status.FAIL and o.label in _PATH_INTEGRITY_LABELS for o in report.outcomes
+    )
 
 
 def build_title(spec: ScenarioSpec) -> str:
@@ -54,11 +113,25 @@ def build_findings(bundle: ScenarioBundle) -> str:
     return "\n".join(lines)
 
 
-def build_critical_path(bundle: ScenarioBundle) -> str:
-    lines = ["## Ground-Truth Risk Path", ""]
+def build_critical_path(bundle: ScenarioBundle, *, integrity_failed: bool = False) -> str:
+    """Render the ground-truth risk paths.
+
+    When ``integrity_failed`` is set (a path node/edge/connectivity check FAILed, per
+    :func:`path_integrity_failed`), the section is flagged as UNVERIFIED so a printed
+    chain is never presented as a confirmed, connected path (clause S15).
+    """
+    header = "## Ground-Truth Risk Path"
+    lines = [header, ""]
+    if integrity_failed:
+        lines.append(
+            "> ⚠ **UNVERIFIED** — validation could not confirm these paths are "
+            "connected in the graph. The chain(s) below may be inaccurate."
+        )
+        lines.append("")
     for path in bundle.ground_truth.paths:
         chain = " → ".join(path.nodes)
-        lines.append(f"### `{path.id}` ({path.severity})\n\n{chain}\n\n{path.explanation}")
+        status = " — ⚠ NOT VERIFIED" if integrity_failed else ""
+        lines.append(f"### `{path.id}` ({path.severity}){status}\n\n{chain}\n\n{path.explanation}")
     return "\n\n".join(lines)
 
 
