@@ -1,14 +1,22 @@
 """``PatternNormalizer``: ``RawPatternRecord`` -> ``RiskPattern`` (design §9.1).
 
-Maps adapter-specific fields onto the ontology (design §6), sorts every list field
-for determinism, builds/verifies the ``graph_fragment`` as a real ``ScenarioGraph``
-(reusing the existing model — its ``model_validator`` already checks edge endpoints
-resolve), assigns ``safety_classification`` from the source's ``reuse_status`` plus a
-conservative keyword/secret content scan, stamps provenance completely (raising a
-clear ``CloudforgeError`` on incomplete provenance), and pins ``normalizer_version``.
-``validation_status`` is always set to ``unvalidated`` here — the later validator
-(ticket #67) promotes it to ``valid``/``invalid``. ``training_eligible`` is left
-untouched: it is a ``computed_field`` derived by ``RiskPattern`` itself.
+Maps adapter fields onto the ontology (design §6), sorts every list field for
+determinism, reuses/builds the ``graph_fragment`` as a real ``ScenarioGraph``, assigns
+``safety_classification`` from ``reuse_status`` plus a keyword/secret content scan,
+stamps provenance completely (raising on incomplete provenance), and pins
+``normalizer_version``. ``validation_status`` starts ``unvalidated`` (ticket #67's
+validator promotes it); ``training_eligible`` is a ``computed_field`` on ``RiskPattern``.
+
+FXL-96: a source (e.g. the ``rule_catalog_yaml`` seed catalog) declares structured
+``missing_controls``/``compensating_controls``/``negative_controls``/
+``risky_relationships``/``weakness_family`` inside ``raw_payload``; those are preserved
+onto the ``RiskPattern`` (sorted, deterministic) instead of dropped, and a seed's own
+declared ``weakness_family`` is honored rather than over-generalized (resolving the #93
+dedup collision). The normalizer does NOT invent a graph from flat fields — a seed
+declares a risk *pattern*, not a graph — so the fragment is either a real graph embedded
+in ``raw_payload`` (the ``cloudforge_scenario`` path) or an honest minimal fragment (one
+generic node per declared resource type, no fabricated edges); ``expected_findings``
+stays empty. Hand-authored per-seed fragments/findings are a separate ticket (#98).
 
 No ML, no embeddings — pure deterministic field mapping (guiding directive, design §1).
 """
@@ -18,8 +26,9 @@ from __future__ import annotations
 import re
 
 from app.cloudforge.errors import CloudforgeError
+from app.cloudforge.learn._fragment import build_graph_fragment
 from app.cloudforge.learn._safety import is_unsafe_content
-from app.cloudforge.learn._taxonomy import infer_domains, infer_weakness_family
+from app.cloudforge.learn._taxonomy import infer_domains, resolve_weakness_family
 from app.cloudforge.learn.pattern_enums import (
     CloudProvider,
     SafetyClassification,
@@ -28,13 +37,10 @@ from app.cloudforge.learn.pattern_enums import (
 from app.cloudforge.learn.pattern_models import PatternProvenance, RawPatternRecord, RiskPattern
 from app.cloudforge.learn.source_models import ReuseStatus
 from app.cloudforge.models.findings import Severity
-from app.cloudforge.models.graph import GraphNode, NodeSecurity, NodeTags, NodeType, ScenarioGraph
 
-NORMALIZER_VERSION = "0.1.0"
+NORMALIZER_VERSION = "0.2.0"
 
 _DEFAULT_SEVERITY: Severity = "medium"
-_FRAGMENT_NODE_TAGS = NodeTags(env="unknown", owner="unknown", app="unknown")
-_FRAGMENT_NODE_SECURITY = NodeSecurity(criticality="medium")
 
 
 class NormalizerError(CloudforgeError):
@@ -79,47 +85,31 @@ def _build_id(raw: RawPatternRecord) -> str:
     return f"{_slugify(raw.source_id)}-{_slugify(raw.raw_id)}"
 
 
-# --- graph fragment ---------------------------------------------------------------
+# --- declared raw_payload fields (FXL-96: preserve, don't drop) ------------------
 
 
-def _minimal_fragment(resource_types: list[str]) -> ScenarioGraph:
-    """Build a minimal fragment: one generic node per (deduped, sorted) resource type.
+def _payload_list(raw: RawPatternRecord, field: str) -> list[str]:
+    """Read a declared list field from ``raw_payload``, tolerating a bare string.
 
-    No relationships are known from a bare resource-type list, so no edges are
-    emitted — an edge-less fragment is a valid ``ScenarioGraph`` (nothing to resolve).
+    ``RawPatternRecord.raw_payload`` is typed ``dict[str, str | list[str]]``; a
+    source that declares a single-item field as a scalar (rather than a one-element
+    list) is still honored. Absent/wrong-shaped keys yield an empty list rather than
+    raising — a source simply not declaring a field is not an error. Result is sorted
+    + deduplicated for determinism.
     """
-    nodes = [
-        GraphNode(
-            id=f"resource-{index}",
-            type=NodeType.APPLICATION,
-            name=resource_type,
-            tags=_FRAGMENT_NODE_TAGS,
-            security=_FRAGMENT_NODE_SECURITY,
-            attributes={"resource_type": resource_type},
-        )
-        for index, resource_type in enumerate(sorted(set(resource_types)))
-    ]
-    return ScenarioGraph(nodes=nodes, edges=[])
+    value = raw.raw_payload.get(field)
+    if isinstance(value, list):
+        items = [item for item in value if item]
+    elif isinstance(value, str) and value:
+        items = [value]
+    else:
+        items = []
+    return sorted(set(items))
 
 
-def _fragment_from_raw_payload(raw: RawPatternRecord) -> ScenarioGraph | None:
-    """Reuse a real, already-validated graph embedded in ``raw_payload`` (design §9.1).
-
-    The ``cloudforge_scenario`` adapter stores the full scenario graph as a
-    JSON-encoded string under ``raw_payload["graph"]``; when present it is a richer,
-    real fragment (with edges) and should be reused verbatim rather than rebuilt.
-    """
-    graph_json = raw.raw_payload.get("graph")
-    if not isinstance(graph_json, str) or not graph_json:
-        return None
-    return ScenarioGraph.model_validate_json(graph_json)
-
-
-def _build_graph_fragment(raw: RawPatternRecord) -> ScenarioGraph:
-    embedded = _fragment_from_raw_payload(raw)
-    if embedded is not None:
-        return embedded
-    return _minimal_fragment(raw.resource_types)
+def _declared_weakness_family(raw: RawPatternRecord) -> str | None:
+    value = raw.raw_payload.get("weakness_family")
+    return value if isinstance(value, str) and value else None
 
 
 # --- safety classification ----------------------------------------------------
@@ -167,6 +157,7 @@ class PatternNormalizer:
 
         provenance = raw.provenance.model_copy(update={"normalizer_version": NORMALIZER_VERSION})
         resource_types = sorted(set(raw.resource_types))
+        weakness_family = resolve_weakness_family(raw, _declared_weakness_family(raw))
 
         return RiskPattern(
             id=_build_id(raw),
@@ -174,14 +165,14 @@ class PatternNormalizer:
             summary=raw.summary,
             cloud_provider=raw.cloud_provider or CloudProvider.GENERIC,
             domains=infer_domains(raw),
-            weakness_family=infer_weakness_family(raw),
+            weakness_family=weakness_family,
             severity=raw.severity or _DEFAULT_SEVERITY,
             affected_resource_types=resource_types,
-            risky_relationships=[],
-            missing_controls=[],
-            negative_controls=[],
-            compensating_controls=[],
-            graph_fragment=_build_graph_fragment(raw),
+            risky_relationships=_payload_list(raw, "risky_relationships"),
+            missing_controls=_payload_list(raw, "missing_controls"),
+            negative_controls=_payload_list(raw, "negative_controls"),
+            compensating_controls=_payload_list(raw, "compensating_controls"),
+            graph_fragment=build_graph_fragment(raw),
             expected_findings=[],
             remediation=raw.remediation,
             detection_hints=[],

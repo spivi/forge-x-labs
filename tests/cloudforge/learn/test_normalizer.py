@@ -216,7 +216,24 @@ class TestGraphFragment:
         pattern = PatternNormalizer().normalize(raw)
 
         assert isinstance(pattern.graph_fragment, ScenarioGraph)
-        assert len(pattern.graph_fragment.nodes) >= 1
+        # one honest node per declared resource type — no fabricated edges (FXL-96):
+        # a seed declares a risk pattern, not a graph, so no relationships are invented.
+        assert len(pattern.graph_fragment.nodes) == 2
+        assert pattern.graph_fragment.edges == []
+
+    def test_normalize_does_not_fabricate_edges_from_declared_relationships(self) -> None:
+        # A declared risky_relationship is preserved as a FIELD, but the normalizer
+        # must NOT invent a graph edge for it (that would encode false cloud semantics
+        # — FXL-96 review). Real per-seed fragments are hand-authored later (#98).
+        raw = _build_raw(
+            resource_types=["aws_s3_bucket"],
+            raw_payload={"risky_relationships": ["can_read"]},
+        )
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.risky_relationships == ["can_read"]  # preserved as a field
+        assert len(pattern.graph_fragment.nodes) == 1  # no synthetic dataset node
+        assert pattern.graph_fragment.edges == []  # no fabricated edge
 
     def test_normalize_empty_resource_types_gives_empty_but_valid_fragment(self) -> None:
         raw = _build_raw(resource_types=[])
@@ -224,6 +241,14 @@ class TestGraphFragment:
 
         assert pattern.graph_fragment.nodes == []
         assert pattern.graph_fragment.edges == []
+
+    def test_normalize_derives_no_expected_findings_for_rule_catalog_seed(self) -> None:
+        # Findings are not fabricated: they stay empty until a real fragment exists to
+        # reference (FXL-96 review; hand-authored per-seed fragments land in #98).
+        raw = _build_raw(resource_types=["aws_s3_bucket"])
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.expected_findings == []
 
     def test_normalize_reuses_real_scenario_graph_from_raw_payload(self) -> None:
         adapter = CloudforgeScenarioAdapter()
@@ -234,6 +259,126 @@ class TestGraphFragment:
         assert len(pattern.graph_fragment.edges) > 1
         node_ids = {n.id for n in pattern.graph_fragment.nodes}
         assert "cicd-github" in node_ids
+
+
+# --- declared-field preservation (FXL-96) -------------------------------------
+
+# The raw_payload the rule_catalog_yaml adapter emits for a seed carries the rich
+# declared fields as strings/lists (bools are coerced to "true"/"false"); the
+# normalizer must map them back onto the RiskPattern instead of dropping them.
+_SEED0_PAYLOAD: dict[str, str | list[str]] = {
+    "weakness_family": "s3_logging_missing",
+    "missing_controls": ["server_access_logging"],
+    "compensating_controls": ["cloudtrail_data_events_s3"],
+    "negative_controls": [],
+    "risky_relationships": [],
+}
+
+
+class TestDeclaredFieldPreservation:
+    def test_missing_controls_from_raw_payload_survive(self) -> None:
+        raw = _build_raw(raw_payload=_SEED0_PAYLOAD)
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.missing_controls == ["server_access_logging"]
+
+    def test_compensating_controls_from_raw_payload_survive(self) -> None:
+        raw = _build_raw(raw_payload=_SEED0_PAYLOAD)
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.compensating_controls == ["cloudtrail_data_events_s3"]
+
+    def test_negative_and_risky_fields_from_raw_payload_survive(self) -> None:
+        payload: dict[str, str | list[str]] = {
+            "risky_relationships": ["can_read", "can_pass_role"],
+            "negative_controls": ["public_read_acl"],
+        }
+        raw = _build_raw(raw_payload=payload)
+        pattern = PatternNormalizer().normalize(raw)
+
+        # sorted + deduplicated for determinism.
+        assert pattern.risky_relationships == ["can_pass_role", "can_read"]
+        assert pattern.negative_controls == ["public_read_acl"]
+
+    def test_declared_lists_are_sorted_and_deduplicated(self) -> None:
+        payload: dict[str, str | list[str]] = {
+            "missing_controls": ["b_control", "a_control", "b_control"],
+        }
+        raw = _build_raw(raw_payload=payload)
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.missing_controls == ["a_control", "b_control"]
+
+    def test_scalar_declared_field_is_tolerated(self) -> None:
+        # A source that declares a single-item field as a bare string is still honored.
+        payload: dict[str, str | list[str]] = {"missing_controls": "lone_control"}
+        raw = _build_raw(raw_payload=payload)
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.missing_controls == ["lone_control"]
+
+    def test_absent_declared_fields_default_to_empty(self) -> None:
+        raw = _build_raw(raw_payload={})
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.missing_controls == []
+        assert pattern.compensating_controls == []
+        assert pattern.negative_controls == []
+        assert pattern.risky_relationships == []
+
+
+class TestDeclaredWeaknessFamilyPreservation:
+    def test_declared_weakness_family_is_used_over_keyword_inference(self) -> None:
+        # Title says "public" (would infer public_exposure) but the seed declares
+        # s3_logging_missing — the declared family must win, not be over-generalized.
+        raw = _build_raw(
+            title="Publicly accessible bucket missing access logging",
+            raw_payload={"weakness_family": "s3_logging_missing"},
+        )
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.weakness_family.value == "s3_logging_missing"
+
+    def test_invalid_declared_weakness_family_falls_back_to_inference(self) -> None:
+        raw = _build_raw(
+            title="Publicly readable bucket",
+            summary="allows public access",
+            raw_payload={"weakness_family": "not_a_real_family"},
+        )
+        pattern = PatternNormalizer().normalize(raw)
+
+        assert pattern.weakness_family.value in {"public_exposure", "s3_public_exposure"}
+
+    def test_two_s3_seeds_get_distinct_weakness_families_no_dedup_collision(self) -> None:
+        # #93/#96: two AWS S3 seeds previously both collapsed to public_exposure with
+        # empty controls -> identical dedup keys. With families + controls preserved,
+        # their dedup keys now differ, so dedup keeps BOTH.
+        from app.cloudforge.learn.dedup import dedup
+
+        logging_raw = _build_raw(
+            raw_id="s3-logging-001",
+            raw_payload={
+                "weakness_family": "s3_logging_missing",
+                "missing_controls": ["server_access_logging"],
+            },
+        )
+        public_raw = _build_raw(
+            raw_id="s3-public-002",
+            raw_payload={
+                "weakness_family": "s3_public_exposure",
+                "missing_controls": ["block_public_access"],
+            },
+        )
+        normalizer = PatternNormalizer()
+        patterns = [normalizer.normalize(logging_raw), normalizer.normalize(public_raw)]
+
+        assert {p.weakness_family.value for p in patterns} == {
+            "s3_logging_missing",
+            "s3_public_exposure",
+        }
+        survivors, report = dedup(patterns)
+        assert len(survivors) == 2  # distinct keys -> both survive
+        assert report.dropped_duplicate_ids == {}
 
 
 # --- validation_status / normalizer_version -----------------------------------
