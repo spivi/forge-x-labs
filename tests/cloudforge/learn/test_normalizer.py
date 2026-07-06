@@ -243,8 +243,9 @@ class TestGraphFragment:
         assert pattern.graph_fragment.edges == []
 
     def test_normalize_derives_no_expected_findings_for_rule_catalog_seed(self) -> None:
-        # Findings are not fabricated: they stay empty until a real fragment exists to
-        # reference (FXL-96 review; hand-authored per-seed fragments land in #98).
+        # Findings are never fabricated (FXL-96 review): a record whose raw_payload
+        # embeds none (as here) normalizes with expected_findings == []. Sources that
+        # DO embed hand-authored findings get them reused verbatim (#98).
         raw = _build_raw(resource_types=["aws_s3_bucket"])
         pattern = PatternNormalizer().normalize(raw)
 

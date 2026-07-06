@@ -156,6 +156,89 @@ class TestErrorHandling:
         with pytest.raises(CloudforgeError):
             RuleCatalogYamlAdapter().extract(_source_entry(), bad)
 
+    def test_invalid_embedded_graph_fragment_raises_cloudforge_error(self, tmp_path: Path) -> None:
+        # #98: an embedded graph_fragment is validated against the REAL ScenarioGraph
+        # model at parse time — a dangling edge must fail loudly, not flow through.
+        catalog = tmp_path / "bad_fragment.yaml"
+        catalog.write_text(
+            "entries:\n"
+            "  - id: e-1\n"
+            "    title: t\n"
+            "    cloud_provider: aws\n"
+            "    severity: low\n"
+            "    graph_fragment:\n"
+            "      nodes: []\n"
+            "      edges:\n"
+            "        - {from: a, to: b, type: can_read, security: {risk: low}}\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(CloudforgeError, match="graph_fragment"):
+            RuleCatalogYamlAdapter().extract(_source_entry(), catalog)
+
+    def test_invalid_embedded_expected_findings_raise_cloudforge_error(
+        self, tmp_path: Path
+    ) -> None:
+        catalog = tmp_path / "bad_findings.yaml"
+        catalog.write_text(
+            "entries:\n"
+            "  - id: e-1\n"
+            "    title: t\n"
+            "    cloud_provider: aws\n"
+            "    severity: low\n"
+            "    expected_findings:\n"
+            "      - id: f-1\n"
+            "        family: not_a_real_family\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(CloudforgeError, match="expected_findings"):
+            RuleCatalogYamlAdapter().extract(_source_entry(), catalog)
+
+    def test_embedded_artifacts_are_serialized_as_json_not_str_mangled(
+        self, tmp_path: Path
+    ) -> None:
+        # #98: the nested mappings must NOT run through the scalar coercion (which
+        # would str()-mangle them); they land as parseable JSON under the same
+        # raw_payload keys the cloudforge_scenario adapter uses.
+        from app.cloudforge.models.findings import ExpectedFindings
+        from app.cloudforge.models.graph import ScenarioGraph
+
+        catalog = tmp_path / "embedded.yaml"
+        catalog.write_text(
+            "entries:\n"
+            "  - id: e-1\n"
+            "    title: t\n"
+            "    cloud_provider: aws\n"
+            "    severity: low\n"
+            "    graph_fragment:\n"
+            "      nodes:\n"
+            "        - id: b-1\n"
+            "          type: S3Bucket\n"
+            "          name: b\n"
+            "          tags: {env: p, owner: o, app: a}\n"
+            "          security: {criticality: high}\n"
+            "      edges: []\n"
+            "    expected_findings:\n"
+            "      - id: f-1\n"
+            "        severity: high\n"
+            "        family: s3_public_exposure\n"
+            "        resource_ids: [b-1]\n"
+            "        expected_scanner_visibility: visible\n"
+            "        ground_truth: g\n"
+            "        remediation: r\n",
+            encoding="utf-8",
+        )
+        records = RuleCatalogYamlAdapter().extract(_source_entry(), catalog)
+
+        graph_json = records[0].raw_payload["graph"]
+        findings_json = records[0].raw_payload["expected_findings"]
+        assert isinstance(graph_json, str) and isinstance(findings_json, str)
+        fragment = ScenarioGraph.model_validate_json(graph_json)
+        findings = ExpectedFindings.model_validate_json(findings_json)
+        assert fragment.nodes[0].id == "b-1"
+        assert findings.findings[0].resource_ids == ["b-1"]
+        # the raw nested field must not linger un-coerced in raw_payload.
+        assert "graph_fragment" not in records[0].raw_payload
+
     def test_null_extra_field_is_coerced_to_empty_string_in_raw_payload(
         self, tmp_path: Path
     ) -> None:

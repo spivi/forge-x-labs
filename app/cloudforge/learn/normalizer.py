@@ -14,9 +14,11 @@ onto the ``RiskPattern`` (sorted, deterministic) instead of dropped, and a seed'
 declared ``weakness_family`` is honored rather than over-generalized (resolving the #93
 dedup collision). The normalizer does NOT invent a graph from flat fields — a seed
 declares a risk *pattern*, not a graph — so the fragment is either a real graph embedded
-in ``raw_payload`` (the ``cloudforge_scenario`` path) or an honest minimal fragment (one
-generic node per declared resource type, no fabricated edges); ``expected_findings``
-stays empty. Hand-authored per-seed fragments/findings are a separate ticket (#98).
+in ``raw_payload`` (the ``cloudforge_scenario`` path, and — since ticket #98 — the seed
+catalog's hand-authored ``graph_fragment``s) or an honest minimal fragment (one generic
+node per declared resource type, no fabricated edges). ``expected_findings`` follow the
+same reuse rule (#98): taken verbatim from ``raw_payload["expected_findings"]`` when a
+source embeds them, empty otherwise — never fabricated.
 
 No ML, no embeddings — pure deterministic field mapping (guiding directive, design §1).
 """
@@ -26,7 +28,7 @@ from __future__ import annotations
 import re
 
 from app.cloudforge.errors import CloudforgeError
-from app.cloudforge.learn._fragment import build_graph_fragment
+from app.cloudforge.learn._fragment import build_graph_fragment, expected_findings_from_raw_payload
 from app.cloudforge.learn._safety import is_unsafe_content
 from app.cloudforge.learn._taxonomy import infer_domains, resolve_weakness_family
 from app.cloudforge.learn.pattern_enums import (
@@ -38,7 +40,7 @@ from app.cloudforge.learn.pattern_models import PatternProvenance, RawPatternRec
 from app.cloudforge.learn.source_models import ReuseStatus
 from app.cloudforge.models.findings import Severity
 
-NORMALIZER_VERSION = "0.2.0"
+NORMALIZER_VERSION = "0.3.0"
 
 _DEFAULT_SEVERITY: Severity = "medium"
 
@@ -173,7 +175,7 @@ class PatternNormalizer:
             negative_controls=_payload_list(raw, "negative_controls"),
             compensating_controls=_payload_list(raw, "compensating_controls"),
             graph_fragment=build_graph_fragment(raw),
-            expected_findings=[],
+            expected_findings=expected_findings_from_raw_payload(raw),
             remediation=raw.remediation,
             detection_hints=[],
             control_mappings=[],
