@@ -1,0 +1,19 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_99",
+        "check_name": "A check with no bearing on any expected finding",
+        "resource": "aws_iam_role.ghost_role",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV_AWS_98",
+        "check_name": "Another unexpected false-positive relative to ground truth",
+        "resource": "aws_vpc.vpc_main",
+        "file_path": "/network.tf"
+      }
+    ],
+    "passed_checks": []
+  }
+}

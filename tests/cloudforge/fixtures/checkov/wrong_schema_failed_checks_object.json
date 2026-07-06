@@ -1,0 +1,9 @@
+{
+  "results": {
+    "failed_checks": {
+      "CKV_AWS_60": "aws_iam_role.role_deploy",
+      "CKV_AWS_23": "aws_security_group.sg_web"
+    },
+    "passed_checks": []
+  }
+}

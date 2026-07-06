@@ -1,0 +1,2 @@
+this is not json at all, it is what a scanner crash dump or a stderr redirect
+into the wrong file looks like: %%%{{{ garbage \x00\x01 !!! </not-json>

@@ -1,0 +1,11 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_60",
+        "resource": "aws_iam_role.role_deploy",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV_AWS_23",
+        "resource": "aws_security_group.sg_web"

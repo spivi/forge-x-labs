@@ -32,6 +32,7 @@ from app.cloudforge.report import sections
 from app.cloudforge.validate.orchestrator import run_local_validations
 from app.cloudforge.validate.results import ValidationReport
 from app.cloudforge.validate.scanner_score import score_scenario
+from app.cloudforge.validate.scanner_score_diagnostics import not_scored_reason
 
 
 class ReportRenderer:
@@ -58,7 +59,9 @@ class ReportRenderer:
             sections.build_scanner_summary(
                 checkov_ok, "checkov results present in scanner_results/."
             ),
-            sections.build_scanner_score(score_scenario(self._paths)),
+            sections.build_scanner_score(
+                score_scenario(self._paths), not_scored_reason(self._paths)
+            ),
             sections.build_opa_summary(opa_ok, "OPA results present in opa_results.json."),
             sections.build_remediation(bundle),
             sections.build_limitations(),

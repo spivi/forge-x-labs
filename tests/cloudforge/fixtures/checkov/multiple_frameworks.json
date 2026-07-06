@@ -1,0 +1,28 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_60",
+        "check_type": "terraform",
+        "check_name": "Ensure IAM role allows only specific principals to assume it",
+        "resource": "aws_iam_role.role_deploy",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV2_AWS_6",
+        "check_type": "terraform_plan",
+        "check_name": "Ensure S3 bucket has public access blocks (plan-time check)",
+        "resource": "aws_s3_bucket_policy.s3_public_assets",
+        "file_path": "/s3.tf"
+      },
+      {
+        "check_id": "CKV_K8S_8",
+        "check_type": "kubernetes",
+        "check_name": "Liveness probe should be configured (irrelevant framework, still parsed)",
+        "resource": "aws_security_group.sg_web",
+        "file_path": "/network.tf"
+      }
+    ],
+    "passed_checks": []
+  }
+}

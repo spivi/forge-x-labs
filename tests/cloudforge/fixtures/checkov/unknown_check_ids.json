@@ -1,0 +1,19 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_FUTURE_TOOL_9999",
+        "check_name": "A check id from a checkov version newer than this codebase knows about",
+        "resource": "aws_iam_role.role_deploy",
+        "file_path": "/iam.tf"
+      },
+      {
+        "check_id": "CKV2_CUSTOM_1",
+        "check_name": "A custom/third-party check id",
+        "resource": "aws_security_group.sg_web",
+        "file_path": "/network.tf"
+      }
+    ],
+    "passed_checks": []
+  }
+}
