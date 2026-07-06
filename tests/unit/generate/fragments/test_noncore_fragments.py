@@ -14,6 +14,11 @@ def test_decoy_has_no_ground_truth_path():
     assert b.nodes  # but do add nodes
 
 
+def test_decoy_documents_its_own_broad_grant():
+    b = get_fragment("decoy.iam_role_dead_end").build("d0", Random(0), {})
+    assert any("d0/pol-decoy-broad" in f.resource_ids for f in b.findings)
+
+
 def test_false_positive_owns_benign_finding():
     b = get_fragment("false_positive.public_denied_bucket").build("f0", Random(0), {})
     assert any(f.ground_truth == "benign" for f in b.findings)
