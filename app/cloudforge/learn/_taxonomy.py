@@ -5,6 +5,10 @@ a loose ``category`` string), so the normalizer infers them from ``category`` pl
 keyword matches over resource types / title / summary. Purely rule-based lookup
 tables — NOT a classifier, NOT ML. Split out of ``normalizer.py`` to keep that module
 under the 200-line cap (rules/general.md).
+
+``resolve_weakness_family`` additionally honors a source's explicitly declared
+``weakness_family`` (FXL-96) over keyword inference, so a seed's own classification is
+never over-generalized.
 """
 
 from __future__ import annotations
@@ -96,3 +100,18 @@ def infer_weakness_family(raw: RawPatternRecord) -> WeaknessFamily:
         if keyword in haystack:
             return family
     return WeaknessFamily.OTHER
+
+
+def resolve_weakness_family(raw: RawPatternRecord, declared: str | None) -> WeaknessFamily:
+    """Prefer a source-declared ``weakness_family`` over keyword inference (design §9.1).
+
+    ``declared`` is whatever a source (e.g. the ``rule_catalog_yaml`` seed YAML, via
+    ``raw_payload["weakness_family"]``) explicitly names. When it is a valid
+    ``WeaknessFamily`` value, USE IT — a seed author's explicit classification is more
+    reliable than a keyword scan and must not be over-generalized (FXL-96/#93).
+    Falls back to :func:`infer_weakness_family` when absent or not a recognized value.
+    """
+    if declared:
+        with suppress(ValueError):
+            return WeaknessFamily(declared)
+    return infer_weakness_family(raw)

@@ -490,6 +490,9 @@ def test_real_seed_catalog_patterns_are_valid_ontology_after_scoring() -> None:
 
 def test_seed_with_added_finding_scores_higher_than_seed_without() -> None:
     patterns = _load_seed_patterns()
+    # Rule-catalog seeds carry no expected_findings (the normalizer does not fabricate
+    # them; real per-seed fragments/findings are ticket #98), so patterns[0] is a
+    # naturally finding-less baseline for isolating the findings-coverage dimension.
     base = patterns[0]
     enriched = base.model_copy(
         update={
