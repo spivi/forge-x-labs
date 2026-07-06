@@ -48,12 +48,12 @@ subscription:
   critical_at_5h_pct: 90
   warn_at_weekly_pct: 70
   critical_at_weekly_pct: 90
-  # quota_weight: { opus: 5.0, sonnet: 1.0, haiku: 0.2 }
+  # quota_weight: { fable: 6.5, opus: 5.0, sonnet: 1.0, haiku: 0.2 }
 
 # Pricing reference for cost estimation from token counts.
 # Update when provider pricing changes.
 #
-# FAMILY keys (opus/sonnet/haiku) are version-proof and are matched FIRST by
+# FAMILY keys (opus/sonnet/haiku/fable) are version-proof and are matched FIRST by
 # scripts/ledger_append.py + scripts/billing_costs.py (model_family lookup), so a
 # new model id like `claude-opus-4-8` prices correctly without a config edit.
 # VERSION-PINNED keys are kept for the SessionEnd bash hook's exact-match lookup.
@@ -68,6 +68,15 @@ pricing:
     haiku:
       input_per_1m: 0.80
       output_per_1m: 4.00
+    # FXL-102: Claude Fable 5 -- Anthropic's newest flagship model.
+    # SOURCE: https://platform.claude.com/docs/en/about-claude/pricing
+    # (Model pricing table, "Claude Fable 5" row) -- $10/MTok base input,
+    # $50/MTok output; cross-confirmed by the official launch announcement
+    # https://www.anthropic.com/news/claude-fable-5-mythos-5 ("$10 per million
+    # input tokens and $50 per million output tokens"). Verified 2026-07-06.
+    fable:
+      input_per_1m: 10.00
+      output_per_1m: 50.00
     claude-opus-4-6:
       input_per_1m: 15.00
       output_per_1m: 75.00
@@ -77,6 +86,9 @@ pricing:
     claude-haiku-4-5:
       input_per_1m: 0.80
       output_per_1m: 4.00
+    claude-fable-5:
+      input_per_1m: 10.00
+      output_per_1m: 50.00
   openai:
     gpt-4o-mini:
       input_per_1m: 0.15
