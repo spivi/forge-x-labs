@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 
 from app.cloudforge import constants
@@ -27,6 +28,13 @@ from app.cloudforge.learn.summarize import render_summary_lines
 
 learn_app = typer.Typer(help="Learning-corpus pipeline: fetch, ingest, validate, export.")
 console = Console()
+
+# See ``app.cloudforge.cli._CLI_ERRORS``: besides our own ``CloudforgeError`` domain
+# errors, a hand-edited-but-well-formed artifact can fail Pydantic schema validation
+# (``ValidationError``, not a ``CloudforgeError``) and an unwritable output/cache
+# directory raises ``OSError`` — both must become a clean ``error:`` + exit 1, never a
+# raw traceback (FXL-N4 / stress-contract S1/S15).
+_CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OSError)
 
 
 @learn_app.command("fetch-sources")
@@ -44,7 +52,7 @@ def fetch_sources(
         summary = fetch.fetch_all_sources(
             sources=registry.enabled_sources(reg), raw_dir=raw_dir, fetch_fn=None
         )
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(
@@ -72,7 +80,7 @@ def ingest(
     )
     try:
         patterns = _run_ingest(options)
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"[green]ingested[/green] {len(patterns)} pattern(s) via {adapter!r}")
@@ -122,7 +130,7 @@ def validate_corpus_cmd(
         patterns = [validate.validate_fragment(p) for p in load_corpus(corpus_path)]
         save_corpus(patterns, corpus_path)
         report = validate_corpus(patterns)
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
 
@@ -145,7 +153,7 @@ def summarize(
         patterns = load_corpus(corpus_path)
         scored = [quality.score_pattern(p)[0] for p in patterns]
         summary = quality.summarize_corpus(scored)
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     for line in render_summary_lines(summary):
@@ -170,7 +178,7 @@ def export_training_cmd(
         scored = [quality.score_pattern(p)[0] for p in load_corpus(corpus_path)]
         result = export.export_training(scored, include_restricted=include_restricted)
         export.write_training_export(result, out_dir)
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(
