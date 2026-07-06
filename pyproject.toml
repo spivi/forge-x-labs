@@ -75,6 +75,6 @@ markers = [
   "property: property-based tests via hypothesis (FXL-STRESS-11)",
   "integration: integration tests (multiple components, light I/O)",
   "internet: opt-in real-network tests (FXL-E2 learning-corpus fetcher, ticket #74); deselected by default, run with `pytest -m internet`",
-  "stress: slow, many-seed mutation risk-preservation stress tests (FXL-N3); deselected by default, run with `pytest -m stress`",
+  "stress: slow, many-seed mutation risk-preservation stress tests (FXL-N3, FXL-STRESS-4); deselected by default, run with `pytest -m stress`",
   "slow: heavy/long-running tests; the pre-push backstop deselects these (`-m 'not slow'`)",
 ]

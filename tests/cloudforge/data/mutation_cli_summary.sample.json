@@ -1,0 +1,24 @@
+{
+  "deterministic": 2000,
+  "distinct_cosmetic_variants": 2000,
+  "families": [
+    "ci_cd_iam_chain",
+    "public_data_exposure"
+  ],
+  "forbidden_perm_failures": [],
+  "forbidden_perm_hits": 0,
+  "nondeterminism_failures": [],
+  "path_preserved": 2000,
+  "per_family_distinct_cosmetic_variants": {
+    "ci_cd_iam_chain": 1000,
+    "public_data_exposure": 1000
+  },
+  "seed_range": [
+    0,
+    999
+  ],
+  "seeds_per_family": 1000,
+  "total_variants": 2000,
+  "validated": 2000,
+  "validation_failures": []
+}
