@@ -60,12 +60,18 @@ class TestResolveAdapter:
 
 
 class TestResolveRawPath:
-    def test_local_source_returns_its_declared_path_directly(self) -> None:
+    def test_local_source_resolves_its_declared_path_inside_the_project_root(self) -> None:
+        # resolve_raw_path now returns a CONTAINED, resolved absolute path (path-traversal
+        # guard, FXL-109): the returned path is inside the project root (CWD) and points at
+        # the declared in-tree file. It is no longer the bare relative path.
         entry = _local_entry()
 
         resolved = resolve_raw_path(entry, Path("data/raw"))
 
-        assert resolved == Path("data/rule_catalog/seed_patterns.yaml")
+        base = Path.cwd().resolve()
+        assert resolved.is_absolute()
+        assert resolved.is_relative_to(base)
+        assert resolved == (base / "data/rule_catalog/seed_patterns.yaml").resolve()
 
     def test_remote_source_returns_the_latest_cached_file(self, tmp_path: Path) -> None:
         entry = _remote_entry()
