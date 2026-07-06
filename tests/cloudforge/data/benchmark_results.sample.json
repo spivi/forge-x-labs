@@ -1,0 +1,318 @@
+{
+  "corpus_scale": [
+    {
+      "elapsed_seconds": 0.0082,
+      "peak_memory_mib": 1.198,
+      "per_item_ms": 0.08191,
+      "scale": 100,
+      "stage": "corpus_build"
+    },
+    {
+      "elapsed_seconds": 0.0024,
+      "extra": {
+        "dropped_count": 9,
+        "survivor_count": 91
+      },
+      "peak_memory_mib": 0.256,
+      "per_item_ms": 0.02421,
+      "scale": 100,
+      "stage": "corpus_dedup"
+    },
+    {
+      "elapsed_seconds": 0.0021,
+      "peak_memory_mib": 0.192,
+      "per_item_ms": 0.02098,
+      "scale": 100,
+      "stage": "corpus_quality_score"
+    },
+    {
+      "elapsed_seconds": 0.0123,
+      "extra": {
+        "average_quality": 0.8675000000000002
+      },
+      "peak_memory_mib": 0.1,
+      "per_item_ms": 0.12345,
+      "scale": 100,
+      "stage": "corpus_summarize"
+    },
+    {
+      "elapsed_seconds": 0.0005,
+      "extra": {
+        "exported_count": 91
+      },
+      "peak_memory_mib": 0.039,
+      "per_item_ms": 0.00489,
+      "scale": 100,
+      "stage": "corpus_export"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "extra": {
+        "dedup_groups": 91
+      },
+      "peak_memory_mib": 0.0,
+      "per_item_ms": 0.0,
+      "scale": 100,
+      "stage": "corpus_dedup_report_groups"
+    },
+    {
+      "elapsed_seconds": 0.0853,
+      "peak_memory_mib": 12.112,
+      "per_item_ms": 0.08527,
+      "scale": 1000,
+      "stage": "corpus_build"
+    },
+    {
+      "elapsed_seconds": 0.0271,
+      "extra": {
+        "dropped_count": 90,
+        "survivor_count": 910
+      },
+      "peak_memory_mib": 2.524,
+      "per_item_ms": 0.02713,
+      "scale": 1000,
+      "stage": "corpus_dedup"
+    },
+    {
+      "elapsed_seconds": 0.0239,
+      "peak_memory_mib": 1.91,
+      "per_item_ms": 0.02388,
+      "scale": 1000,
+      "stage": "corpus_quality_score"
+    },
+    {
+      "elapsed_seconds": 0.006,
+      "extra": {
+        "average_quality": 0.8675
+      },
+      "peak_memory_mib": 0.514,
+      "per_item_ms": 0.00598,
+      "scale": 1000,
+      "stage": "corpus_summarize"
+    },
+    {
+      "elapsed_seconds": 0.0055,
+      "extra": {
+        "exported_count": 910
+      },
+      "peak_memory_mib": 0.509,
+      "per_item_ms": 0.00553,
+      "scale": 1000,
+      "stage": "corpus_export"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "extra": {
+        "dedup_groups": 910
+      },
+      "peak_memory_mib": 0.0,
+      "per_item_ms": 0.0,
+      "scale": 1000,
+      "stage": "corpus_dedup_report_groups"
+    },
+    {
+      "elapsed_seconds": 1.0528,
+      "peak_memory_mib": 121.325,
+      "per_item_ms": 0.10528,
+      "scale": 10000,
+      "stage": "corpus_build"
+    },
+    {
+      "elapsed_seconds": 0.3505,
+      "extra": {
+        "dropped_count": 909,
+        "survivor_count": 9091
+      },
+      "peak_memory_mib": 25.269,
+      "per_item_ms": 0.03505,
+      "scale": 10000,
+      "stage": "corpus_dedup"
+    },
+    {
+      "elapsed_seconds": 0.2247,
+      "peak_memory_mib": 19.077,
+      "per_item_ms": 0.02247,
+      "scale": 10000,
+      "stage": "corpus_quality_score"
+    },
+    {
+      "elapsed_seconds": 0.0633,
+      "extra": {
+        "average_quality": 0.8675
+      },
+      "peak_memory_mib": 5.136,
+      "per_item_ms": 0.00633,
+      "scale": 10000,
+      "stage": "corpus_summarize"
+    },
+    {
+      "elapsed_seconds": 0.1648,
+      "extra": {
+        "exported_count": 9091
+      },
+      "peak_memory_mib": 5.195,
+      "per_item_ms": 0.01648,
+      "scale": 10000,
+      "stage": "corpus_export"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "extra": {
+        "dedup_groups": 9091
+      },
+      "peak_memory_mib": 0.0,
+      "per_item_ms": 0.0,
+      "scale": 10000,
+      "stage": "corpus_dedup_report_groups"
+    },
+    {
+      "elapsed_seconds": 11.8496,
+      "peak_memory_mib": 1214.014,
+      "per_item_ms": 0.1185,
+      "scale": 100000,
+      "stage": "corpus_build"
+    },
+    {
+      "elapsed_seconds": 1.8918,
+      "extra": {
+        "dropped_count": 53104,
+        "survivor_count": 46896
+      },
+      "peak_memory_mib": 143.437,
+      "per_item_ms": 0.01892,
+      "scale": 100000,
+      "stage": "corpus_dedup"
+    },
+    {
+      "elapsed_seconds": 1.2218,
+      "peak_memory_mib": 98.411,
+      "per_item_ms": 0.01222,
+      "scale": 100000,
+      "stage": "corpus_quality_score"
+    },
+    {
+      "elapsed_seconds": 1.2171,
+      "extra": {
+        "average_quality": 0.8674999999999999
+      },
+      "peak_memory_mib": 26.496,
+      "per_item_ms": 0.01217,
+      "scale": 100000,
+      "stage": "corpus_summarize"
+    },
+    {
+      "elapsed_seconds": 0.4135,
+      "extra": {
+        "exported_count": 46896
+      },
+      "peak_memory_mib": 26.859,
+      "per_item_ms": 0.00414,
+      "scale": 100000,
+      "stage": "corpus_export"
+    },
+    {
+      "elapsed_seconds": 0.0,
+      "extra": {
+        "dedup_groups": 46896
+      },
+      "peak_memory_mib": 0.0,
+      "per_item_ms": 0.0,
+      "scale": 100000,
+      "stage": "corpus_dedup_report_groups"
+    }
+  ],
+  "memory_concerns": [],
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "purpose": "measure scaling, not optimize",
+  "python_version": "3.12.13",
+  "scaling_concerns": [
+    "corpus_export: scale 1000->10000 time ratio 2.98x the scale ratio (super-linear candidate; 0.0055s -> 0.1648s)"
+  ],
+  "scenario_scale": [
+    {
+      "elapsed_seconds": 0.0212,
+      "peak_memory_mib": 2.227,
+      "per_item_ms": 0.21228,
+      "scale": 100,
+      "stage": "scenario_generate"
+    },
+    {
+      "elapsed_seconds": 1.2102,
+      "extra": {
+        "clean_count": 100,
+        "sample_tree_bytes": 13414
+      },
+      "peak_memory_mib": 0.133,
+      "per_item_ms": 12.10204,
+      "scale": 100,
+      "stage": "scenario_validate"
+    },
+    {
+      "elapsed_seconds": 0.8952,
+      "extra": {
+        "total_report_chars": 364700
+      },
+      "peak_memory_mib": 0.147,
+      "per_item_ms": 8.95221,
+      "scale": 100,
+      "stage": "scenario_report"
+    },
+    {
+      "elapsed_seconds": 0.229,
+      "peak_memory_mib": 22.277,
+      "per_item_ms": 0.229,
+      "scale": 1000,
+      "stage": "scenario_generate"
+    },
+    {
+      "elapsed_seconds": 12.4564,
+      "extra": {
+        "clean_count": 1000,
+        "sample_tree_bytes": 13414
+      },
+      "peak_memory_mib": 1.056,
+      "per_item_ms": 12.45645,
+      "scale": 1000,
+      "stage": "scenario_validate"
+    },
+    {
+      "elapsed_seconds": 9.1952,
+      "extra": {
+        "total_report_chars": 3634000
+      },
+      "peak_memory_mib": 0.161,
+      "per_item_ms": 9.19519,
+      "scale": 1000,
+      "stage": "scenario_report"
+    },
+    {
+      "elapsed_seconds": 3.0999,
+      "peak_memory_mib": 222.799,
+      "per_item_ms": 0.30999,
+      "scale": 10000,
+      "stage": "scenario_generate"
+    },
+    {
+      "elapsed_seconds": 116.9478,
+      "extra": {
+        "clean_count": 10000,
+        "sample_tree_bytes": 13414
+      },
+      "peak_memory_mib": 1.905,
+      "per_item_ms": 11.69478,
+      "scale": 10000,
+      "stage": "scenario_validate"
+    },
+    {
+      "elapsed_seconds": 86.094,
+      "extra": {
+        "total_report_chars": 36430000
+      },
+      "peak_memory_mib": 1.933,
+      "per_item_ms": 8.6094,
+      "scale": 10000,
+      "stage": "scenario_report"
+    }
+  ],
+  "ticket": "FXL-112 / FXL-STRESS-10"
+}
