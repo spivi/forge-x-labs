@@ -39,6 +39,26 @@ def run_validations(
     return report
 
 
+def run_local_validations(base_dir: Path | str) -> ValidationReport:
+    """Run only the deterministic, stdlib-only checks (schema + graph-risk engine).
+
+    Excludes every optional external scanner (``terraform``/``checkov``/``opa``): no
+    subprocesses, no network, no filesystem side effects, and byte-stable output.
+    This is the subset that determines whether the ground-truth risk paths are
+    trustworthy (the S15-relevant checks), so it is what the standalone report reader
+    consults to avoid rendering false success for a FAILed scenario. Callers that also
+    want the external scanners use :func:`run_validations`.
+    """
+    paths = ScenarioPaths.from_dir(base_dir)
+    report = ValidationReport()
+
+    report.add(schema_checks.validate_scenario(paths))
+    report.add(schema_checks.validate_graph(paths))
+    report.extend(_run_risk_engine(paths))
+
+    return report
+
+
 def _score_scanner(paths: ScenarioPaths) -> ValidationOutcome:
     """Score checkov output against expected findings (gap #10). Fail-soft when absent."""
     written = scanner_score.write_scanner_score(paths)

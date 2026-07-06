@@ -18,6 +18,10 @@ repos:
           - sqlalchemy
           - asyncpg
           - alembic
+          # io/loaders.py imports PyYAML; without its stubs the isolated hook env
+          # reports a spurious import-untyped error (the project .venv has them, so
+          # `mypy --strict app/` is clean). Keeps the hook matched to real typechecking.
+          - types-PyYAML
   - repo: local
     hooks:
       - id: no-master-commit

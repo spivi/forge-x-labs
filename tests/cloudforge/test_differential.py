@@ -20,15 +20,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from app.cloudforge.generate import ci_cd_iam_chain, public_data_exposure
 from app.cloudforge.io.paths import ScenarioPaths
 from app.cloudforge.models.graph import EdgeType
 from app.cloudforge.pipeline.terraform_emitter import TerraformEmitter
 from app.cloudforge.report.renderer import ReportRenderer
 from app.cloudforge.validate import tool_probe
-from app.cloudforge.validate.orchestrator import run_validations
+from app.cloudforge.validate.orchestrator import run_local_validations, run_validations
 from app.cloudforge.validate.results import Status
 
 # --- helpers ------------------------------------------------------------------
@@ -211,14 +209,27 @@ class TestBroadReadDocumentedDifferential:
 # --- 4. S15: report must never render success/PASS for a FAILed validation ---
 
 
+def _disconnect_critical_path(paths: ScenarioPaths) -> None:
+    """Remove the critical path's sink edge so its connectivity check FAILs."""
+    data = json.loads(paths.graph.read_text(encoding="utf-8"))
+    data["edges"] = [
+        e
+        for e in data["edges"]
+        if not (e["from"] == "role-runtime" and e["to"] == "s3-customer-exports")
+    ]
+    paths.graph.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
 class TestS15NoFalseSuccessReport:
     """Clause S15: reports cannot render false success when validation FAILed.
 
-    Builds a deliberately-broken scenario (a forbidden IAM permission injected into
+    Builds deliberately-broken scenarios (a forbidden IAM permission injected into
     the graph, and — separately — a disconnected critical path), confirms
     ``run_validations`` reports FAIL, then renders ``report.md`` from the SAME
-    on-disk artifacts and asserts the report gives no indication of success for the
-    thing that failed.
+    on-disk artifacts and asserts the report POSITIVELY surfaces that failure (the
+    fix landed in this PR: renderer.py now runs ``run_local_validations`` and
+    sections.py adds a ``## Validation`` section + a FAILED-VALIDATION banner +
+    a NOT-VERIFIED flag on the risk-path section).
     """
 
     def test_forbidden_permission_scenario_fails_validation(
@@ -242,13 +253,7 @@ class TestS15NoFalseSuccessReport:
     ) -> None:
         _no_external_tools(monkeypatch)
         paths = ScenarioPaths.from_dir(generated_scenario)
-        data = json.loads(paths.graph.read_text(encoding="utf-8"))
-        data["edges"] = [
-            e
-            for e in data["edges"]
-            if not (e["from"] == "role-runtime" and e["to"] == "s3-customer-exports")
-        ]
-        paths.graph.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        _disconnect_critical_path(paths)
 
         report = run_validations(generated_scenario)
 
@@ -256,66 +261,47 @@ class TestS15NoFalseSuccessReport:
         connectivity = next(o for o in report.outcomes if o.label == "critical-sink connectivity")
         assert connectivity.status is Status.FAIL
 
-    def test_report_never_claims_success_or_pass_text_anywhere(
+    def test_report_never_claims_success_for_a_failed_scenario(
         self, generated_scenario: Path, monkeypatch
     ) -> None:
-        """The report must not contain literal success/PASS claims when the SAME
-        artifact tree just FAILed validation."""
+        """A FAILed scenario's report must not contain a success/PASS claim, and the
+        forbidden-permission check must be surfaced as FAIL (not silently PASS)."""
         _no_external_tools(monkeypatch)
         graph_path = generated_scenario / "graph.json"
         graph_path.write_text(
             graph_path.read_text(encoding="utf-8").replace("iam:PassRole", "iam:DeleteRole"),
             encoding="utf-8",
         )
-        validation = run_validations(generated_scenario)
+        validation = run_local_validations(generated_scenario)
         assert validation.has_failure
 
         rendered = ReportRenderer(generated_scenario).render()
 
-        lowered = rendered.lower()
-        assert "validation: pass" not in lowered
-        assert "status: pass" not in lowered
-        assert "all checks passed" not in lowered
-        assert "no forbidden permissions" not in rendered  # PASS-only outcome label
+        # No blanket success claim...
+        assert "All validation checks passed" not in rendered
+        # ...and the failing check is present but marked FAIL, never PASS.
+        assert "**[FAIL]** no forbidden permissions" in rendered
+        assert "**[PASS]** no forbidden permissions" not in rendered
 
-    @pytest.mark.xfail(
-        reason=(
-            "BUG: S15 — report/renderer.py never consults run_validations()'s outcome; "
-            "it re-derives report.md purely from on-disk artifacts (graph/findings/"
-            "ground_truth), so a scenario whose critical-path edge was just proven "
-            "disconnected (FAIL: 'critical-sink connectivity') still gets a report "
-            "that confidently prints the now-fictional ground-truth path chain with "
-            "no FAIL/warning indication anywhere in the document."
-        ),
-        strict=True,
-    )
     def test_report_surfaces_validation_failure_for_disconnected_critical_path(
         self, generated_scenario: Path, monkeypatch
     ) -> None:
-        """Minimal reproducer: disconnect the critical path's sink edge (role-runtime
-        -> s3-customer-exports), confirm ``run_validations`` FAILs the
-        'critical-sink connectivity' check, then assert the SAME artifact tree's
-        rendered report gives SOME indication that validation failed / the printed
-        critical path is not actually connected.
+        """Regression for the S15 bug fixed in this PR: disconnect the critical path's
+        sink edge, confirm ``run_local_validations`` FAILs 'critical-sink
+        connectivity', then assert the SAME artifact tree's rendered report
+        POSITIVELY indicates the failure — a ``## Validation`` section that shows the
+        FAIL, a FAILED-VALIDATION banner, and a NOT-VERIFIED flag on the risk path so
+        the now-fictional chain is not presented as a confirmed fact.
 
-        Today it does not: ``ReportRenderer`` (app/cloudforge/report/renderer.py)
-        never imports or calls anything from ``app.cloudforge.validate`` — it just
-        re-loads graph.json/expected_findings.json/ground_truth_paths.json and prints
-        the ground-truth path verbatim, regardless of whether that path is still a
-        real walk in the (possibly-edited) graph. There is no "Validation" section
-        and no FAIL/WARN marker in report.md at all.
+        (Before the fix, ``ReportRenderer`` never consulted validation and printed the
+        disconnected path verbatim with no FAIL indication anywhere — this test was a
+        strict-xfail reproducer.)
         """
         _no_external_tools(monkeypatch)
         paths = ScenarioPaths.from_dir(generated_scenario)
-        data = json.loads(paths.graph.read_text(encoding="utf-8"))
-        data["edges"] = [
-            e
-            for e in data["edges"]
-            if not (e["from"] == "role-runtime" and e["to"] == "s3-customer-exports")
-        ]
-        paths.graph.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        _disconnect_critical_path(paths)
 
-        validation = run_validations(generated_scenario)
+        validation = run_local_validations(generated_scenario)
         connectivity = next(
             o for o in validation.outcomes if o.label == "critical-sink connectivity"
         )
@@ -323,13 +309,58 @@ class TestS15NoFalseSuccessReport:
 
         rendered = ReportRenderer(generated_scenario).render()
 
-        # The report must surface SOMETHING scenario-specific — a validation-status
-        # section, a FAIL marker tied to this run, or at minimum it must stop
-        # asserting the now-broken ground-truth path as a confirmed, connected chain.
-        # (The generic "Limitations" boilerplate — e.g. "not failed" — always contains
-        # the substring "fail" regardless of outcome, so a bare substring check would
-        # be vacuously true; this checks for an actual validation-outcome section.)
-        has_validation_section = "## Validation" in rendered
-        path_chain = "cicd-github → role-deploy → role-runtime → s3-customer-exports"
-        asserts_broken_chain_as_fact = path_chain in rendered
-        assert has_validation_section or not asserts_broken_chain_as_fact
+        # 1. There is a Validation section and it shows the FAIL.
+        assert "## Validation" in rendered
+        assert "**[FAIL]** critical-sink connectivity" in rendered
+        # 2. A prominent overall-FAIL banner leads the section.
+        assert "THIS SCENARIO FAILED VALIDATION" in rendered
+        # 3. The risk-path section no longer asserts the broken path as confirmed fact.
+        assert "NOT VERIFIED" in rendered
+
+    def test_valid_scenario_report_shows_all_pass_validation(
+        self, generated_scenario: Path, monkeypatch
+    ) -> None:
+        """Companion (so we don't just invert the bug): a VALID, unedited scenario's
+        report shows an all-PASS ``## Validation`` section with no FAIL banner and no
+        NOT-VERIFIED flag on the risk path."""
+        _no_external_tools(monkeypatch)
+        validation = run_local_validations(generated_scenario)
+        assert not validation.has_failure
+
+        rendered = ReportRenderer(generated_scenario).render()
+
+        assert "## Validation" in rendered
+        assert "All validation checks passed" in rendered
+        assert "THIS SCENARIO FAILED VALIDATION" not in rendered
+        assert "NOT VERIFIED" not in rendered
+        # The forbidden-permission check is present and PASSing for a clean scenario.
+        assert "**[PASS]** no forbidden permissions" in rendered
+
+    def test_report_validation_section_is_fail_soft_when_validation_cannot_run(
+        self, generated_scenario: Path, monkeypatch
+    ) -> None:
+        """Fail-soft: when the deterministic local validation cannot run (its own
+        artifact load raises), ``build_validation(None)`` must NOT claim success — it
+        says validation could not run instead. Exercised directly on the section
+        builder + the renderer's ``None`` path, since a fully-corrupt graph also
+        breaks the report's own bundle load (a hard, non-success error)."""
+        _no_external_tools(monkeypatch)
+
+        from app.cloudforge.report import sections
+
+        rendered_section = sections.build_validation(None)
+
+        assert "All validation checks passed" not in rendered_section
+        assert "could not be run" in rendered_section
+        assert "no** claim that the scenario passed" in rendered_section
+        # And a corrupt graph makes the renderer raise a load error (never a silent
+        # success report) — an acceptable non-success outcome.
+        paths = ScenarioPaths.from_dir(generated_scenario)
+        paths.graph.write_text("{ not valid json", encoding="utf-8")
+        from app.cloudforge.errors import CloudforgeError
+
+        try:
+            rendered = ReportRenderer(generated_scenario).render()
+        except (CloudforgeError, ValueError, OSError):
+            return  # a hard load error is an acceptable non-success outcome
+        assert "All validation checks passed" not in rendered
