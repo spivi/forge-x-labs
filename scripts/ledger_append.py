@@ -65,9 +65,11 @@ LEDGER_COLUMNS = (
 CACHE_CREATION_MULTIPLIER = 1.25
 CACHE_READ_MULTIPLIER = 0.10
 
-# Larger number = costlier / higher tier; used to pick the headline model when a
-# run touched more than one model.
-_MODEL_TIER = {"haiku": 1, "sonnet": 2, "opus": 3}
+# Larger number = higher tier; used to pick the headline model when a run touched
+# more than one model. `fable` (Claude Fable 5) is Anthropic's newest flagship;
+# it outranks opus here as the top capability tier (its $10/$50 per-1M price is
+# actually below opus's $15/$75 -- capability, not dollar cost, sets the rank).
+_MODEL_TIER = {"haiku": 1, "sonnet": 2, "opus": 3, "fable": 4}
 
 
 @dataclass(frozen=True)
@@ -100,12 +102,13 @@ def normalize_model(model: str) -> str:
 
 
 def model_family(model: str) -> str:
-    """Normalise a model id to a pricing family (opus/sonnet/haiku).
+    """Normalise a model id to a pricing family (opus/sonnet/haiku/fable).
 
     Version-proof: ``claude-opus-4-8``, ``claude-opus-4-8[1m]`` and bare ``opus``
-    all map to ``opus``."""
+    all map to ``opus``; ``claude-fable-5`` and bare ``fable`` both map to
+    ``fable`` (FXL-102)."""
     m = (model or "").lower()
-    for fam in ("opus", "sonnet", "haiku"):
+    for fam in ("opus", "sonnet", "haiku", "fable"):
         if fam in m:
             return fam
     return m or "unknown"
@@ -116,8 +119,8 @@ def provider_for_model(model: str) -> str:
     # external executor authored the work and returned no concrete model id.
     if model.startswith("gpt") or model.startswith("codex"):
         return "openai"
-    # `claude-*` ids and bare family names (opus/sonnet/haiku) are all Anthropic.
-    if model.startswith("claude") or model_family(model) in ("opus", "sonnet", "haiku"):
+    # `claude-*` ids and bare family names (opus/sonnet/haiku/fable) are all Anthropic.
+    if model.startswith("claude") or model_family(model) in ("opus", "sonnet", "haiku", "fable"):
         return "anthropic"
     return "unknown"
 

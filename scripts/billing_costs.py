@@ -70,6 +70,12 @@ def model_pricing(
 ) -> tuple[float, float]:
     """Get (input_per_1m, output_per_1m) for a model from pricing config.
 
+    Generic substring match over every key in `pricing.anthropic` in budgets.yml
+    (family keys like `fable`/`opus`/`sonnet`/`haiku` as well as version-pinned
+    keys like `claude-fable-5`), so adding a `fable:` family entry to budgets.yml
+    (FXL-102) is sufficient here -- no code change needed, this already matches
+    `claude-fable-5` via the `fable` family key.
+
     Falls back to Sonnet 4.5 pricing if model not found.
     """
     anthropic_pricing = pricing.get("anthropic", {})

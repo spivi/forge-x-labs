@@ -26,6 +26,9 @@ PRICING = {
         "opus": {"input_per_1m": 15.0, "output_per_1m": 75.0},
         "sonnet": {"input_per_1m": 3.0, "output_per_1m": 15.0},
         "haiku": {"input_per_1m": 0.80, "output_per_1m": 4.0},
+        # Real Claude Fable 5 pricing (FXL-102) -- see .dev-context/budgets.yml
+        # for the sourced citation.
+        "fable": {"input_per_1m": 10.0, "output_per_1m": 50.0},
     }
 }
 
@@ -44,10 +47,25 @@ def test_model_family_is_version_proof():
     assert la.model_family("haiku") == "haiku"
 
 
+def test_model_family_fable_is_version_proof():
+    # FXL-102: claude-fable-5 (and any future Fable version) and bare "fable"
+    # must both map to the "fable" pricing family.
+    assert la.model_family("claude-fable-5") == "fable"
+    assert la.model_family("fable") == "fable"
+    assert la.model_family("claude-fable-5[1m]") == "fable"
+
+
 def test_provider_for_model():
     assert la.provider_for_model("claude-sonnet-4-6") == "anthropic"
     assert la.provider_for_model("opus") == "anthropic"
     assert la.provider_for_model("gpt-5-codex") == "openai"
+
+
+def test_provider_for_fable_is_anthropic():
+    # FXL-102: claude-fable-5 already matches via startswith("claude"); a bare
+    # "fable" id must also resolve to anthropic via the family path.
+    assert la.provider_for_model("claude-fable-5") == "anthropic"
+    assert la.provider_for_model("fable") == "anthropic"
 
 
 # --- parse_task_result ----------------------------------------------------
@@ -108,6 +126,17 @@ def test_compute_cost_family_lookup():
 
 def test_compute_cost_unknown_model_is_zero():
     assert la.compute_cost("mystery-model", 1_000_000, 0, 0, 0, PRICING) == 0.0
+
+
+def test_compute_cost_fable_family_lookup_nonzero():
+    # FXL-102 acceptance criterion: a claude-fable-5 run prices at a non-zero,
+    # correct $ via the family-first lookup. 1M input @ $10 + 1M output @ $50
+    # = $60.00 (real Fable 5 rates -- see budgets.yml citation).
+    assert la.compute_cost("claude-fable-5", 1_000_000, 1_000_000, 0, 0, PRICING) == 60.0
+
+
+def test_compute_cost_fable_bare_family_key():
+    assert la.compute_cost("fable", 1_000_000, 0, 0, 0, PRICING) == 10.0
 
 
 def test_compute_run_cost_prices_each_model_at_own_rate():
