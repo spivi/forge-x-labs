@@ -65,3 +65,9 @@ LOCAL_ONLY_BANNER: Final = (
     "and defensive security training. It is not deployed and does not require "
     "cloud credentials."
 )
+
+# --- learning-corpus CLI default paths (design §10) ---------------------------
+SOURCE_REGISTRY_PATH: Final = "data/source_registry.yaml"
+RAW_SOURCES_DIRNAME: Final = "data/raw"
+CORPUS_JSONL_PATH: Final = "data/corpus.jsonl"
+TRAINING_EXPORT_DIRNAME: Final = "training_export"
