@@ -50,7 +50,15 @@
 
 | Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
 |---|---|---|---|---|---|
-| (none) | — | — | — | — | — |
+| feat/FXL-108-stress-hcl-corpus | ../cloudforge--FXL-108 | FXL-STRESS-3 | Task Agent (sonnet) | wave-2 finder | tests/security/corpus/, emitter tests |
+| feat/FXL-114-stress-mutation | ../cloudforge--FXL-114 | FXL-STRESS-4 | Task Agent (sonnet) | wave-2 finder | mutation stress runner |
+| feat/FXL-115-stress-scanner-score | ../cloudforge--FXL-115 | FXL-STRESS-5 | Task Agent (sonnet) | wave-2 finder | scanner-score fixtures/metrics |
+
+> **FXL-STRESS-1 epic in progress** (2026-07-06). Contract: `docs/testing/stress-contract.md` (S1..S15).
+> Foundation STRESS-11 (#113) merged. **Wave 1 DONE — 3 real bugs found + fixed + merged:**
+> S15 report-false-success (Critical, #120), path-traversal (High, #119), phantom-finding-resource (High, #121).
+> Wave 2 running (HCL corpus / mutation / scanner-score); Wave 3 (OPA/CLI/perf) + STRESS-12 report after.
+> Bug protocol: violations captured as strict-xfail → fixed in-PR + flipped to regression.
 
 ## Active Tasks
 - **M0–M5 complete** (template, graph+generator, terraform, validators, reporting, mutation engine).
