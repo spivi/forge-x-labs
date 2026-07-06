@@ -36,18 +36,24 @@ ADAPTER_VERSION = "1.0.0"
 EXTRACTION_METHOD = "fixture_html_metadata"
 CONFIDENCE_DEFAULT = 0.55
 
-# Checkov's check-id pattern (e.g. ``CKV_AWS_20``, ``CKV_K8S_8``), used to locate the
-# check-id column BY CONTENT rather than a fixed position (issue #90).
-_CHECK_ID_PATTERN = re.compile(r"CKV_[A-Z0-9]+_\d+")
+# Checkov's check-id pattern, used to locate the check-id column BY CONTENT rather than
+# a fixed position (issue #90). Covers both plain checks (``CKV_AWS_20``, ``CKV_K8S_8``)
+# and graph checks (``CKV2_AWS_5``, ``CKV2_AZURE_1``) — the ``\d*`` after ``CKV`` matches
+# the ``2`` in the graph-check form, which live terraform index pages do include.
+_CHECK_ID_PATTERN = re.compile(r"CKV\d*_[A-Z0-9]+_\d+")
+
+# Captures the provider token (``AWS``/``AZURE``/…) after either ``CKV_`` or ``CKV2_``,
+# so graph checks (``CKV2_AWS_5``) classify the same as plain checks (``CKV_AWS_5``).
+_PROVIDER_TOKEN_PATTERN = re.compile(r"CKV\d*_([A-Z0-9]+)_")
 
 # table column order (relative to the detected check-id column): check_id, kind,
 # resource_type, title, iac_type, severity
-_CLOUD_PREFIXES: tuple[tuple[str, CloudProvider], ...] = (
-    ("CKV_AWS_", CloudProvider.AWS),
-    ("CKV_AZURE_", CloudProvider.AZURE),
-    ("CKV_GCP_", CloudProvider.GCP),
-    ("CKV_K8S_", CloudProvider.KUBERNETES),
-)
+_CLOUD_PROVIDER_BY_TOKEN: dict[str, CloudProvider] = {
+    "AWS": CloudProvider.AWS,
+    "AZURE": CloudProvider.AZURE,
+    "GCP": CloudProvider.GCP,
+    "K8S": CloudProvider.KUBERNETES,
+}
 _KNOWN_SEVERITIES: frozenset[str] = frozenset({"low", "medium", "high", "critical"})
 
 
@@ -56,11 +62,16 @@ class CheckovParseError(CloudforgeError):
 
 
 def _cloud_provider_for(check_id: str) -> CloudProvider:
-    """Map a Checkov check id prefix (e.g. ``CKV_AWS_20``) to a ``CloudProvider``."""
-    for prefix, provider in _CLOUD_PREFIXES:
-        if check_id.startswith(prefix):
-            return provider
-    return CloudProvider.GENERIC
+    """Map a Checkov check id to a ``CloudProvider`` by its provider token.
+
+    Tolerates both plain (``CKV_AWS_20``) and graph (``CKV2_AWS_5``) forms — the
+    provider token (``AWS``) is the same in each; only the ``CKV``/``CKV2`` prefix
+    differs. Unknown/absent tokens fall back to ``GENERIC``.
+    """
+    match = _PROVIDER_TOKEN_PATTERN.match(check_id)
+    if match is None:
+        return CloudProvider.GENERIC
+    return _CLOUD_PROVIDER_BY_TOKEN.get(match.group(1), CloudProvider.GENERIC)
 
 
 def _severity_for(raw: str) -> Severity | None:

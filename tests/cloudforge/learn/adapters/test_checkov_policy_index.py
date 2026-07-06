@@ -40,6 +40,9 @@ _FIXTURE_CHECK_IDS = {
     "CKV_AWS_67",
     "CKV_AZURE_35",
     "CKV_GCP_62",
+    # graph check (CKV2_*): issue #90 regression guard — the id-detection regex and the
+    # provider-token mapping must both handle the ``CKV2_`` form, not just ``CKV_``.
+    "CKV2_AWS_5",
 }
 
 # Strings that must NEVER appear in an extracted record — standing in for "rule
@@ -191,6 +194,14 @@ def test_cloud_provider_for_unrecognized_prefix_falls_back_to_generic() -> None:
     assert _cloud_provider_for("CKV_UNKNOWNVENDOR_1") is CloudProvider.GENERIC
 
 
+def test_cloud_provider_for_graph_check_ckv2_maps_to_real_provider() -> None:
+    # Issue #90 regression: graph checks use the ``CKV2_`` prefix but the same provider
+    # token, so they must classify to the real provider (aws), not GENERIC.
+    assert _cloud_provider_for("CKV2_AWS_5") is CloudProvider.AWS
+    assert _cloud_provider_for("CKV2_AZURE_1") is CloudProvider.AZURE
+    assert _cloud_provider_for("CKV2_GCP_1") is CloudProvider.GCP
+
+
 def test_every_record_is_a_valid_raw_pattern_record(
     adapter: CheckovPolicyIndexAdapter, source_entry: SourceEntry
 ) -> None:
@@ -268,3 +279,21 @@ def test_extract_from_leading_index_column_fixture_matches_sample_fixture(
     assert by_id["CKV_AWS_20"].severity == "critical"
     assert by_id["CKV_AWS_20"].resource_types == ["aws_s3_bucket"]
     assert by_id["CKV_AZURE_35"].cloud_provider is CloudProvider.AZURE
+
+
+def test_graph_check_ckv2_row_extracts_from_fixture_with_correct_provider(
+    adapter: CheckovPolicyIndexAdapter, source_entry: SourceEntry
+) -> None:
+    """Issue #90 regression: the fixture's CKV2_* graph-check row must extract.
+
+    The old ``CKV_[A-Z0-9]+_\\d+`` regex silently dropped ``CKV2_AWS_5`` (no literal
+    ``_`` after ``CKV``), and the old prefix table misclassified it as GENERIC. Both
+    must now work: the row is extracted AND classified to the real provider (aws).
+    """
+    records = adapter.extract(source_entry, SAMPLE_HTML)
+    by_id = {r.rule_id: r for r in records}
+
+    assert "CKV2_AWS_5" in by_id
+    graph_check = by_id["CKV2_AWS_5"]
+    assert graph_check.cloud_provider is CloudProvider.AWS
+    assert graph_check.resource_types == ["aws_security_group"]

@@ -12,6 +12,7 @@ for a small, safe subset of well-known checks, per design doc §8:
   - AWS RDS public exposure
   - AWS CloudTrail logging / encryption / validation
   - Azure / GCP storage public-access
+  - AWS security-group attachment (a CKV2_* GRAPH check — issue #90 regression guard)
 
 No rule source code or rule logic is embedded here — only the same short metadata a
 human browsing the public index page would see (id, resource type, title, iac type,
@@ -142,6 +143,15 @@ exercise the real-world layout instead of a simplified one.
 <td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV_GCP_62">Ensure Google storage bucket have uniform bucket level access</a></td>
 <td>terraform</td>
 <td>MEDIUM</td>
+</tr>
+<tr>
+<td>13</td>
+<td>CKV2_AWS_5</td>
+<td>resource</td>
+<td>aws_security_group</td>
+<td><a href="https://www.checkov.io/5.Policy%20Index/terraform.html#CKV2_AWS_5">Ensure that Security Groups are attached to another resource</a></td>
+<td>terraform</td>
+<td>LOW</td>
 </tr>
 </tbody>
 </table>
