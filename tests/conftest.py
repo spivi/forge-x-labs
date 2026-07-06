@@ -11,3 +11,12 @@ Patterns to follow:
 """
 
 from __future__ import annotations
+
+from hypothesis import settings
+
+# Register deterministic hypothesis profiles for CI and development.
+# CI profile: derandomize=True ensures byte-identical output across runs (S10),
+# and prevents flakiness from the test execution environment (no wall-clock/PID/RNG state).
+# Dev profile: allows randomization for better coverage discovery during local development.
+settings.register_profile("ci", derandomize=True, deadline=None)
+settings.register_profile("dev", deadline=None)

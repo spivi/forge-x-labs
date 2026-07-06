@@ -27,6 +27,7 @@ pytest-cov = "^6.0"
 pytest-mock = "^3.14"
 pre-commit = "^4.0"
 types-pyyaml = "^6.0"
+hypothesis = "^6.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -61,13 +62,19 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-# `-m "not stress"` keeps the slow mutation stress suite (FXL-N3) OUT of the default
-# run — a bare `pytest` (local and CI, which invokes `pytest tests/ ...` with no `-m`)
-# deselects everything marked `stress`. Opt in explicitly with `pytest -m stress`.
-# The opt-in 1,000-seed variant is additionally gated behind CLOUDFORGE_STRESS_1K=1.
+# `-m "not stress and not internet"` keeps the slow mutation stress suite (FXL-N3) and
+# real-network tests OUT of the default run — a bare `pytest` (local and CI, which invokes
+# `pytest tests/ ...` with no `-m`) deselects everything marked `stress` or `internet`.
+# Opt in explicitly with `pytest -m stress` or `pytest -m internet`. Property tests (hypothesis)
+# are included by default when running the fast profile; run them deterministically with
+# `--hypothesis-profile=ci` in CI.
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80 -m 'not stress and not internet'"
 markers = [
+  "unit: unit tests (fast, no external dependencies)",
+  "security: security-focused tests (validation, injection, auth, CORS)",
+  "property: property-based tests via hypothesis (FXL-STRESS-11)",
+  "integration: integration tests (multiple components, light I/O)",
+  "internet: opt-in real-network tests (FXL-E2 learning-corpus fetcher, ticket #74); deselected by default, run with `pytest -m internet`",
   "stress: slow, many-seed mutation risk-preservation stress tests (FXL-N3); deselected by default, run with `pytest -m stress`",
   "slow: heavy/long-running tests; the pre-push backstop deselects these (`-m 'not slow'`)",
-  "internet: opt-in real-network tests (FXL-E2 learning-corpus fetcher, ticket #74); deselected by default, run with `pytest -m internet`",
 ]
