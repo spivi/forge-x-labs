@@ -17,6 +17,30 @@
 # Shape matches exactly what `rule_catalog_yaml.RuleCatalogYamlAdapter` parses
 # (see its `_RuleCatalogEntry` schema and `tests/cloudforge/learn/fixtures/
 # sample_rule_catalog.yaml`): a top-level `entries:` list of mappings.
+#
+# Ticket #98: every entry additionally carries a HAND-AUTHORED `graph_fragment`
+# (a `ScenarioGraph`-shaped mapping: real nodes + the edges the risk ACTUALLY
+# describes — ground truth, never fabricated from flat fields) and >=1
+# `expected_findings` entry (an `ExpectedFinding`-shaped mapping referencing real
+# fragment node ids). The adapter validates both against the product models and
+# serializes them into the raw record's `graph` / `expected_findings` fields
+# (same keys the `cloudforge_scenario` adapter uses), so the normalizer REUSES
+# them verbatim (`_fragment.py`). Node/edge vocabulary is the existing
+# `models/graph.py` enums; where a cloud resource has no dedicated NodeType the
+# closest real type is used and the mapping is documented on the entry:
+#   - aws_kms_key            -> the key is modeled via its KEY POLICY (IAMPolicy);
+#                               NEVER silently mapped to Application (the #96 bug)
+#   - azurerm_storage_*      -> S3Bucket-like object store, DISTINCT account vs
+#                               container nodes
+#   - azurerm_key_vault      -> generic Application node (no vault type)
+#   - google_service_account -> IAMRole (a workload identity)
+#   - aws_iam_user (+ its static access key) -> IAMRole (an IAM identity)
+#   - google_secret_manager_secret -> DataSet (a secret IS sensitive data)
+# `FindingFamily` is narrower than `WeaknessFamily`; each finding uses the CLOSEST
+# real family and non-obvious choices are documented inline.
+# The absence of a relationship (e.g. a bucket that does NOT log to a trail) is
+# modeled as the ABSENT edge plus a finding naming both endpoints — mirroring
+# `generate/ci_cd_iam_chain.py` / `generate/public_data_exposure.py`.
 
 entries:
   # ── AWS ──────────────────────────────────────────────────────────────────
@@ -45,6 +69,38 @@ entries:
       dedicated, access-restricted logging bucket.
     references:
       - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerLogs.html"
+    # #98: an inherently simple risk modeled honestly — the bucket plus the log
+    # destination its access events SHOULD flow to. The risk is the ABSENCE of the
+    # `s3-app-data -> logs_to -> trail-main` edge, so `edges` is deliberately empty
+    # (mirrors the ci_cd_iam_chain scenario's s3_logging_missing modeling). No
+    # unrelated edges are fabricated to inflate the fragment.
+    graph_fragment:
+      nodes:
+        - id: s3-app-data
+          type: S3Bucket
+          name: app-data
+          tags: {env: "staging", owner: "app-team", app: "order-service"}
+          security: {criticality: "medium"}
+          attributes:
+            logging: "disabled"
+        - id: trail-main
+          type: LogTrail
+          name: main-trail
+          tags: {env: "staging", owner: "app-team", app: "order-service"}
+          security: {criticality: "medium"}
+      edges: []
+    expected_findings:
+      - id: find-s3-logging-001
+        severity: medium
+        family: s3_logging_missing
+        resource_ids: [s3-app-data, trail-main]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          The app-data bucket has server access logging disabled and no
+          CloudTrail S3 data events, so requests against it are unaudited.
+        remediation: >-
+          Enable S3 server access logging (or CloudTrail S3 data events) to a
+          dedicated, access-restricted logging bucket.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -76,6 +132,45 @@ entries:
       signed URLs or a CDN origin-access identity instead.
     references:
       - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+    # #98: direct public exposure — the account's public-read bucket is reachable
+    # from the internet and every object in it is world-readable (mirrors the
+    # public_data_exposure scenario: account -exposed_to_internet-> bucket
+    # -stores_sensitive_data-> data).
+    graph_fragment:
+      nodes:
+        - id: acct-main
+          type: Account
+          name: prod-account
+          tags: {env: "prod", owner: "web-team", app: "asset-pipeline"}
+          security: {criticality: "high"}
+        - id: s3-public-bucket
+          type: S3Bucket
+          name: public-read-bucket
+          tags: {env: "prod", owner: "web-team", app: "asset-pipeline"}
+          security: {criticality: "critical"}
+          attributes:
+            acl: "public-read"
+            block_public_access: "disabled"
+        - id: data-bucket-objects
+          type: DataSet
+          name: world-readable-objects
+          tags: {env: "prod", owner: "web-team", app: "asset-pipeline"}
+          security: {criticality: "high"}
+      edges:
+        - {from: acct-main, to: s3-public-bucket, type: exposed_to_internet, security: {risk: "critical"}}
+        - {from: s3-public-bucket, to: data-bucket-objects, type: stores_sensitive_data, security: {risk: "high"}}
+    expected_findings:
+      - id: find-s3-public-002
+        severity: high
+        family: s3_public_exposure
+        resource_ids: [s3-public-bucket, data-bucket-objects]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          public-read-bucket grants public read with Block Public Access
+          disabled, so its objects are world-readable by default.
+        remediation: >-
+          Enable S3 Block Public Access, remove public grants from the
+          ACL/bucket policy, and serve objects via signed URLs or a CDN OAI.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -111,6 +206,54 @@ entries:
       classification for the bucket.
     references:
       - "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege"
+    # #98: the ROLE is the actor — role -attached_policy-> policy grants it
+    # role -can_read-> bucket over the whole sensitive bucket (NEVER
+    # policy -can_read-> role, the exact false edge the #96 review rejected).
+    # The bucket is declared sensitive by the seed, so its stored records are a
+    # real DataSet sink.
+    graph_fragment:
+      nodes:
+        - id: role-app-runtime
+          type: IAMRole
+          name: AppRuntimeRole
+          tags: {env: "prod", owner: "platform-team", app: "reporting-service"}
+          security: {criticality: "high"}
+        - id: pol-broad-s3-read
+          type: IAMPolicy
+          name: BroadS3ReadPolicy
+          tags: {env: "prod", owner: "platform-team", app: "reporting-service"}
+          security: {criticality: "high"}
+          attributes:
+            actions: ["s3:GetObject", "s3:ListBucket"]
+            resource: "arn:aws:s3:::sensitive-data-bucket/*"
+        - id: s3-sensitive-data
+          type: S3Bucket
+          name: sensitive-data-bucket
+          tags: {env: "prod", owner: "platform-team", app: "reporting-service"}
+          security: {criticality: "critical"}
+          attributes:
+            data_classification: "sensitive"
+        - id: data-sensitive-records
+          type: DataSet
+          name: sensitive-records
+          tags: {env: "prod", owner: "platform-team", app: "reporting-service"}
+          security: {criticality: "critical"}
+      edges:
+        - {from: role-app-runtime, to: pol-broad-s3-read, type: attached_policy, security: {risk: "high"}}
+        - {from: role-app-runtime, to: s3-sensitive-data, type: can_read, security: {risk: "high"}}
+        - {from: s3-sensitive-data, to: data-sensitive-records, type: stores_sensitive_data, security: {risk: "critical"}}
+    expected_findings:
+      - id: find-iam-broad-read-003
+        severity: high
+        family: iam_excessive_privilege
+        resource_ids: [role-app-runtime, pol-broad-s3-read, s3-sensitive-data]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          AppRuntimeRole holds s3:GetObject/s3:ListBucket across the entire
+          sensitive-data bucket rather than the prefixes it needs.
+        remediation: >-
+          Scope the policy Resource element to the specific bucket ARNs and key
+          prefixes required by the workload.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -146,6 +289,84 @@ entries:
       to runtime roles, and require iam:PassedToService conditions.
     references:
       - "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html"
+    # #98: the full PassRole escalation chain (the issue's canonical example):
+    # cicd-identity -assumes-> role-deploy -can_pass_role-> role-runtime
+    # -can_read-> s3-customer-exports -stores_sensitive_data-> data. The Lambda
+    # (aws_lambda_function -> Application) executes with the passed runtime role
+    # (app -assumes-> role, as AWS Lambda assumes its execution role). No DataSet
+    # hangs off the policy node (the #96 fabrication this replaces).
+    graph_fragment:
+      nodes:
+        - id: cicd-identity
+          type: CICDIdentity
+          name: ci-oidc-identity
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "high"}
+        - id: role-deploy
+          type: IAMRole
+          name: DeployRole
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "high"}
+        - id: pol-deploy-passrole
+          type: IAMPolicy
+          name: DeployPassRolePolicy
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "high"}
+          attributes:
+            actions: ["iam:PassRole"]
+            resource: "*"
+        - id: role-runtime
+          type: IAMRole
+          name: SensitiveRuntimeRole
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "critical"}
+        - id: app-lambda-worker
+          type: Application
+          name: worker-lambda
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "aws_lambda_function"
+        - id: s3-customer-exports
+          type: S3Bucket
+          name: customer-exports
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "critical"}
+        - id: data-customer-exports
+          type: DataSet
+          name: customer-export-records
+          tags: {env: "staging", owner: "platform-team", app: "deploy-pipeline"}
+          security: {criticality: "critical"}
+      edges:
+        - {from: cicd-identity, to: role-deploy, type: assumes, security: {risk: "high"}}
+        - {from: role-deploy, to: pol-deploy-passrole, type: attached_policy, security: {risk: "high"}}
+        - {from: role-deploy, to: role-runtime, type: can_pass_role, security: {risk: "critical"}}
+        - {from: app-lambda-worker, to: role-runtime, type: assumes, security: {risk: "medium"}}
+        - {from: role-runtime, to: s3-customer-exports, type: can_read, security: {risk: "critical"}}
+        - {from: s3-customer-exports, to: data-customer-exports, type: stores_sensitive_data, security: {risk: "critical"}}
+    expected_findings:
+      - id: find-passrole-004
+        severity: critical
+        family: iam_passrole_risk
+        resource_ids: [role-deploy, role-runtime, pol-deploy-passrole]
+        expected_scanner_visibility: partial
+        ground_truth: >-
+          DeployRole holds iam:PassRole with a wildcard resource, so it can pass
+          SensitiveRuntimeRole to compute and indirectly obtain its access.
+        remediation: >-
+          Scope iam:PassRole to specific role ARNs and require
+          iam:PassedToService conditions.
+      - id: find-runtime-read-004
+        severity: high
+        family: iam_excessive_privilege
+        resource_ids: [role-runtime, s3-customer-exports]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          SensitiveRuntimeRole reads the customer-exports bucket, which is what
+          makes the passable role sensitive.
+        remediation: >-
+          Attach a permissions boundary to the runtime role and scope its S3
+          read to least privilege.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -176,6 +397,42 @@ entries:
       Manager.
     references:
       - "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
+    # #98: the SG's 0.0.0.0/0 tcp/22 rule exposes the subnet it guards to the
+    # internet (same sg -exposed_to_internet-> subnet shape as the
+    # ci_cd_iam_chain scenario). Only the resources the risk names — no invented
+    # instances or data nodes.
+    graph_fragment:
+      nodes:
+        - id: sg-ssh-open
+          type: SecurityGroup
+          name: ssh-mgmt-sg
+          tags: {env: "prod", owner: "infra-team", app: "web-fleet"}
+          security: {criticality: "high"}
+          attributes:
+            ingress_cidr: "0.0.0.0/0"
+            ingress_port: "22"
+            protocol: "tcp"
+        - id: subnet-app-a
+          type: Subnet
+          name: app-subnet-a
+          tags: {env: "prod", owner: "infra-team", app: "web-fleet"}
+          security: {criticality: "medium"}
+          attributes:
+            cidr: "10.0.1.0/24"
+      edges:
+        - {from: sg-ssh-open, to: subnet-app-a, type: exposed_to_internet, security: {risk: "high"}}
+    expected_findings:
+      - id: find-sg-ssh-005
+        severity: high
+        family: security_group_overexposed
+        resource_ids: [sg-ssh-open, subnet-app-a]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          ssh-mgmt-sg permits TCP/22 from 0.0.0.0/0, exposing SSH management
+          access on app-subnet-a to the entire internet.
+        remediation: >-
+          Restrict SSH ingress to management CIDRs or replace it with Session
+          Manager access.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -208,6 +465,51 @@ entries:
       bastion.
     references:
       - "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
+    # #98: the instance hosting the admin console (aws_instance -> Application,
+    # documented) carries the SG (app -has_security_group-> sg) whose 0.0.0.0/0
+    # rule exposes the console itself to the internet. The subnet placement edge
+    # (subnet -belongs_to_app-> app) mirrors the ci_cd_iam_chain scenario.
+    graph_fragment:
+      nodes:
+        - id: sg-admin-ui
+          type: SecurityGroup
+          name: admin-ui-sg
+          tags: {env: "prod", owner: "dba-team", app: "db-admin-console"}
+          security: {criticality: "critical"}
+          attributes:
+            ingress_cidr: "0.0.0.0/0"
+            ingress_port: "8443"
+            protocol: "tcp"
+        - id: app-admin-console
+          type: Application
+          name: db-admin-console
+          tags: {env: "prod", owner: "dba-team", app: "db-admin-console"}
+          security: {criticality: "critical"}
+          attributes:
+            resource_type: "aws_instance"
+        - id: subnet-public-a
+          type: Subnet
+          name: public-subnet-a
+          tags: {env: "prod", owner: "dba-team", app: "db-admin-console"}
+          security: {criticality: "medium"}
+          attributes:
+            cidr: "10.0.2.0/24"
+      edges:
+        - {from: app-admin-console, to: sg-admin-ui, type: has_security_group, security: {risk: "high"}}
+        - {from: sg-admin-ui, to: app-admin-console, type: exposed_to_internet, security: {risk: "critical"}}
+        - {from: subnet-public-a, to: app-admin-console, type: belongs_to_app, security: {risk: "low"}}
+    expected_findings:
+      - id: find-sg-admin-006
+        severity: critical
+        family: security_group_overexposed
+        resource_ids: [sg-admin-ui, app-admin-console]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          admin-ui-sg allows unrestricted internet ingress to the port hosting
+          the db-admin-console administrative UI.
+        remediation: >-
+          Restrict the admin UI port to a VPN or allow-listed CIDR and place
+          the console behind an authenticated proxy.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -239,6 +541,48 @@ entries:
       aws:PrincipalOrgID or kms:CallerAccount condition instead of "*".
     references:
       - "https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html"
+    # #98 NodeType mapping (documented, per issue #98): there is no KMS-key
+    # NodeType, and the risk lives entirely in the key POLICY document, so the
+    # key is modeled via its key policy as an IAMPolicy node (NOT silently as
+    # Application — the #96 bug). The wildcard "*" Principal literally means any
+    # AWS principal, modeled as an Account node that can use (decrypt with,
+    # i.e. can_read) the key.
+    graph_fragment:
+      nodes:
+        - id: pol-cmk-key-policy
+          type: IAMPolicy
+          name: app-data-cmk-key-policy
+          tags: {env: "prod", owner: "security-team", app: "data-encryption"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "aws_kms_key"
+            key_alias: "alias/app-data"
+            principal: "*"
+            modeling_note: "KMS key modeled via its key policy; no KMS NodeType (#98)"
+        - id: acct-any-principal
+          type: Account
+          name: any-aws-principal
+          tags: {env: "prod", owner: "security-team", app: "data-encryption"}
+          security: {criticality: "high"}
+          attributes:
+            modeling_note: "represents the wildcard '*' Principal grant (#98)"
+      edges:
+        - {from: acct-any-principal, to: pol-cmk-key-policy, type: can_read, security: {risk: "high"}}
+    expected_findings:
+      # FindingFamily has no misconfigured_control value; a wildcard-principal
+      # key policy is an excessive-privilege grant on the key, the closest real
+      # family (documented, #98).
+      - id: find-kms-wildcard-007
+        severity: high
+        family: iam_excessive_privilege
+        resource_ids: [pol-cmk-key-policy, acct-any-principal]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          The app-data CMK key policy sets Principal to "*", so any AWS
+          principal that also has an IAM allow can use the key.
+        remediation: >-
+          Scope the key policy Principal to specific account/role ARNs and add
+          an aws:PrincipalOrgID or kms:CallerAccount condition.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -269,6 +613,43 @@ entries:
       trail-stopped events.
     references:
       - "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-a-trail-using-the-console-first-time.html"
+    # #98: another inherently simple absence risk, modeled honestly — the account
+    # whose API activity SHOULD flow to the trail, and the stopped trail. The
+    # risk is the ABSENT `acct-main -> logs_to -> trail-main` edge, so `edges`
+    # is deliberately empty; no unrelated edges are fabricated.
+    graph_fragment:
+      nodes:
+        - id: acct-main
+          type: Account
+          name: prod-account
+          tags: {env: "prod", owner: "security-team", app: "audit"}
+          security: {criticality: "high"}
+          attributes:
+            cloudtrail: "not-enabled"
+        - id: trail-main
+          type: LogTrail
+          name: main-trail
+          tags: {env: "prod", owner: "security-team", app: "audit"}
+          security: {criticality: "medium"}
+          attributes:
+            status: "stopped"
+            multi_region: "false"
+      edges: []
+    expected_findings:
+      # FindingFamily's only logging family is s3_logging_missing; used as the
+      # closest real family for account-level missing CloudTrail logging
+      # (documented, #98). The seed's weakness_family stays missing_logging.
+      - id: find-cloudtrail-008
+        severity: high
+        family: s3_logging_missing
+        resource_ids: [acct-main, trail-main]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          No active multi-region CloudTrail trail records prod-account API
+          activity; main-trail exists but is stopped and single-region.
+        remediation: >-
+          Enable a multi-region trail with log file validation and alarm on
+          trail-stopped events.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -302,6 +683,56 @@ entries:
       endpoints for sharing.
     references:
       - "https://learn.microsoft.com/en-us/azure/storage/blobs/anonymous-read-access-prevent"
+    # #98 NodeType mapping (documented): no Azure storage types exist, so the
+    # storage ACCOUNT and the storage CONTAINER are DISTINCT S3Bucket-like
+    # object-store nodes (the #96 code collapsed them). The account-level
+    # "allow anonymous blob access" setting is what makes the container's public
+    # config effective, hence account -exposed_to_internet-> container; the
+    # container's blobs are the exposed data.
+    graph_fragment:
+      nodes:
+        - id: stacct-appdata
+          type: S3Bucket
+          name: appdata-storage-account
+          tags: {env: "prod", owner: "web-team", app: "static-assets"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "azurerm_storage_account"
+            allow_blob_public_access: "true"
+            modeling_note: "Azure storage ACCOUNT as S3Bucket-like store (#98)"
+        - id: container-public-assets
+          type: S3Bucket
+          name: public-assets-container
+          tags: {env: "prod", owner: "web-team", app: "static-assets"}
+          security: {criticality: "critical"}
+          attributes:
+            resource_type: "azurerm_storage_container"
+            container_access_type: "blob"
+            modeling_note: "Azure storage CONTAINER, distinct from its account (#98)"
+        - id: data-anon-blobs
+          type: DataSet
+          name: anonymously-readable-blobs
+          tags: {env: "prod", owner: "web-team", app: "static-assets"}
+          security: {criticality: "high"}
+      edges:
+        - {from: stacct-appdata, to: container-public-assets, type: exposed_to_internet, security: {risk: "high"}}
+        - {from: container-public-assets, to: data-anon-blobs, type: stores_sensitive_data, security: {risk: "high"}}
+    expected_findings:
+      # Cross-provider mapping: s3_public_exposure is FindingFamily's public
+      # object-storage exposure family (documented, #98); the seed's
+      # weakness_family stays the generic public_exposure.
+      - id: find-az-blob-009
+        severity: high
+        family: s3_public_exposure
+        resource_ids: [stacct-appdata, container-public-assets]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          appdata-storage-account allows anonymous blob access, so the
+          blob-public public-assets-container is readable over the internet
+          without authentication.
+        remediation: >-
+          Disable "Allow Blob Anonymous Access" at the account level and share
+          via SAS tokens or private endpoints.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -334,6 +765,52 @@ entries:
       only via a private endpoint or selected-network firewall rules.
     references:
       - "https://learn.microsoft.com/en-us/azure/key-vault/general/network-security"
+    # #98 NodeType mapping (documented): no vault NodeType exists, so the Key
+    # Vault is a generic Application node. A vault literally stores secrets and
+    # keys (a real stores_sensitive_data edge to a DataSet), and its public
+    # endpoint is reachable from all networks (subscription
+    # -exposed_to_internet-> vault). Auth is still required — this is network
+    # overexposure, NOT anonymous public read.
+    graph_fragment:
+      nodes:
+        - id: acct-subscription
+          type: Account
+          name: prod-subscription
+          tags: {env: "prod", owner: "security-team", app: "secrets-mgmt"}
+          security: {criticality: "high"}
+        - id: kv-app-secrets
+          type: Application
+          name: app-secrets-vault
+          tags: {env: "prod", owner: "security-team", app: "secrets-mgmt"}
+          security: {criticality: "critical"}
+          attributes:
+            resource_type: "azurerm_key_vault"
+            public_network_access: "enabled"
+            modeling_note: "Key Vault as generic Application node; no vault NodeType (#98)"
+        - id: data-vault-secrets
+          type: DataSet
+          name: vault-secrets-and-keys
+          tags: {env: "prod", owner: "security-team", app: "secrets-mgmt"}
+          security: {criticality: "critical"}
+      edges:
+        - {from: acct-subscription, to: kv-app-secrets, type: exposed_to_internet, security: {risk: "high"}}
+        - {from: kv-app-secrets, to: data-vault-secrets, type: stores_sensitive_data, security: {risk: "critical"}}
+    expected_findings:
+      # security_group_overexposed is FindingFamily's network-overexposure
+      # family — the closest real family for an endpoint open to all networks
+      # (documented, #98; NOT s3_public_exposure, since access still requires
+      # authentication). The seed's weakness_family stays unrestricted_access.
+      - id: find-az-kv-010
+        severity: high
+        family: security_group_overexposed
+        resource_ids: [kv-app-secrets, acct-subscription]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          app-secrets-vault permits access from all networks instead of being
+          restricted to selected virtual networks or private endpoints.
+        remediation: >-
+          Set public_network_access_enabled to false and expose the vault only
+          via a private endpoint or selected-network firewall rules.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -365,6 +842,51 @@ entries:
       Access Prevention on the bucket.
     references:
       - "https://cloud.google.com/storage/docs/access-control/making-data-public"
+    # #98: the IAM binding IS the risk, modeled precisely — the public allUsers
+    # principal (documented as an Account node; there is no anonymous-principal
+    # NodeType) holds roles/storage.objectViewer, i.e. allUsers -can_read->
+    # bucket, and the bucket's objects are the exposed data.
+    graph_fragment:
+      nodes:
+        - id: principal-all-users
+          type: Account
+          name: allUsers-public-principal
+          tags: {env: "prod", owner: "web-team", app: "site-assets"}
+          security: {criticality: "high"}
+          attributes:
+            modeling_note: "the public allUsers IAM member as an Account node (#98)"
+        - id: gcs-public-bucket
+          type: S3Bucket
+          name: public-assets-bucket
+          tags: {env: "prod", owner: "web-team", app: "site-assets"}
+          security: {criticality: "critical"}
+          attributes:
+            resource_type: "google_storage_bucket"
+            iam_member: "allUsers"
+            iam_role: "roles/storage.objectViewer"
+            modeling_note: "GCS bucket as S3Bucket-like object store (#98)"
+        - id: data-public-objects
+          type: DataSet
+          name: world-readable-objects
+          tags: {env: "prod", owner: "web-team", app: "site-assets"}
+          security: {criticality: "high"}
+      edges:
+        - {from: principal-all-users, to: gcs-public-bucket, type: can_read, security: {risk: "critical"}}
+        - {from: gcs-public-bucket, to: data-public-objects, type: stores_sensitive_data, security: {risk: "high"}}
+    expected_findings:
+      # Cross-provider mapping: s3_public_exposure as FindingFamily's public
+      # object-storage exposure family (documented, #98).
+      - id: find-gcs-public-011
+        severity: high
+        family: s3_public_exposure
+        resource_ids: [gcs-public-bucket, data-public-objects]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          public-assets-bucket grants roles/storage.objectViewer to allUsers,
+          making its objects readable without authentication.
+        remediation: >-
+          Remove allUsers/allAuthenticatedUsers bindings and enforce Public
+          Access Prevention on the bucket.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -396,6 +918,51 @@ entries:
       custom role scoped to the resources the workload actually touches.
     references:
       - "https://cloud.google.com/iam/docs/using-iam-securely"
+    # #98 NodeType mapping (documented): a GCP service account is a workload
+    # identity -> IAMRole; the project-level roles/editor binding is an
+    # IAMPolicy attached to it. roles/editor grants broad mutation across the
+    # project's resources, hence sa -can_write-> project (Account node).
+    graph_fragment:
+      nodes:
+        - id: sa-app-workload
+          type: IAMRole
+          name: app-workload-sa
+          tags: {env: "prod", owner: "platform-team", app: "batch-workload"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "google_service_account"
+            modeling_note: "GCP service account as IAMRole identity (#98)"
+        - id: pol-project-editor
+          type: IAMPolicy
+          name: project-editor-binding
+          tags: {env: "prod", owner: "platform-team", app: "batch-workload"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "google_project_iam_member"
+            role: "roles/editor"
+            scope: "project"
+        - id: acct-project
+          type: Account
+          name: prod-project
+          tags: {env: "prod", owner: "platform-team", app: "batch-workload"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "google_project"
+      edges:
+        - {from: sa-app-workload, to: pol-project-editor, type: attached_policy, security: {risk: "high"}}
+        - {from: sa-app-workload, to: acct-project, type: can_write, security: {risk: "high"}}
+    expected_findings:
+      - id: find-gcp-sa-012
+        severity: high
+        family: iam_excessive_privilege
+        resource_ids: [sa-app-workload, pol-project-editor]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          app-workload-sa is bound to project-level roles/editor, granting far
+          more permission than its workload requires.
+        remediation: >-
+          Replace the broad project role with a least-privilege predefined or
+          custom role scoped to the resources the workload touches.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -432,6 +999,50 @@ entries:
       delete the long-lived keys.
     references:
       - "https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services"
+    # #98 NodeType mapping (documented): the IAM user (and its long-lived static
+    # access key, aws_iam_access_key — a credential attribute of the identity,
+    # not a separate graph resource) is modeled as an IAMRole identity node.
+    # The pipeline authenticates AS that identity with the stored key
+    # (pipeline -assumes-> identity); the risk is that this standing credential
+    # never expires, unlike the OIDC assume-role it should be.
+    graph_fragment:
+      nodes:
+        - id: cicd-pipeline
+          type: CICDIdentity
+          name: build-pipeline
+          tags: {env: "prod", owner: "devops-team", app: "build-pipeline"}
+          security: {criticality: "high"}
+          attributes:
+            auth_method: "static_access_key"
+        - id: iam-user-ci-deployer
+          type: IAMRole
+          name: ci-deployer-user
+          tags: {env: "prod", owner: "devops-team", app: "build-pipeline"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "aws_iam_user"
+            access_key: "long-lived-static"
+            rotation: "none"
+            modeling_note: "IAM user + its static access key as an IAMRole identity (#98)"
+      edges:
+        - {from: cicd-pipeline, to: iam-user-ci-deployer, type: assumes, security: {risk: "high"}}
+    expected_findings:
+      # FindingFamily has no secrets/credential-hygiene value; a never-expiring
+      # static credential is standing privilege that should be ephemeral OIDC —
+      # iam_excessive_privilege is the closest real family (documented, #98).
+      # The seed's weakness_family stays secrets_exposure.
+      - id: find-cicd-static-013
+        severity: medium
+        family: iam_excessive_privilege
+        resource_ids: [cicd-pipeline, iam-user-ci-deployer]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          build-pipeline authenticates with a long-lived static access key for
+          ci-deployer-user instead of short-lived OIDC role assumption.
+        remediation: >-
+          Replace static keys with an OIDC identity provider trust and a
+          short-lived assume-role scoped to the repository, then delete the
+          keys.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true
@@ -465,6 +1076,54 @@ entries:
       project-wide grant.
     references:
       - "https://cloud.google.com/secret-manager/docs/access-control"
+    # #98 NodeType mapping (documented): a Secret Manager secret IS sensitive
+    # data -> DataSet; the service account holding the project-wide accessor
+    # binding is an IAMRole identity. The binding attaches to the SA
+    # (sa -attached_policy-> binding) and, because it is project-scoped, the SA
+    # can read this (and every) secret in the project (sa -can_read-> secret).
+    graph_fragment:
+      nodes:
+        - id: sa-shared-services
+          type: IAMRole
+          name: shared-services-sa
+          tags: {env: "prod", owner: "platform-team", app: "shared-services"}
+          security: {criticality: "medium"}
+          attributes:
+            resource_type: "google_service_account"
+            modeling_note: "GCP service account as IAMRole identity (#98)"
+        - id: pol-project-secret-accessor
+          type: IAMPolicy
+          name: project-wide-secretAccessor-binding
+          tags: {env: "prod", owner: "platform-team", app: "shared-services"}
+          security: {criticality: "high"}
+          attributes:
+            resource_type: "google_project_iam_member"
+            role: "roles/secretmanager.secretAccessor"
+            scope: "project"
+        - id: secret-app-db-password
+          type: DataSet
+          name: app-db-password-secret
+          tags: {env: "prod", owner: "platform-team", app: "shared-services"}
+          security: {criticality: "critical"}
+          attributes:
+            resource_type: "google_secret_manager_secret"
+            modeling_note: "a secret IS sensitive data -> DataSet (#98)"
+      edges:
+        - {from: sa-shared-services, to: pol-project-secret-accessor, type: attached_policy, security: {risk: "medium"}}
+        - {from: sa-shared-services, to: secret-app-db-password, type: can_read, security: {risk: "high"}}
+    expected_findings:
+      - id: find-gcp-secret-014
+        severity: medium
+        family: iam_excessive_privilege
+        resource_ids: [pol-project-secret-accessor, secret-app-db-password]
+        expected_scanner_visibility: visible
+        ground_truth: >-
+          roles/secretmanager.secretAccessor is granted at project scope, so
+          shared-services-sa can read every secret in the project rather than
+          only app-db-password-secret.
+        remediation: >-
+          Bind secretAccessor on the individual secret to only the service
+          accounts that require it and remove the project-wide grant.
     license: "CC0-1.0"
     reuse_status: full_reuse
     allowed_for_training: true

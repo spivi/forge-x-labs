@@ -5,7 +5,11 @@ Reads a Tier-4 local rule catalog (design §8, adapter 2): a YAML file with a to
 one ``RawPatternRecord`` per entry with complete provenance. Confidence default 0.75;
 reuse/license/training-eligibility come from the ``SourceEntry`` (``local-rule-catalog``
 is ``full_reuse`` / ``allowed_for_training: true``). This adapter does NOT normalize into
-``RiskPattern`` (ticket #66) and does not build graph fragments.
+``RiskPattern`` (ticket #66) and never BUILDS a graph fragment itself — but a seed entry
+may EMBED a hand-authored ``graph_fragment`` / ``expected_findings`` (ticket #98), which
+are validated against the real product models and serialized into
+``raw_payload["graph"]`` / ``raw_payload["expected_findings"]`` (``_embedded.py``) so
+the normalizer reuses them verbatim.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from app.cloudforge.errors import CloudforgeError
 from app.cloudforge.io.loaders import load_yaml
+from app.cloudforge.learn.adapters._embedded import EMBEDDED_ENTRY_FIELDS, embedded_payload
 from app.cloudforge.learn.pattern_models import CloudProvider, PatternProvenance, RawPatternRecord
 from app.cloudforge.learn.source_models import SourceEntry
 from app.cloudforge.models.findings import Severity
@@ -74,9 +79,17 @@ def _coerce_scalar(value: object) -> str:
 
 
 def _coerce_raw_payload(raw_entry: dict[str, Any]) -> dict[str, str | list[str]]:
-    """Narrow an arbitrary parsed catalog entry into ``raw_payload``'s declared shape."""
+    """Narrow an arbitrary parsed catalog entry into ``raw_payload``'s declared shape.
+
+    Embedded artifact fields (``graph_fragment``/``expected_findings``, ticket #98) are
+    nested models, NOT flat scalars — running them through ``_coerce_scalar`` would
+    ``str()``-mangle them into unparseable Python reprs, so they are excluded here and
+    handled by ``embedded_payload`` (model-validated, JSON-encoded) instead.
+    """
     payload: dict[str, str | list[str]] = {}
     for key, value in raw_entry.items():
+        if key in EMBEDDED_ENTRY_FIELDS:
+            continue
         if isinstance(value, list):
             payload[key] = [_coerce_scalar(item) for item in value]
         else:
@@ -136,6 +149,8 @@ def _build_provenance(
 def _to_record(
     entry: _RuleCatalogEntry, raw_entry: dict[str, Any], provenance: PatternProvenance
 ) -> RawPatternRecord:
+    raw_payload = _coerce_raw_payload(raw_entry)
+    raw_payload.update(embedded_payload(raw_entry, entry.id))
     return RawPatternRecord(
         source_id=provenance.source_id,
         raw_id=entry.id,
@@ -147,7 +162,7 @@ def _to_record(
         category=entry.domains[0] if entry.domains else None,
         remediation=entry.remediation,
         references=list(entry.references),
-        raw_payload=_coerce_raw_payload(raw_entry),
+        raw_payload=raw_payload,
         provenance=provenance,
     )
 
