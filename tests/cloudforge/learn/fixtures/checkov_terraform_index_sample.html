@@ -4,8 +4,8 @@ Hand-authored RECORDED FIXTURE for unit tests only.
 This is a small, representative excerpt mimicking the table structure of the public
 Checkov Terraform policy index (https://www.checkov.io/5.Policy%20Index/terraform.html).
 It is NOT scraped from the live site and is NOT a full mirror. It contains only
-metadata columns (Id / Type / Entity / Policy / IaC / Resource Scanner / Severity) for a
-small, safe subset of well-known checks, per design doc §8:
+metadata columns (# / Id / Type / Entity / Policy / IaC / Resource Scanner / Severity)
+for a small, safe subset of well-known checks, per design doc §8:
   - AWS S3 logging / encryption / public-access
   - AWS security-group unrestricted ingress
   - AWS KMS wildcard principal
@@ -16,6 +16,11 @@ small, safe subset of well-known checks, per design doc §8:
 No rule source code or rule logic is embedded here — only the same short metadata a
 human browsing the public index page would see (id, resource type, title, iac type,
 severity, and a link back to the public page section).
+
+Shape note (issue #90): the LIVE Checkov page has an extra leading row-index column
+(the "#" column below) before the check-id column, which the fixture previously
+lacked. This fixture now matches that live shape so the fixture-based unit tests
+exercise the real-world layout instead of a simplified one.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -26,11 +31,12 @@ severity, and a link back to the public page section).
 <table id="policy-index">
 <thead>
 <tr>
-<th>Id</th><th>Type</th><th>Entity</th><th>Policy</th><th>IaC</th><th>Severity</th>
+<th>#</th><th>Id</th><th>Type</th><th>Entity</th><th>Policy</th><th>IaC</th><th>Severity</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>1</td>
 <td>CKV_AWS_18</td>
 <td>resource</td>
 <td>aws_s3_bucket</td>
@@ -39,6 +45,7 @@ severity, and a link back to the public page section).
 <td>MEDIUM</td>
 </tr>
 <tr>
+<td>2</td>
 <td>CKV_AWS_19</td>
 <td>resource</td>
 <td>aws_s3_bucket</td>
@@ -47,6 +54,7 @@ severity, and a link back to the public page section).
 <td>HIGH</td>
 </tr>
 <tr>
+<td>3</td>
 <td>CKV_AWS_20</td>
 <td>resource</td>
 <td>aws_s3_bucket</td>
@@ -55,6 +63,7 @@ severity, and a link back to the public page section).
 <td>CRITICAL</td>
 </tr>
 <tr>
+<td>4</td>
 <td>CKV_AWS_24</td>
 <td>resource</td>
 <td>aws_security_group</td>
@@ -63,6 +72,7 @@ severity, and a link back to the public page section).
 <td>HIGH</td>
 </tr>
 <tr>
+<td>5</td>
 <td>CKV_AWS_260</td>
 <td>resource</td>
 <td>aws_security_group</td>
@@ -71,6 +81,7 @@ severity, and a link back to the public page section).
 <td>HIGH</td>
 </tr>
 <tr>
+<td>6</td>
 <td>CKV_AWS_33</td>
 <td>resource</td>
 <td>aws_kms_key</td>
@@ -79,6 +90,7 @@ severity, and a link back to the public page section).
 <td>CRITICAL</td>
 </tr>
 <tr>
+<td>7</td>
 <td>CKV_AWS_17</td>
 <td>resource</td>
 <td>aws_db_instance</td>
@@ -87,6 +99,7 @@ severity, and a link back to the public page section).
 <td>CRITICAL</td>
 </tr>
 <tr>
+<td>8</td>
 <td>CKV_AWS_36</td>
 <td>resource</td>
 <td>aws_cloudtrail</td>
@@ -95,6 +108,7 @@ severity, and a link back to the public page section).
 <td>MEDIUM</td>
 </tr>
 <tr>
+<td>9</td>
 <td>CKV_AWS_35</td>
 <td>resource</td>
 <td>aws_cloudtrail</td>
@@ -103,6 +117,7 @@ severity, and a link back to the public page section).
 <td>HIGH</td>
 </tr>
 <tr>
+<td>10</td>
 <td>CKV_AWS_67</td>
 <td>resource</td>
 <td>aws_cloudtrail</td>
@@ -111,6 +126,7 @@ severity, and a link back to the public page section).
 <td>MEDIUM</td>
 </tr>
 <tr>
+<td>11</td>
 <td>CKV_AZURE_35</td>
 <td>resource</td>
 <td>azurerm_storage_account</td>
@@ -119,6 +135,7 @@ severity, and a link back to the public page section).
 <td>HIGH</td>
 </tr>
 <tr>
+<td>12</td>
 <td>CKV_GCP_62</td>
 <td>resource</td>
 <td>google_storage_bucket</td>
