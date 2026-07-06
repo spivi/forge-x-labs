@@ -12,7 +12,6 @@ and finding sets. Every assertion is commented with the clause it proves.
 
 from __future__ import annotations
 
-import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
@@ -169,24 +168,18 @@ def test_broad_grant_documented_for_wrong_resource_still_fails(broad: str, fid: 
     assert status is Status.FAIL  # S6: broad grant on pol-broad remains undocumented
 
 
-# --- S5: findings referencing a resource id NOT in the graph -----------------------
+# --- S5: findings must reference resources that actually exist in the graph --------
 #
-# NOTE: `_check_broad_grants_documented` and `_check_forbidden_permissions` never
-# themselves validate that `finding.resource_ids` point at real graph nodes — S5 as
-# currently enforced by `GraphRiskEngine` only reconciles ground-truth-PATH node/edge
-# ids (`_check_ground_truth_nodes` / `_check_ground_truth_edges`), not
-# `ExpectedFinding.resource_ids`. This is exercised below: it demonstrates a REAL
-# invariant gap. See BUGS FOUND in the result report.
+# The S5 gap discovered by this suite (a finding could reference a nonexistent
+# resource with zero FAILs) is now closed by
+# ``GraphRiskEngine._check_finding_resources_exist`` (label
+# "expected findings reference real resources"), added to ``run()``. The two tests
+# below are its regression coverage: the negative (ghost resource -> FAIL naming the
+# missing id) and the positive companion (all resources real -> PASS).
+
+_S5_LABEL = "expected findings reference real resources"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "BUG: S5 — GraphRiskEngine.run() has NO check reconciling "
-        "ExpectedFinding.resource_ids against real graph node ids; a finding "
-        "referencing a nonexistent resource passes validation with zero FAILs."
-    ),
-)
 @given(
     finding_ids,
     severities,
@@ -197,17 +190,15 @@ def test_broad_grant_documented_for_wrong_resource_still_fails(broad: str, fid: 
 def test_finding_referencing_missing_resource_should_fail_graph_risk(
     fid: str, severity: str, visibility: str, ghost_id: str
 ) -> None:
-    """S5: a finding referencing a resource id absent from the graph must FAIL validation.
+    """S5: a finding referencing a resource id absent from the graph FAILs validation.
 
-    BUG (S5): minimal reproducer — a graph with one real node ``pol-real`` and NO
-    other nodes; an ``ExpectedFinding`` whose ``resource_ids`` names a node id that
-    was never built (e.g. ``ghost-xyz``). The correct behavior per S5 ("No expected
-    finding references a missing resource") is that ``GraphRiskEngine.run()`` FAILs.
-    Instead, ALL 7 checks in ``GraphRiskEngine.run()`` PASS — there is no check that
-    reconciles ``self._bundle.findings.findings[*].resource_ids`` against
-    ``self._node_ids`` (the engine only reconciles ground-truth-PATH node/edge ids,
-    never finding resource ids). Wrong: no FAIL is raised. Expected: a FAIL outcome
-    (e.g. "finding resources exist") naming the missing resource id.
+    Minimal reproducer — a graph with one real node ``pol-real`` and NO other nodes;
+    an ``ExpectedFinding`` whose ``resource_ids`` names a node id that was never built
+    (e.g. ``ghost-xyz``). Per S5 ("No expected finding references a missing resource")
+    ``GraphRiskEngine.run()`` must FAIL. The ``_check_finding_resources_exist`` guard
+    (label ``expected findings reference real resources``) reconciles every
+    ``finding.resource_ids`` entry against ``self._node_ids`` and returns a FAIL that
+    names the offending finding id AND the missing resource id.
     """
     ghost = f"ghost-{ghost_id}"
     node = _policy_node("pol-real", [])
@@ -225,12 +216,45 @@ def test_finding_referencing_missing_resource_should_fail_graph_risk(
     )
     bundle = bundle_for(graph, findings=ExpectedFindings(findings=[finding]))
     engine = GraphRiskEngine(bundle, GENEROUS_SPEC)
-    outcomes = engine.run()
-    # S5: a finding referencing a missing resource MUST produce a FAIL somewhere.
-    assert any(o.status is Status.FAIL for o in outcomes), (
-        f"S5 VIOLATION: finding {fid!r} references missing resource {ghost!r} "
-        "but GraphRiskEngine reported no FAIL"
+    outcome = next(o for o in engine.run() if o.label == _S5_LABEL)
+    # S5: the finding-resource check FAILs, naming BOTH the finding id and missing id.
+    assert outcome.status is Status.FAIL  # S5
+    assert fid in outcome.detail and ghost in outcome.detail  # S5: detail names both
+
+
+@given(finding_ids, severities, scanner_visibilities)
+@settings(max_examples=_EXAMPLES, suppress_health_check=[HealthCheck.too_slow])
+def test_finding_referencing_real_resource_passes_graph_risk(
+    fid: str, severity: str, visibility: str
+) -> None:
+    """S5 positive companion: a finding whose resource_ids all exist -> PASS.
+
+    Guards against the check being an unconditional inversion — a finding pointing at
+    a real graph node id must NOT be flagged. Both graph nodes ``pol-real`` and
+    ``role-real`` exist; the finding references only those.
+    """
+    pol = _policy_node("pol-real", [])
+    role = GraphNode(
+        id="role-real",
+        type=NodeType.IAM_ROLE,
+        name="RealRole",
+        tags=_TAGS,
+        security=NodeSecurity(criticality="high"),
     )
+    graph = ScenarioGraph(nodes=[pol, role], edges=[])
+    finding = ExpectedFinding(
+        id=fid,
+        severity=severity,  # type: ignore[arg-type]
+        family=FindingFamily.IAM_EXCESSIVE_PRIVILEGE,
+        resource_ids=["pol-real", "role-real"],
+        expected_scanner_visibility=visibility,  # type: ignore[arg-type]
+        ground_truth="references only real resources",
+        remediation="n/a",
+    )
+    bundle = bundle_for(graph, findings=ExpectedFindings(findings=[finding]))
+    engine = GraphRiskEngine(bundle, GENEROUS_SPEC)
+    outcome = next(o for o in engine.run() if o.label == _S5_LABEL)
+    assert outcome.status is Status.PASS  # S5: all resources exist -> PASS
 
 
 # --- ExpectedFinding model-level integrity: missing/duplicate ids, unknown family --
@@ -243,8 +267,9 @@ def test_duplicate_finding_ids_not_rejected_by_model(ids: list[str]) -> None:
 
     Not a listed clause violation — S5/S6/S7 are about resource references and
     forbidden/broad grants, not id uniqueness. Documents current behavior as a
-    baseline (see BUGS FOUND for the reconciliation gap, which is a real issue;
-    this one is a plain absence of a constraint, not a broken guarantee).
+    baseline: a plain absence of a constraint, not a broken guarantee (unlike the S5
+    finding-resource reconciliation, which IS a guarantee and is now enforced by
+    ``GraphRiskEngine._check_finding_resources_exist``).
     """
     dup_id = ids[0]
     findings = [

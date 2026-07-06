@@ -34,6 +34,7 @@ class GraphRiskEngine:
         return [
             self._check_ground_truth_nodes(),
             self._check_ground_truth_edges(),
+            self._check_finding_resources_exist(),
             self._check_paths_reachable(),
             self._check_critical_path_connectivity(),
             self._check_constraints(),
@@ -58,6 +59,17 @@ class GraphRiskEngine:
                 Status.FAIL, "ground-truth edges exist", f"missing: {sorted(missing)}"
             )
         return ValidationOutcome(Status.PASS, "ground-truth edges exist")
+
+    def _check_finding_resources_exist(self) -> ValidationOutcome:
+        for finding in self._bundle.findings.findings:
+            for rid in finding.resource_ids:
+                if rid not in self._node_ids:
+                    return ValidationOutcome(
+                        Status.FAIL,
+                        "expected findings reference real resources",
+                        f"{finding.id} references missing resource {rid}",
+                    )
+        return ValidationOutcome(Status.PASS, "expected findings reference real resources")
 
     def _check_paths_reachable(self) -> ValidationOutcome:
         for path in self._bundle.ground_truth.paths:
