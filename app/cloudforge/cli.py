@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 
 from app.cloudforge import __version__
@@ -32,6 +33,16 @@ console = Console()
 
 _STATUS_STYLE = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "red"}
 
+# Every command below loads/re-validates on-disk artifacts against Pydantic models and
+# writes to a caller-supplied path. Besides ``CloudforgeError`` (our own domain errors),
+# two more exception classes can escape from that: a hand-edited-but-well-formed YAML/JSON
+# artifact that fails Pydantic schema validation raises ``pydantic.ValidationError`` (NOT a
+# ``CloudforgeError``), and an unwritable/unreadable filesystem path raises ``OSError``
+# (e.g. a read-only output directory). Both must surface as a clean ``error:`` + exit 1,
+# never a raw traceback (FXL-N4 / stress-contract S1/S15) — mirrors the fail-soft pattern
+# already used by ``report/renderer.py::_run_validation``.
+_CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OSError)
+
 
 @app.command()
 def generate(
@@ -51,7 +62,7 @@ def generate(
         # ``GraphIntegrityError`` (a ``CloudforgeError``) — keep it inside the catch so
         # a colliding graph surfaces as a clean CLI error, not a raw traceback (FXL-N4).
         ScenarioArtifacts(ScenarioPaths.from_dir(out)).write_all(spec, bundle)
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"[green]generated[/green] scenario at {out}")
@@ -73,7 +84,7 @@ def validate(
     """Validate a generated scenario (fail-soft on missing optional tools)."""
     try:
         report = run_validations(scenario_dir)
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     for outcome in report.outcomes:
@@ -89,7 +100,7 @@ def report(
     """Render a human-readable report.md for a generated scenario."""
     try:
         written = ReportRenderer(scenario_dir).render_to_file()
-    except CloudforgeError as exc:
+    except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"[green]report written[/green] to {written}")
