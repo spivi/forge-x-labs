@@ -10,23 +10,41 @@
     "prior_weight": 3
   },
   "factors": {
+    "type:feature": {
+      "factor": 0.383,
+      "samples": 15,
+      "ci_low": 0.279,
+      "ci_high": 0.487
+    },
     "label:effort:M": {
-      "factor": 0.551,
-      "samples": 4,
-      "ci_low": 0.257,
-      "ci_high": 0.844
+      "factor": 0.383,
+      "samples": 19,
+      "ci_low": 0.25,
+      "ci_high": 0.722
     },
     "label:area:generation": {
-      "factor": 0.585,
-      "samples": 5,
-      "ci_low": 0.342,
-      "ci_high": 0.828
+      "factor": 0.512,
+      "samples": 9,
+      "ci_low": 0.25,
+      "ci_high": 1.305
     },
     "type:fix": {
+      "factor": 0.703,
+      "samples": 6,
+      "ci_low": 0.25,
+      "ci_high": 1.723
+    },
+    "label:effort:S": {
       "factor": 0.718,
       "samples": 3,
-      "ci_low": 0.523,
-      "ci_high": 0.913
+      "ci_low": 0.25,
+      "ci_high": 2.209
+    },
+    "label:area:corpus": {
+      "factor": 0.41,
+      "samples": 12,
+      "ci_low": 0.25,
+      "ci_high": 0.606
     }
   }
 }

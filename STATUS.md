@@ -1,7 +1,19 @@
 # Project Status
 
-**Current Phase:** Wave 1 + FXL-31 delivered; learning loop calibrated
-**Last Updated:** 2026-07-05
+**Current Phase:** FXL-E2 learning-corpus epic complete; `cloudforge learn` working; loop re-calibrated
+**Last Updated:** 2026-07-06
+
+> **Debrief (2026-07-06):** After the FXL-E2 wave (#98 real fragments / #71 export gate / #73 learn
+> CLI, all merged, each fresh-context Opus APPROVE), the loop has **23 samples** (E2 actuals
+> backfilled). Committed factors: `type:feature` = **0.383** (15 runs, CI 0.279–0.487),
+> `label:area:corpus` = **0.41** (12 runs) — estimator over-predicts wall-clock ~2.6×. Model policy:
+> **0 underpowered** in any bucket; `label:area:corpus` 10/12 well-matched on sonnet (corpus tickets
+> well-routed); `effort:S`→haiku, `area:generation`→sonnet flagged down-tierable. lemmings fit:
+> `developer.cost_rate_per_min` → 0.1095, **`bugs.base_lambda` = 0.0** (zero post-review defects —
+> every ticket passed its review gate first-cycle). **0 [CREATE] recs** (all [TUNE], auto-applied).
+> Summary pushed to **council** (FXL-E2, codex+antigravity): 2 advisory blockers (both doc-only,
+> applied) — #90 reclassified (blocks a 2nd source, not E2) + an Evidence appendix added. Report:
+> `.dev-context/sprint-runs/e2_debrief_council_report.md`.
 
 > **Debrief (2026-07-05):** After FXL-31 (per-family Terraform emitter, PR #34, AI review gate
 > APPROVE), the loop has **3 samples** and committed real factors: `label:effort:M` /

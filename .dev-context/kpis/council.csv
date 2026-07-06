@@ -8,3 +8,6 @@ ts_iso,ticket,document,doc_type,providers,members_run,chair_model,status,autofix
 2026-07-05T09:46:14Z,,.dev-context/sprint-runs/wave1_debrief_summary.md,summary,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
 2026-07-05T09:48:34Z,auto:wave1_debrief_summary,/Users/spivi/dev-projects/forge-x-labs/.dev-context/sprint-runs/wave1_debrief_summary.md,summary,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
 2026-07-05T09:48:36Z,auto:wave1_debrief_summary,/Users/spivi/dev-projects/forge-x-labs/.dev-context/sprint-runs/wave1_debrief_summary.md,summary,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
+2026-07-05T19:45:01Z,auto:2026-07-05-FXL-E2-learning-corpus-design,/Users/spivi/dev-projects/forge-x-labs/docs/plans/2026-07-05-FXL-E2-learning-corpus-design.md,plan,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
+2026-07-06T11:49:40Z,FXL-E2,.dev-context/sprint-runs/e2_debrief_summary.md,summary,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped
+2026-07-06T11:49:51Z,auto:e2_debrief_summary,/Users/spivi/dev-projects/forge-x-labs/.dev-context/sprint-runs/e2_debrief_summary.md,summary,"codex,antigravity",2,claude-sonnet-4-6,ok,skipped

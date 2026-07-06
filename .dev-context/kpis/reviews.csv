@@ -1,1 +1,4 @@
 ticket,pr,provider,reviewed_at,cycles,findings_total,p1,p2,p3,categories,fix_commit_count,review_first_event_at,review_stale_s
+FXL-98,99,claude-opus,2026-07-06T11:40:00Z,1,0,0,0,0,,0,,
+FXL-71,100,claude-opus,2026-07-06T11:55:00Z,1,0,0,0,0,,0,,
+FXL-73,101,claude-opus,2026-07-06T12:15:00Z,1,0,0,0,0,,0,,

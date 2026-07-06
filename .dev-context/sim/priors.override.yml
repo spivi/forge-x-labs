@@ -2,6 +2,6 @@
 # Deep-merged on top of priors_default.yml. Safe to regenerate.
 agents:
   developer:
-    cost_rate_per_min: 0.0454
+    cost_rate_per_min: 0.1095
 bugs:
   base_lambda: 0.0
