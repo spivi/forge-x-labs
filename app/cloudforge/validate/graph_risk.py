@@ -12,10 +12,11 @@ Proves a generated scenario is self-consistent and safe:
 from __future__ import annotations
 
 import fnmatch
+from collections import deque
 
 from app.cloudforge import constants
 from app.cloudforge.generate.base import ScenarioBundle
-from app.cloudforge.models.graph import GraphNode, NodeType
+from app.cloudforge.models.graph import EdgeType, GraphNode, NodeType
 from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.validate.results import Status, ValidationOutcome
 
@@ -34,6 +35,7 @@ class GraphRiskEngine:
             self._check_ground_truth_nodes(),
             self._check_ground_truth_edges(),
             self._check_paths_reachable(),
+            self._check_critical_path_connectivity(),
             self._check_constraints(),
             self._check_forbidden_permissions(),
             self._check_broad_grants_documented(),
@@ -70,6 +72,55 @@ class GraphRiskEngine:
 
     def _has_any_edge(self, src: str, dst: str) -> bool:
         return any(e.from_ == src and e.to == dst for e in self._bundle.graph.edges)
+
+    def _check_critical_path_connectivity(self) -> ValidationOutcome:
+        """Family-agnostic check: critical-risk edge and stores_sensitive_data sink
+        must lie on a shared reachable path (not disconnected components).
+        Excludes the stores_sensitive_data sink edge itself from critical edges."""
+        critical_edges = [
+            e
+            for e in self._bundle.graph.edges
+            if e.security.risk == "critical" and e.type != EdgeType.STORES_SENSITIVE_DATA
+        ]
+        sink_edges = [
+            e for e in self._bundle.graph.edges if e.type == EdgeType.STORES_SENSITIVE_DATA
+        ]
+
+        if not critical_edges or not sink_edges:
+            return ValidationOutcome(Status.PASS, "critical-sink connectivity")
+
+        # Check if any critical edge can reach any sink edge via graph traversal
+        for crit_edge in critical_edges:
+            start = crit_edge.to
+            for sink_edge in sink_edges:
+                sink_node = sink_edge.to
+                if self._can_reach(start, sink_node):
+                    return ValidationOutcome(Status.PASS, "critical-sink connectivity")
+
+        return ValidationOutcome(
+            Status.FAIL,
+            "critical-sink connectivity",
+            "critical-risk edge cannot reach stores_sensitive_data sink",
+        )
+
+    def _can_reach(self, src: str, dst: str) -> bool:
+        """BFS to check if src can reach dst in the graph."""
+        if src == dst:
+            return True
+
+        visited = {src}
+        queue = deque([src])
+
+        while queue:
+            node = queue.popleft()
+            for edge in self._bundle.graph.edges:
+                if edge.from_ == node and edge.to not in visited:
+                    if edge.to == dst:
+                        return True
+                    visited.add(edge.to)
+                    queue.append(edge.to)
+
+        return False
 
     def _check_constraints(self) -> ValidationOutcome:
         node_count = len(self._bundle.graph.nodes)

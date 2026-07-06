@@ -189,3 +189,29 @@ vocabulary for this posture.
 **Consequences**: FXL-E2 adapters that touch CSA CCM emit `control_mappings` (id references) only,
 never control text; a corpus-validation check must reject any CCM-sourced record carrying control
 body text. Revisit CIS if reuse rights are later confirmed.
+
+## FXL-D008: OPA coarse-grained, graph engine precise — defense-in-depth via BFS reachability
+
+**Status**: accepted
+**Date**: 2026-07-06
+
+**Context**: FXL-79 raised that the family-agnostic OPA check (from FXL-54) verifies a critical-risk
+edge and a `stores_sensitive_data` sink **exist** in the graph, but not that they lie on a
+**shared reachable path**. A scenario with both on **disconnected components** passes OPA and is
+caught only by ground-truth path validation. The gap is intentional coarseness — OPA is a
+universal sanity gate (decoupled from family-specific edge types), while per-path reachability is
+the Python graph engine's job. But this split wasn't explicit.
+
+**Decision**: Harden the defense-in-depth **in the graph engine, not the OPA**. Added
+`_check_critical_path_connectivity()` to `GraphRiskEngine`, which asserts that at least one
+critical-risk edge (excluding `stores_sensitive_data` itself) can reach a `stores_sensitive_data`
+sink via BFS graph traversal. This is **family-agnostic** (no edge-type hardcoding) and **coarse**
+(any path, no attack vector), mirroring the OPA's intent. The check runs after ground-truth path
+validation, catching the rare case where a declared path is coherent but the critical edge was
+somehow disconnected from all sinks post-generation.
+
+**Consequences**: The OPA stays a coarse existence gate; the engine now has a reachability backstop.
+New scenario families automatically benefit (no rego coupling needed). The BFS is O(V + E) and
+runs once per validated scenario, negligible cost. The git push will reference issue #79 (Closes).
+
+---
