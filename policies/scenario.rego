@@ -76,3 +76,45 @@ deny contains msg if {
 	not has_sensitive_sink
 	msg := "no 'stores_sensitive_data' edge — critical risk has no sensitive-data sink"
 }
+
+# --- no real secrets in node attributes (FXL-STRESS-6, mirrors constraints.no_real_secrets) --
+# Coarse, family-agnostic scan over every node's `attributes` (the only freeform payload
+# on a graph node — IAM actions, CIDRs, bucket names, arns, ...). `attributes` is a plain
+# `{key: value}` map (value is `string | list[string]`), never an inline `key=value`
+# string, so a leaked secret shows up either as (a) a sensitively-named key holding a
+# long value, or (b) a self-describing value pattern (PEM header, AWS access-key-id
+# shape) regardless of key name. Mirrors `learn/_safety.py`'s conservative patterns. No
+# node type or edge type is named, so this applies uniformly to any family.
+_sensitive_key_pattern := `(?i)^(aws_secret_access_key|secret|password|passwd|private_key|api[_-]?key)$`
+
+# self-describing secret *values*, independent of the attribute key name.
+_secret_value_pattern := `-----BEGIN [A-Z ]*PRIVATE KEY-----|(?i)\bAKIA[0-9A-Z]{16}\b`
+
+_min_secret_len := 12
+
+_looks_like_secret(_, value) if {
+	regex.match(_secret_value_pattern, value)
+}
+
+_looks_like_secret(key, value) if {
+	regex.match(_sensitive_key_pattern, key)
+	count(value) >= _min_secret_len
+}
+
+# attribute values are `string | list[string]` — flatten both shapes into (key, value) pairs.
+_attribute_pairs(node) := {[key, value] |
+	some key, value in node.attributes
+	is_string(value)
+} | {[key, value] |
+	some key, list in node.attributes
+	is_array(list)
+	some value in list
+	is_string(value)
+}
+
+deny contains msg if {
+	some node in input.nodes
+	some pair in _attribute_pairs(node)
+	_looks_like_secret(pair[0], pair[1])
+	msg := sprintf("node %q attributes contain a real-looking secret (constraints.no_real_secrets)", [node.id])
+}
