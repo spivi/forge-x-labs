@@ -14,6 +14,7 @@ from app.cloudforge.learn.adapters.checkov_policy_index import (
     CheckovParseError,
     CheckovPolicyIndexAdapter,
     _cloud_provider_for,
+    _parse_rows,
 )
 from app.cloudforge.learn.pattern_models import CloudProvider, RawPatternRecord
 from app.cloudforge.learn.registry import load_registry
@@ -39,6 +40,9 @@ _FIXTURE_CHECK_IDS = {
     "CKV_AWS_67",
     "CKV_AZURE_35",
     "CKV_GCP_62",
+    # graph check (CKV2_*): issue #90 regression guard — the id-detection regex and the
+    # provider-token mapping must both handle the ``CKV2_`` form, not just ``CKV_``.
+    "CKV2_AWS_5",
 }
 
 # Strings that must NEVER appear in an extracted record — standing in for "rule
@@ -190,6 +194,14 @@ def test_cloud_provider_for_unrecognized_prefix_falls_back_to_generic() -> None:
     assert _cloud_provider_for("CKV_UNKNOWNVENDOR_1") is CloudProvider.GENERIC
 
 
+def test_cloud_provider_for_graph_check_ckv2_maps_to_real_provider() -> None:
+    # Issue #90 regression: graph checks use the ``CKV2_`` prefix but the same provider
+    # token, so they must classify to the real provider (aws), not GENERIC.
+    assert _cloud_provider_for("CKV2_AWS_5") is CloudProvider.AWS
+    assert _cloud_provider_for("CKV2_AZURE_1") is CloudProvider.AZURE
+    assert _cloud_provider_for("CKV2_GCP_1") is CloudProvider.GCP
+
+
 def test_every_record_is_a_valid_raw_pattern_record(
     adapter: CheckovPolicyIndexAdapter, source_entry: SourceEntry
 ) -> None:
@@ -197,3 +209,91 @@ def test_every_record_is_a_valid_raw_pattern_record(
     for record in records:
         # round-trips through the real pydantic model with no coercion surprises.
         assert RawPatternRecord.model_validate(record.model_dump()) == record
+
+
+# --- Regression coverage for issue #90 (leading row-index column) --------------------
+
+_NO_LEADING_COLUMN_TABLE = """
+<table>
+<tr><td>CKV_AWS_20</td><td>resource</td><td>aws_s3_bucket</td>
+<td>Ensure the S3 bucket does not allow READ permissions to everyone</td>
+<td>terraform</td><td>CRITICAL</td></tr>
+<tr><td>CKV_AZURE_35</td><td>resource</td><td>azurerm_storage_account</td>
+<td>Ensure default network access rule for storage accounts is set to deny</td>
+<td>terraform</td><td>HIGH</td></tr>
+</table>
+"""
+
+# Same two rows as above, but with the LIVE page's extra leading row-index column
+# (issue #90) — the check id is at row[1], not row[0].
+_LEADING_INDEX_COLUMN_TABLE = """
+<table>
+<tr><td>1</td><td>CKV_AWS_20</td><td>resource</td><td>aws_s3_bucket</td>
+<td>Ensure the S3 bucket does not allow READ permissions to everyone</td>
+<td>terraform</td><td>CRITICAL</td></tr>
+<tr><td>2</td><td>CKV_AZURE_35</td><td>resource</td><td>azurerm_storage_account</td>
+<td>Ensure default network access rule for storage accounts is set to deny</td>
+<td>terraform</td><td>HIGH</td></tr>
+</table>
+"""
+
+
+def test_parse_rows_handles_leading_index_column_layout() -> None:
+    """Regression for issue #90: the live page's extra leading column must still parse."""
+    rows = _parse_rows(_LEADING_INDEX_COLUMN_TABLE)
+
+    assert len(rows) == 2
+    assert [row[0] for row in rows] == ["CKV_AWS_20", "CKV_AZURE_35"]
+
+
+def test_parse_rows_still_handles_no_leading_column_layout() -> None:
+    """The old fixed-position (no leading column) shape must keep working too."""
+    rows = _parse_rows(_NO_LEADING_COLUMN_TABLE)
+
+    assert len(rows) == 2
+    assert [row[0] for row in rows] == ["CKV_AWS_20", "CKV_AZURE_35"]
+
+
+def test_parse_rows_extracts_identical_records_from_both_layouts() -> None:
+    """Content-based column detection: both layouts must yield the SAME record set."""
+    no_leading_rows = _parse_rows(_NO_LEADING_COLUMN_TABLE)
+    leading_index_rows = _parse_rows(_LEADING_INDEX_COLUMN_TABLE)
+
+    # Normalized rows are comparable directly: row[0] is always the check id in both
+    # cases, with the remaining fields (kind, resource_type, title, iac_type, severity)
+    # at the same relative offsets regardless of the extra leading column.
+    assert no_leading_rows == leading_index_rows
+
+
+def test_extract_from_leading_index_column_fixture_matches_sample_fixture(
+    adapter: CheckovPolicyIndexAdapter, source_entry: SourceEntry, tmp_path: Path
+) -> None:
+    """End-to-end: ``extract()`` on a leading-index-column file matches the real fixture."""
+    live_shape_path = tmp_path / "checkov_live_shape.html"
+    live_shape_path.write_text(_LEADING_INDEX_COLUMN_TABLE, encoding="utf-8")
+
+    records = adapter.extract(source_entry, live_shape_path)
+
+    assert len(records) == 2
+    by_id = {r.rule_id: r for r in records}
+    assert by_id["CKV_AWS_20"].severity == "critical"
+    assert by_id["CKV_AWS_20"].resource_types == ["aws_s3_bucket"]
+    assert by_id["CKV_AZURE_35"].cloud_provider is CloudProvider.AZURE
+
+
+def test_graph_check_ckv2_row_extracts_from_fixture_with_correct_provider(
+    adapter: CheckovPolicyIndexAdapter, source_entry: SourceEntry
+) -> None:
+    """Issue #90 regression: the fixture's CKV2_* graph-check row must extract.
+
+    The old ``CKV_[A-Z0-9]+_\\d+`` regex silently dropped ``CKV2_AWS_5`` (no literal
+    ``_`` after ``CKV``), and the old prefix table misclassified it as GENERIC. Both
+    must now work: the row is extracted AND classified to the real provider (aws).
+    """
+    records = adapter.extract(source_entry, SAMPLE_HTML)
+    by_id = {r.rule_id: r for r in records}
+
+    assert "CKV2_AWS_5" in by_id
+    graph_check = by_id["CKV2_AWS_5"]
+    assert graph_check.cloud_provider is CloudProvider.AWS
+    assert graph_check.resource_types == ["aws_security_group"]

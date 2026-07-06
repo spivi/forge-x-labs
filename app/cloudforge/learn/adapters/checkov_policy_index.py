@@ -10,20 +10,23 @@ matching the governance posture in design §3 (Tier 1) / §8.
 
 Parsing uses the stdlib ``html.parser.HTMLParser`` (no BeautifulSoup dependency): a
 small table-row collector that is tolerant of malformed/unclosed markup and simply
-yields fewer (or zero) rows rather than raising, mirroring how a browser degrades. A
-missing/unreadable fixture file *is* a hard error (``CheckovParseError``) since that is
-an operator mistake, not a page-shape variation.
+yields fewer (or zero) rows rather than raising, mirroring how a browser degrades. The
+check-id column is located by content (see ``_parse_rows``), not a fixed position, so
+both the fixture's shape and the live page's extra leading index column parse the same
+way (issue #90). A missing/unreadable fixture file *is* a hard error
+(``CheckovParseError``) since that is an operator mistake, not a page-shape variation.
 """
 
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from html.parser import HTMLParser
 from pathlib import Path
 
 from app.cloudforge.errors import CloudforgeError
+from app.cloudforge.learn.adapters._html_table_parser import PolicyTableParser
 from app.cloudforge.learn.pattern_models import CloudProvider, PatternProvenance, RawPatternRecord
 from app.cloudforge.learn.source_models import ReuseStatus, SourceEntry
 from app.cloudforge.models.findings import Severity
@@ -33,13 +36,24 @@ ADAPTER_VERSION = "1.0.0"
 EXTRACTION_METHOD = "fixture_html_metadata"
 CONFIDENCE_DEFAULT = 0.55
 
-# fixture table column order: check_id, kind, resource_type, title, iac_type, severity
-_CLOUD_PREFIXES: tuple[tuple[str, CloudProvider], ...] = (
-    ("CKV_AWS_", CloudProvider.AWS),
-    ("CKV_AZURE_", CloudProvider.AZURE),
-    ("CKV_GCP_", CloudProvider.GCP),
-    ("CKV_K8S_", CloudProvider.KUBERNETES),
-)
+# Checkov's check-id pattern, used to locate the check-id column BY CONTENT rather than
+# a fixed position (issue #90). Covers both plain checks (``CKV_AWS_20``, ``CKV_K8S_8``)
+# and graph checks (``CKV2_AWS_5``, ``CKV2_AZURE_1``) — the ``\d*`` after ``CKV`` matches
+# the ``2`` in the graph-check form, which live terraform index pages do include.
+_CHECK_ID_PATTERN = re.compile(r"CKV\d*_[A-Z0-9]+_\d+")
+
+# Captures the provider token (``AWS``/``AZURE``/…) after either ``CKV_`` or ``CKV2_``,
+# so graph checks (``CKV2_AWS_5``) classify the same as plain checks (``CKV_AWS_5``).
+_PROVIDER_TOKEN_PATTERN = re.compile(r"CKV\d*_([A-Z0-9]+)_")
+
+# table column order (relative to the detected check-id column): check_id, kind,
+# resource_type, title, iac_type, severity
+_CLOUD_PROVIDER_BY_TOKEN: dict[str, CloudProvider] = {
+    "AWS": CloudProvider.AWS,
+    "AZURE": CloudProvider.AZURE,
+    "GCP": CloudProvider.GCP,
+    "K8S": CloudProvider.KUBERNETES,
+}
 _KNOWN_SEVERITIES: frozenset[str] = frozenset({"low", "medium", "high", "critical"})
 
 
@@ -47,54 +61,17 @@ class CheckovParseError(CloudforgeError):
     """The fixture HTML could not be read (missing file, unreadable, undecodable)."""
 
 
-class _PolicyTableParser(HTMLParser):
-    """Collects one cell-text list per ``<tr>`` inside a ``<table>``.
-
-    Deliberately minimal and tolerant: unknown/unclosed tags are ignored rather than
-    raising, so a malformed fixture degrades to fewer/zero rows instead of crashing.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.rows: list[list[str]] = []
-        self._in_table = False
-        self._in_row = False
-        self._in_cell = False
-        self._current_row: list[str] = []
-        self._current_cell: list[str] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag == "table":
-            self._in_table = True
-        elif tag == "tr" and self._in_table:
-            self._in_row = True
-            self._current_row = []
-        elif tag in ("td", "th") and self._in_row:
-            self._in_cell = True
-            self._current_cell = []
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in ("td", "th") and self._in_cell:
-            self._current_row.append("".join(self._current_cell).strip())
-            self._in_cell = False
-        elif tag == "tr" and self._in_row:
-            if self._current_row:
-                self.rows.append(self._current_row)
-            self._in_row = False
-        elif tag == "table":
-            self._in_table = False
-
-    def handle_data(self, data: str) -> None:
-        if self._in_cell:
-            self._current_cell.append(data)
-
-
 def _cloud_provider_for(check_id: str) -> CloudProvider:
-    """Map a Checkov check id prefix (e.g. ``CKV_AWS_20``) to a ``CloudProvider``."""
-    for prefix, provider in _CLOUD_PREFIXES:
-        if check_id.startswith(prefix):
-            return provider
-    return CloudProvider.GENERIC
+    """Map a Checkov check id to a ``CloudProvider`` by its provider token.
+
+    Tolerates both plain (``CKV_AWS_20``) and graph (``CKV2_AWS_5``) forms — the
+    provider token (``AWS``) is the same in each; only the ``CKV``/``CKV2`` prefix
+    differs. Unknown/absent tokens fall back to ``GENERIC``.
+    """
+    match = _PROVIDER_TOKEN_PATTERN.match(check_id)
+    if match is None:
+        return CloudProvider.GENERIC
+    return _CLOUD_PROVIDER_BY_TOKEN.get(match.group(1), CloudProvider.GENERIC)
 
 
 def _severity_for(raw: str) -> Severity | None:
@@ -110,12 +87,35 @@ def _read_fixture_bytes(raw_path: Path) -> bytes:
         raise CheckovParseError(f"cannot read Checkov fixture {raw_path}: {exc}") from exc
 
 
+def _check_id_column(row: list[str]) -> int | None:
+    """Index of the cell matching the check-id pattern, or ``None`` (content, not position)."""
+    for index, cell in enumerate(row):
+        if _CHECK_ID_PATTERN.fullmatch(cell.strip()):
+            return index
+    return None
+
+
 def _parse_rows(html_text: str) -> list[list[str]]:
-    parser = _PolicyTableParser()
+    """Collect table rows, normalized so ``row[0]`` is always the check-id cell.
+
+    Handles both the no-leading-column fixture shape and the live page's leading
+    row-index column (issue #90) by locating the id cell per row instead of assuming a
+    fixed position. A row with no recognizable id cell is skipped, not raised — the
+    existing fail-soft posture is preserved.
+    """
+    parser = PolicyTableParser()
     parser.feed(html_text)
     parser.close()
-    # header row (or any row missing a recognizable check id in column 0) is dropped.
-    return [row for row in parser.rows if len(row) >= 3 and row[0].strip().startswith("CKV")]
+
+    normalized: list[list[str]] = []
+    for row in parser.rows:
+        id_index = _check_id_column(row)
+        if id_index is None:
+            continue
+        trimmed = row[id_index:]
+        if len(trimmed) >= 3:
+            normalized.append(trimmed)
+    return normalized
 
 
 def _cell(row: list[str], index: int) -> str:
