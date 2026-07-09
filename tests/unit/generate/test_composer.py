@@ -95,3 +95,23 @@ def test_different_seeds_can_differ_structurally() -> None:
     # Counts may coincide; structural diversity is asserted in the Phase-2 signature
     # tests. Here we only assert both seeds produce valid, in-band graphs.
     assert n1 >= 25 and n2 >= 25
+
+
+def test_variation_axes_override_decoy_count() -> None:
+    """An explicit ``variation_axes`` count overrides the seeded default."""
+    spec = _spec(scale_profile="small", variation_axes={"decoy": "0", "fp": "0", "ctrl": "0"})
+    g = GraphComposer(spec, seed=1).generate().graph
+    decoy_roles = [n for n in g.nodes if n.id.startswith("decoy")]
+    assert decoy_roles == []
+
+
+def test_stays_within_max_nodes_for_tiny_profile() -> None:
+    """The mandatory extras must not push a tight profile past its ``max_nodes``."""
+    g = GraphComposer(_spec(scale_profile="tiny"), seed=1).generate().graph
+    assert 10 <= len(g.nodes) <= 20
+
+
+def test_unknown_scenario_type_falls_back_to_ci_cd_core() -> None:
+    spec = _spec(scenario_type="unmapped_family", scale_profile="small")
+    bundle = GraphComposer(spec, seed=1).generate()
+    assert any("core0/" in n.id for n in bundle.graph.nodes)

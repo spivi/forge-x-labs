@@ -138,8 +138,9 @@ def test_forbidden_destructive_perm_still_denies(tmp_path: Path) -> None:
 def test_over_resource_budget_still_denies(tmp_path: Path) -> None:
     graph = _graph_dict(public_data_exposure.build_graph)
     template = copy.deepcopy(graph["nodes"][0])
-    # Inflate past the max_resources budget (40) with unique, well-tagged nodes.
-    graph["nodes"] = [{**copy.deepcopy(template), "id": f"filler-{i}"} for i in range(45)]
+    # Inflate past the coarse OPA budget ceiling (500 — the largest deployable
+    # scale tier) with unique, well-tagged nodes.
+    graph["nodes"] = [{**copy.deepcopy(template), "id": f"filler-{i}"} for i in range(505)]
 
     denials = _opa_denials(graph, tmp_path)
 

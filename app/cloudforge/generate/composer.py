@@ -82,8 +82,7 @@ class GraphComposer:
         core = self._core_kind()
         plan: _Plan = [(core, self._ns(core, 0), {"path_hops": rng.randint(3, 5)})]
         for kind in _EXTRA_KINDS:
-            for i in range(self._axis_count(kind, rng)):
-                plan.append((kind, self._ns(kind, i), {}))
+            self._add_extras(plan, kind, self._axis_count(kind, rng))
         return self._fill_to_scale(plan, rng)
 
     def _core_kind(self) -> str:
@@ -94,6 +93,14 @@ class GraphComposer:
         if override is not None:
             return max(0, int(override))
         return rng.randint(1, 3)
+
+    def _add_extras(self, plan: _Plan, kind: str, count: int) -> None:
+        """Append up to ``count`` instances of ``kind`` while the plan stays under
+        the profile's ``max_nodes`` ceiling (reserving one slot for scale fill)."""
+        for i in range(count):
+            if self._planned_node_count(plan) >= self._profile.max_nodes - 1:
+                return
+            plan.append((kind, self._ns(kind, i), {}))
 
     def _fill_to_scale(self, plan: _Plan, rng: Random) -> _Plan:
         target = rng.randint(self._profile.min_nodes, self._profile.max_nodes)
