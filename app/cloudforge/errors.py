@@ -22,5 +22,9 @@ class UnknownScenarioTypeError(CloudforgeError):
     """A scenario requests a ``scenario_type`` with no registered generator."""
 
 
+class UnknownEngineError(CloudforgeError):
+    """The CLI ``--engine`` option names an engine that does not exist."""
+
+
 class ValidationFailedError(CloudforgeError):
     """One or more validation checks failed (used to signal a nonzero exit)."""
