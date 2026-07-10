@@ -108,3 +108,46 @@ def test_unknown_engine_is_clean_error(tmp_path: Path) -> None:
     assert r.exit_code == 1
     assert "error:" in r.stdout
     assert "Traceback" not in r.stdout
+
+
+def _spec_with_bad_axis(tmp_path: Path) -> Path:
+    """A schema-shaped spec whose variation_axes carries a non-numeric value."""
+    spec = Path("examples/ci_cd_iam_chain.yaml").read_text()
+    spec += "\nvariation_axes:\n  decoy: notanumber\n"
+    path = tmp_path / "bad_axis.yaml"
+    path.write_text(spec)
+    return path
+
+
+def test_non_numeric_variation_axis_is_clean_error(tmp_path: Path) -> None:
+    """A non-numeric variation_axes value fails validation cleanly, not with a
+    raw traceback (regression for the _CLI_ERRORS boundary, S1/S15)."""
+    r = runner.invoke(
+        app,
+        ["generate", str(_spec_with_bad_axis(tmp_path)), "--out", str(tmp_path / "s")],
+    )
+    assert r.exit_code == 1
+    assert "error:" in r.stdout
+    assert "Traceback" not in r.stdout
+
+
+def test_composer_engine_with_mutate_seed(tmp_path: Path) -> None:
+    """Composer output (up to a full scale band) survives the mutation pass."""
+    out = tmp_path / "m"
+    r = runner.invoke(
+        app,
+        [
+            "generate",
+            "examples/ci_cd_iam_chain.yaml",
+            "--out",
+            str(out),
+            "--engine",
+            "composer",
+            "--seed",
+            "3",
+            "--mutate-seed",
+            "7",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+    assert (out / "graph.json").exists()
