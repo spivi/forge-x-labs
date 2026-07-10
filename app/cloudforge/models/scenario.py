@@ -57,3 +57,15 @@ class ScenarioSpec(BaseModel):
     constraints: Constraints
     scale_profile: str = "small"
     variation_axes: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("variation_axes")
+    @classmethod
+    def _axes_must_be_int_coercible(cls, axes: dict[str, str]) -> dict[str, str]:
+        for key, value in axes.items():
+            try:
+                int(value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"variation_axes[{key!r}] must be an integer count, got {value!r}"
+                ) from exc
+        return axes

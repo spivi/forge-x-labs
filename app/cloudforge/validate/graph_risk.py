@@ -16,9 +16,24 @@ from collections import deque
 
 from app.cloudforge import constants
 from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.scale_profiles import SCALE_PROFILES
 from app.cloudforge.models.graph import EdgeType, GraphNode, NodeType
 from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.validate.results import Status, ValidationOutcome
+
+
+def _effective_budget(spec: ScenarioSpec) -> int:
+    """Node budget = the larger of the spec's ``max_resources`` and the declared
+    scale profile's ``max_nodes``.
+
+    A composer-generated scenario declares a ``scale_profile`` whose band is the
+    real budget authority (``medium`` legitimately holds 75-150 nodes), so the
+    scale ceiling must not be capped by a small hand-authored ``max_resources``.
+    An unknown profile name falls back to the spec's own budget."""
+    profile = SCALE_PROFILES.get(spec.scale_profile)
+    if profile is None:
+        return spec.constraints.max_resources
+    return max(spec.constraints.max_resources, profile.max_nodes)
 
 
 class GraphRiskEngine:
@@ -136,7 +151,7 @@ class GraphRiskEngine:
 
     def _check_constraints(self) -> ValidationOutcome:
         node_count = len(self._bundle.graph.nodes)
-        budget = self._spec.constraints.max_resources
+        budget = _effective_budget(self._spec)
         if node_count > budget:
             return ValidationOutcome(
                 Status.FAIL, "resource budget respected", f"{node_count} nodes > max {budget}"

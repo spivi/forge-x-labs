@@ -14,8 +14,9 @@ from pydantic import ValidationError
 from rich.console import Console
 
 from app.cloudforge import __version__
-from app.cloudforge.errors import CloudforgeError
+from app.cloudforge.errors import CloudforgeError, UnknownEngineError
 from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.composer import GraphComposer
 from app.cloudforge.generate.mutation_generator import MutationGenerator
 from app.cloudforge.generate.template_generator import TemplateGenerator
 from app.cloudforge.io.loaders import load_yaml
@@ -48,6 +49,13 @@ _CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OS
 def generate(
     scenario: Annotated[Path, typer.Argument(help="Path to a scenario YAML file.")],
     out: Annotated[Path, typer.Option("--out", help="Output scenario directory.")],
+    engine: Annotated[
+        str,
+        typer.Option("--engine", help="Generation engine: 'template' (default) or 'composer'."),
+    ] = "template",
+    seed: Annotated[
+        int, typer.Option("--seed", help="Seed for the composer engine (deterministic).")
+    ] = 0,
     mutate_seed: Annotated[
         int | None,
         typer.Option("--mutate-seed", help="Emit a seeded, ground-truth-preserving variant."),
@@ -56,7 +64,7 @@ def generate(
     """Generate the full artifact tree for a scenario (optionally a seeded variant)."""
     try:
         spec = ScenarioSpec.model_validate(load_yaml(scenario))
-        bundle = TemplateGenerator().generate(spec)
+        bundle = _build_bundle(spec, engine, seed)
         bundle = _apply_mutation(bundle, spec, mutate_seed)
         # ``write_all`` runs the emitter, whose pre-emission collision guard raises a
         # ``GraphIntegrityError`` (a ``CloudforgeError``) — keep it inside the catch so
@@ -66,6 +74,15 @@ def generate(
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"[green]generated[/green] scenario at {out}")
+
+
+def _build_bundle(spec: ScenarioSpec, engine: str, seed: int) -> ScenarioBundle:
+    """Dispatch to the requested engine; ``template`` (default) is unchanged."""
+    if engine == "template":
+        return TemplateGenerator().generate(spec)
+    if engine == "composer":
+        return GraphComposer(spec, seed).generate()
+    raise UnknownEngineError(f"unknown engine {engine!r}; choose 'template' or 'composer'")
 
 
 def _apply_mutation(

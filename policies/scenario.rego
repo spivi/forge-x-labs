@@ -33,8 +33,14 @@ deny contains msg if {
 	msg := sprintf("node %q is missing required tag %q", [node.id, tag])
 }
 
-# --- resource budget (mirrors scenario constraints.max_resources) ------------
-max_resources := 40
+# --- resource budget (coarse ceiling across all deployable scale tiers) -------
+# OPA evaluates over graph.json alone and cannot read the scenario's per-scenario
+# `constraints.max_resources` / `scale_profile`. So this is a coarse upper bound:
+# the node count of the largest *deployable* scale profile (`large` = 500 nodes;
+# `xlarge` is graph-only and not terraform/OPA-gated). The tight per-scenario
+# budget (`max(constraints.max_resources, scale_profile.max_nodes)`) is enforced
+# by the Python graph-risk engine; this rego only catches a runaway graph.
+max_resources := 500
 
 deny contains msg if {
 	count(input.nodes) > max_resources

@@ -132,7 +132,7 @@ test_allowed_broad_read_does_not_trigger_forbidden_denial if {
 
 test_over_resource_budget_denies if {
 	filler := [n |
-		some i in numbers.range(1, 45)
+		some i in numbers.range(1, 510)
 		n := object.union(_valid_nodes[0], {"id": sprintf("filler-%d", [i])})
 	]
 	graph := object.union(_valid_graph, {"nodes": filler})
@@ -148,7 +148,7 @@ test_under_resource_budget_no_budget_denial if {
 
 test_exactly_at_budget_no_budget_denial if {
 	filler := [n |
-		some i in numbers.range(1, 40)
+		some i in numbers.range(1, 500)
 		n := object.union(_valid_nodes[0], {"id": sprintf("filler-%d", [i])})
 	]
 	graph := object.union(_valid_graph, {"nodes": filler})
