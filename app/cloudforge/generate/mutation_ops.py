@@ -32,7 +32,11 @@ _NAME_SUFFIXES = ("", "-v2", "-b", "-alt", "-r1", "-x")
 _NAME_PREFIXES = ("", "svc-", "res-", "app-", "env-")
 
 # Benign extra subnet: a spare, unused address block with no edges into the chain.
-_EXTRA_SUBNET_ID = "subnet-benign-extra"
+# ``EXTRA_SUBNET_ID`` is the canonical id of the one benign-additive node the mutation
+# engine may inject; it is public so the variation harness can canonicalize it out of a
+# graph-shape signature (a cosmetic mutation must not change the shape). Single source of
+# truth — do not duplicate the literal elsewhere.
+EXTRA_SUBNET_ID = "subnet-benign-extra"
 _EXTRA_SUBNET_CIDRS = ("10.0.9.0/24", "10.0.10.0/24", "10.0.11.0/24", "10.0.12.0/24")
 
 
@@ -66,7 +70,7 @@ def mutate_node(node: GraphNode, rng: Random) -> GraphNode:
 def make_benign_subnet(rng: Random) -> GraphNode:
     """Build a benign, unused extra subnet node (no actions, low criticality)."""
     return GraphNode(
-        id=_EXTRA_SUBNET_ID,
+        id=EXTRA_SUBNET_ID,
         type=NodeType.SUBNET,
         name=rename("spare-subnet", rng),
         tags=jitter_tags(
