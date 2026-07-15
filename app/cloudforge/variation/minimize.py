@@ -12,6 +12,7 @@ mutates the raw originals (hard AC).
 from __future__ import annotations
 
 import shutil
+import tempfile
 import traceback
 from pathlib import Path
 
@@ -49,15 +50,21 @@ def _write_failure_log(raw_dir: Path, exc: Exception) -> None:
 
 
 def minimize(run_dir: Path, scenario_id: str, spec: ScenarioSpec, seed: int) -> Path:
-    """Shrink the failure recorded for ``scenario_id`` to the smallest reproducer
-    that still fails validation, writing it under ``failures/minimized/<id>/``.
-    Never touches ``failures/raw/<id>/`` — always builds a fresh candidate."""
+    """Shrink the failure recorded for ``scenario_id`` to a smaller reproducer that
+    still fails validation, writing ONLY the accepted result under
+    ``failures/minimized/<id>/``. Best-effort single pass (each candidate is derived
+    from the original spec — one scale-shrink, then each axis disabled independently —
+    so it finds *a* smaller reproducer, not necessarily the minimal one). Trial
+    candidates are validated in a throwaway temp dir so no stale artifacts (e.g.
+    orphaned per-resource ``.tf`` files) leak into the minimized output. Never touches
+    ``failures/raw/<id>/``."""
     minimized_dir = run_dir / "failures" / "minimized" / scenario_id
     candidate = spec
-    for shrunk in _shrink_candidates(spec):
-        if not _still_fails(shrunk, seed, minimized_dir):
-            break
-        candidate = shrunk
+    with tempfile.TemporaryDirectory() as scratch:
+        for shrunk in _shrink_candidates(spec):
+            if not _still_fails(shrunk, seed, Path(scratch) / "trial"):
+                break
+            candidate = shrunk
     _write_candidate(candidate, seed, minimized_dir)
     return minimized_dir
 

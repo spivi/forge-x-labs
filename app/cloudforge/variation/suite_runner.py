@@ -63,7 +63,10 @@ def run_suite(spec: VariationSpec, out_dir: Path | str, run_id: str) -> RunSuite
         if failures > spec.constraints.max_failures_before_abort:
             aborted = True
             break
-    _finalize_run_tree(run_dir, manifest, bundles, aborted)
+    output = _RunOutput(
+        manifest=manifest, bundles=bundles, aborted=aborted, axes=list(spec.variation_axes)
+    )
+    _finalize_run_tree(run_dir, output)
     return RunSuiteResult(manifest=manifest, aborted=aborted, run_dir=run_dir, bundles=bundles)
 
 
@@ -137,15 +140,24 @@ def _make_entry(
     )
 
 
-def _finalize_run_tree(
-    run_dir: Path,
-    manifest: RunManifest,
-    bundles: list[tuple[str, ScenarioBundle]],
-    aborted: bool,
-) -> None:
-    dump_json(run_dir / "manifest.json", manifest.model_dump())
-    dump_json(run_dir / "diversity_report.json", diversity_report(bundles))
-    dump_json(run_dir / "summary.json", _summary(manifest, aborted))
+@dataclass
+class _RunOutput:
+    """The finalize inputs, grouped so ``_finalize_run_tree`` stays within the
+    param limit and the diversity report is computed over the run's real axes."""
+
+    manifest: RunManifest
+    bundles: list[tuple[str, ScenarioBundle]]
+    aborted: bool
+    axes: list[str]
+
+
+def _finalize_run_tree(run_dir: Path, output: _RunOutput) -> None:
+    dump_json(run_dir / "manifest.json", output.manifest.model_dump())
+    dump_json(
+        run_dir / "diversity_report.json",
+        diversity_report(output.bundles, output.axes),
+    )
+    dump_json(run_dir / "summary.json", _summary(output.manifest, output.aborted))
 
 
 def _summary(manifest: RunManifest, aborted: bool) -> dict[str, object]:
