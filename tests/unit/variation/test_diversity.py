@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from app.cloudforge.generate.composer import GraphComposer
 from app.cloudforge.generate.mutation_generator import MutationGenerator
 from app.cloudforge.io.loaders import load_yaml
@@ -40,6 +42,26 @@ def test_cosmetic_mutation_same_signature_across_several_seeds() -> None:
     for mutation_seed in (1, 2, 5, 17, 99):
         mutated = MutationGenerator(base, seed=mutation_seed).generate()
         assert shape_signature(mutated, "ci_cd_iam_chain") == base_sig
+
+
+@pytest.mark.parametrize("family", ["ci_cd_iam_chain", "public_data_exposure"])
+@pytest.mark.parametrize("compose_seed", [1, 2, 7])
+def test_cosmetic_mutation_same_signature_every_family(family: str, compose_seed: int) -> None:
+    """The core AC across BOTH families: a cosmetic mutation must preserve the signature.
+
+    Regression guard for the case where the mutation engine injects a benign Subnet the
+    base family lacks (``public_data_exposure`` has no Subnet); the injected node/edge
+    must be canonicalized out so the signature is unchanged. Without the fix, every
+    ``public_data_exposure`` mutation flipped the signature (0->1 count-bucket cross).
+    """
+    base = GraphComposer(_spec(family), seed=compose_seed).generate()
+    base_sig = shape_signature(base, family)
+    for mutation_seed in (1, 2, 5, 17, 99):
+        mutated = MutationGenerator(base, seed=mutation_seed).generate()
+        assert shape_signature(mutated, family) == base_sig, (
+            f"{family} seed={compose_seed} mutation={mutation_seed}: "
+            "cosmetic mutation changed the shape signature"
+        )
 
 
 def test_different_scale_different_signature() -> None:
