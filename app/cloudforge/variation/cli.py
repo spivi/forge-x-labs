@@ -80,7 +80,9 @@ def _relabel_run(run_dir: Path, run_id: str) -> None:
 
 @variation_app.command("summarize")
 def summarize(
-    run_dir: Annotated[Path, typer.Argument(help="A finished run directory (<out>/<run-id>).")],
+    run_dir: Annotated[
+        Path, typer.Argument(help="A finished run directory (the --out passed to run).")
+    ],
 ) -> None:
     """Print a finished run's summary rollup + diversity metrics."""
     try:
