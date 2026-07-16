@@ -14,6 +14,7 @@ import json
 import tempfile
 from pathlib import Path
 
+from app.cloudforge.errors import CloudforgeError
 from app.cloudforge.generate.composer import GraphComposer
 from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.io.paths import ScenarioPaths
@@ -41,7 +42,7 @@ def _find_entry(run_dir: Path, scenario_id: str) -> ScenarioManifestEntry:
     for entry in manifest.entries:
         if entry.scenario_id == scenario_id:
             return entry
-    raise ValueError(f"no manifest entry for scenario_id={scenario_id!r}")
+    raise CloudforgeError(f"no manifest entry for scenario_id={scenario_id!r}")
 
 
 def _regenerate(original_dir: Path, seed: int, fresh_dir: Path) -> None:

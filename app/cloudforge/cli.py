@@ -27,9 +27,11 @@ from app.cloudforge.pipeline.artifacts import ScenarioArtifacts
 from app.cloudforge.report.renderer import ReportRenderer
 from app.cloudforge.validate.orchestrator import run_validations
 from app.cloudforge.validate.results import Status
+from app.cloudforge.variation.cli import variation_app
 
 app = typer.Typer(help="Local-first cloud-risk scenario generator (defensive research only).")
 app.add_typer(learn_app, name="learn")
+app.add_typer(variation_app, name="variation")
 console = Console()
 
 _STATUS_STYLE = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "red"}
