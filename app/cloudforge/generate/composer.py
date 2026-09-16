@@ -26,9 +26,16 @@ from app.cloudforge.generate.fragments import (
     compensating_control,  # noqa: F401
     core_ci_cd,  # noqa: F401
     core_cross_account,  # noqa: F401
+    core_ec2_imds,  # noqa: F401
+    core_ecr,  # noqa: F401
+    core_iam_privesc,  # noqa: F401
     core_kms,  # noqa: F401
+    core_lambda,  # noqa: F401
     core_public_data,  # noqa: F401
+    core_rds,  # noqa: F401
+    core_secretsmanager,  # noqa: F401
     core_snapshot,  # noqa: F401
+    core_sqs,  # noqa: F401
     decoy,  # noqa: F401
     false_positive,  # noqa: F401
 )
@@ -49,6 +56,13 @@ _CORE_KINDS = {
     "cross_account_trust": "core.cross_account_trust",
     "kms_key_overbroad": "core.kms_key_overbroad",
     "public_ebs_snapshot": "core.public_ebs_snapshot",
+    "iam_privesc_policy_version": "core.iam_privesc_policy_version",
+    "ec2_imds_credential_exfil": "core.ec2_imds_credential_exfil",
+    "lambda_public_function_url": "core.lambda_public_function_url",
+    "secretsmanager_policy_overbroad": "core.secretsmanager_policy_overbroad",
+    "public_rds_instance": "core.public_rds_instance",
+    "ecr_repository_public_read": "core.ecr_repository_public_read",
+    "sqs_queue_overbroad_policy": "core.sqs_queue_overbroad_policy",
 }
 _NOISE_KIND = "benign_noise.unrelated_bucket"
 _EXTRA_KINDS = (
@@ -62,6 +76,13 @@ _SHORT = {
     "core.cross_account_trust": "core",
     "core.kms_key_overbroad": "core",
     "core.public_ebs_snapshot": "core",
+    "core.iam_privesc_policy_version": "core",
+    "core.ec2_imds_credential_exfil": "core",
+    "core.lambda_public_function_url": "core",
+    "core.secretsmanager_policy_overbroad": "core",
+    "core.public_rds_instance": "core",
+    "core.ecr_repository_public_read": "core",
+    "core.sqs_queue_overbroad_policy": "core",
     "decoy.iam_role_dead_end": "decoy",
     "false_positive.public_denied_bucket": "fp",
     "compensating_control.explicit_deny": "ctrl",

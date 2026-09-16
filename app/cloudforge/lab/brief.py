@@ -17,6 +17,46 @@ _PROMPTS: dict[str, str] = {
         "Some data in this account may be reachable from the internet. Find the "
         "exposure. Not every public-looking bucket is a true positive."
     ),
+    "cross_account_trust": (
+        "An external AWS account is trusted into this environment. Can it access "
+        "sensitive customer data?"
+    ),
+    "kms_key_overbroad": (
+        "A customer data store is encrypted with KMS. Can unauthorized or external "
+        "principals decrypt the contents?"
+    ),
+    "public_ebs_snapshot": (
+        "An EBS snapshot exists in this account. Can unauthorized external parties "
+        "create volumes and extract data?"
+    ),
+    "iam_privesc_policy_version": (
+        "An internal developer identity has been provisioned with limited scope. "
+        "Can it escalate privileges to access sensitive financial data?"
+    ),
+    "ec2_imds_credential_exfil": (
+        "A public-facing web server is accessible from the internet. Can an attacker "
+        "leverage server-side requests to steal credentials and access internal data?"
+    ),
+    "lambda_public_function_url": (
+        "A serverless function URL has been configured. Is it protected by "
+        "authentication, and what backend data can it reach?"
+    ),
+    "secretsmanager_policy_overbroad": (
+        "Production database credentials are stored in AWS Secrets Manager. "
+        "Does the resource policy allow external access?"
+    ),
+    "public_rds_instance": (
+        "A production relational database has been deployed. Is it exposed to "
+        "internet traffic or properly isolated in private subnets?"
+    ),
+    "ecr_repository_public_read": (
+        "A container repository hosts application images. Can external parties "
+        "pull proprietary container layers?"
+    ),
+    "sqs_queue_overbroad_policy": (
+        "An event queue handles transaction messages. Can unauthorized external "
+        "parties read or inject messages?"
+    ),
 }
 
 _DEFAULT_PROMPT = (

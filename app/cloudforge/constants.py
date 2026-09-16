@@ -30,6 +30,10 @@ TERRAFORM_FILES: Final = (
     "network.tf",
     "kms.tf",
     "snapshot.tf",
+    "compute.tf",
+    "serverless.tf",
+    "database.tf",
+    "services.tf",
 )
 
 # --- safe fake values (never deployed) ---------------------------------------
@@ -61,6 +65,13 @@ FORBIDDEN_PERMISSION_PATTERNS: Final = (
 ALLOWED_BROAD_PATTERNS: Final = (
     "s3:Get*",
     "s3:List*",
+    "iam:CreatePolicyVersion",
+    "iam:SetDefaultPolicyVersion",
+    "ecr:BatchGetImage",
+    "ecr:GetDownloadUrlForLayer",
+    "sqs:ReceiveMessage",
+    "sqs:SendMessage",
+    "secretsmanager:GetSecretValue",
 )
 
 # --- required report banner --------------------------------------------------

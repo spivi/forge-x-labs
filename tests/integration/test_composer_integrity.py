@@ -29,6 +29,13 @@ _FAMILIES = [
     "cross_account_trust",
     "kms_key_overbroad",
     "public_ebs_snapshot",
+    "iam_privesc_policy_version",
+    "ec2_imds_credential_exfil",
+    "lambda_public_function_url",
+    "secretsmanager_policy_overbroad",
+    "public_rds_instance",
+    "ecr_repository_public_read",
+    "sqs_queue_overbroad_policy",
 ]
 
 

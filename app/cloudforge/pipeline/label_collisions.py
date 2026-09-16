@@ -36,6 +36,12 @@ _RESOURCE_TYPE_BY_NODE_TYPE: dict[NodeType, str] = {
     NodeType.SECURITY_GROUP: "aws_security_group",
     NodeType.KMS_KEY: "aws_kms_key",
     NodeType.EBS_SNAPSHOT: "aws_ebs_snapshot",
+    NodeType.EC2_INSTANCE: "aws_instance",
+    NodeType.LAMBDA_FUNCTION: "aws_lambda_function",
+    NodeType.SECRETS_MANAGER_SECRET: "aws_secretsmanager_secret",
+    NodeType.RDS_INSTANCE: "aws_db_instance",
+    NodeType.ECR_REPOSITORY: "aws_ecr_repository",
+    NodeType.SQS_QUEUE: "aws_sqs_queue",
 }
 
 

@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cloudforge · Interactive Lab Workbench</title>
+  <style>
+    :root {
+      --bg: #13110c;
+      --bg-raise: #1a1812;
+      --bg-panel: #221f17;
+      --bg-card: #28241b;
+      --bg-card-hover: #332e23;
+      --ink: #f2ede1;
+      --ink-soft: #c4bca8;
+      --ink-faint: #8b8371;
+      --rule: #3a352a;
+      --rule-light: #4c4637;
+      --ember: #e8873a;
+      --ember-glow: rgba(232,135,58,0.25);
+      --pass: #6fbf73;
+      --pass-bg: rgba(111,191,115,0.15);
+      --stop: #d6705f;
+      --stop-bg: rgba(214,112,95,0.15);
+      --info: #5ab0f6;
+      --code-bg: #0d0c08;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      background: var(--bg-raise);
+      border-bottom: 1px solid var(--rule);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .brand .logo-badge {
+      background: var(--ember-glow);
+      color: var(--ember);
+      border: 1px solid var(--ember);
+      font-weight: 700;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      background: var(--bg-panel);
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: var(--bg-card);
+      border-color: var(--rule-light);
+    }
+    .btn.primary {
+      background: var(--ember);
+      border-color: var(--ember);
+      color: #111;
+    }
+    .btn.primary:hover {
+      background: #f0954b;
+    }
+    .btn.pass-btn {
+      background: var(--pass-bg);
+      border-color: var(--pass);
+      color: var(--pass);
+    }
+
+    /* Main Container */
+    .workbench {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left: Architecture & Layers (70%) */
+    .arch-canvas {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .layer-container {
+      background: var(--bg-raise);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .layer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .layer-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .layer-count {
+      font-size: 11px;
+      color: var(--ink-faint);
+    }
+
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .node-card {
+      background: var(--bg-card);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+    .node-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--rule-light);
+      transform: translateY(-2px);
+    }
+    .node-card.selected {
+      border-color: var(--ember);
+      box-shadow: 0 0 0 1px var(--ember), 0 4px 12px var(--ember-glow);
+    }
+    .node-card.active-hover {
+      border-color: var(--info);
+    }
+
+    .node-card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .service-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .service-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    .node-meta {
+      overflow: hidden;
+    }
+    .node-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-faint);
+    }
+    .node-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .node-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ember);
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .node-attrs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .attr-chip {
+      font-size: 10px;
+      background: rgba(255,255,255,0.06);
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: var(--ink-soft);
+      font-family: var(--font-mono);
+    }
+    .attr-chip.alert {
+      background: var(--stop-bg);
+      color: var(--stop);
+      font-weight: 600;
+    }
+
+    .step-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--ember);
+      color: #111;
+      font-weight: 800;
+      font-size: 11px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    .node-card.selected .step-badge {
+      display: flex;
+    }
+
+    /* Right: Investigation Sidebar (30%) */
+    .investigation-panel {
+      width: 440px;
+      background: var(--bg-raise);
+      border-left: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--rule);
+      background: var(--bg-panel);
+    }
+    .panel-tab {
+      flex: 1;
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--ink-soft);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .panel-tab.active {
+      color: var(--ember);
+      border-bottom-color: var(--ember);
+      background: var(--bg-raise);
+    }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .panel-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-soft);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Path List */
+    .path-sequence {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .path-step-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--rule);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .path-step-num {
+      background: var(--ember);
+      color: #111;
+      font-weight: 800;
+      font-size: 11px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .path-step-id {
+      font-family: var(--font-mono);
+      color: var(--ink);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .path-step-remove {
+      color: var(--ink-faint);
+      cursor: pointer;
+      font-weight: 700;
+      padding: 2px 6px;
+    }
+    .path-step-remove:hover {
+      color: var(--stop);
+    }
+    .empty-hint {
+      font-size: 12px;
+      color: var(--ink-faint);
+      font-style: italic;
+      text-align: center;
+      padding: 12px;
+    }
+
+    /* Findings Checklist */
+    .findings-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .finding-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.1s;
+    }
+    .finding-option:hover {
+      background: var(--bg-card);
+    }
+    .finding-option input {
+      margin-top: 3px;
+      accent-color: var(--ember);
+    }
+    .finding-text {
+      color: var(--ink-soft);
+      line-height: 1.4;
+    }
+    .finding-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink);
+      display: block;
+    }
+
+    /* YAML Preview */
+    .yaml-preview {
+      background: var(--code-bg);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #98c379;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Evaluation Modal / Card */
+    .eval-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .eval-input {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 8px;
+      resize: vertical;
+      min-height: 80px;
+      margin-top: 6px;
+      margin-bottom: 12px;
+    }
+    .score-result {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: none;
+    }
+    .score-result.pass {
+      background: var(--pass-bg);
+      border: 1px solid var(--pass);
+      color: var(--pass);
+      display: block;
+    }
+    .score-result.fail {
+      background: var(--stop-bg);
+      border: 1px solid var(--stop);
+      color: var(--stop);
+      display: block;
+    }
+
+    /* Hide compatibility table from primary view, accessible via toggle */
+    .compat-table-wrap {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="logo-badge">cloudforge</span>
+    <h1>Interactive Lab Workbench</h1>
+    <span style="color:var(--ink-faint); font-size:12px;">| Stripped Estate View (FXL-D010)</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn" id="btn-clear-path">Clear Selection</button>
+    <button class="btn" id="btn-copy-yaml">Copy submission.yaml</button>
+    <button class="btn primary" id="btn-download-yaml">Download YAML</button>
+  </div>
+</header>
+
+<div class="workbench">
+  <!-- Architecture Layers View -->
+  <main class="arch-canvas" id="arch-canvas">
+    <div id="layers-root"></div>
+  </main>
+
+  <!-- Side Panel: Interactive Submissions & Evaluator -->
+  <aside class="investigation-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" data-tab="submission">Your Submission</div>
+      <div class="panel-tab" data-tab="evaluator">Deterministic Evaluator</div>
+      <div class="panel-tab" data-tab="edges">Relationships (<span id="edge-count">0</span>)</div>
+    </div>
+
+    <div class="panel-content" id="tab-submission">
+      <!-- Path Section -->
+      <div class="panel-section">
+        <div class="panel-section-title">
+          <span>Hypothesized Attack Path</span>
+          <span style="font-size:10px; color:var(--ember); text-transform:none;">Click nodes in order</span>
+        </div>
+        <div class="path-sequence" id="path-list">
+          <div class="empty-hint">Click cards on the architecture canvas to sequence an attack path.</div>
+        </div>
+      </div>
+
+      <!-- Findings Section -->
+      <div class="panel-section">
+        <div class="panel-section-title">
+          <span>Suspected Misconfigurations</span>
+          <span style="font-size:11px; color:var(--ink-faint);" id="findings-selected-count">0 selected</span>
+        </div>
+        <div class="findings-checklist" id="findings-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Live YAML Preview -->
+      <div class="panel-section">
+        <div class="panel-section-title">
+          <span>submission.yaml (Live)</span>
+        </div>
+        <div class="yaml-preview" id="yaml-box">paths: []
+findings: []</div>
+      </div>
+    </div>
+
+    <div class="panel-content" id="tab-evaluator" style="display:none;">
+      <div class="eval-box">
+        <h3 style="font-size:14px; margin-bottom:6px;">Deterministic In-Browser Evaluator</h3>
+        <p style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">
+          Paste the contents of <code>instructor/grade_key.json</code> below to grade your submission against ground truth using the exact same deterministic math as <code>cloudforge grade</code>.
+        </p>
+        <label style="font-size:11px; font-weight:700; color:var(--ink-faint);">GRADE_KEY.JSON</label>
+        <textarea class="eval-input" id="key-input" placeholder='{"paths": [...], "finding_families": [...]}'></textarea>
+        <button class="btn primary" id="btn-evaluate" style="width:100%; justify-content:center;">Score Submission</button>
+
+        <div class="score-result" id="eval-result"></div>
+      </div>
+    </div>
+
+    <div class="panel-content" id="tab-edges" style="display:none;">
+      <div class="panel-section">
+        <div class="panel-section-title">Relationship Connections</div>
+        <div id="relationships-list" style="font-family:var(--font-mono); font-size:11px; display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Raw fallback table for automated test greps -->
+<div class="compat-table-wrap">
+  <table>
+    <tr><th>id</th><th>type</th><th>name</th></tr>
+    <!-- RAW_ROWS_PLACEHOLDER -->
+  </table>
+  <pre id="raw-edges-pre"><!-- RAW_EDGES_PLACEHOLDER --></pre>
+</div>
+
+<script>
+const ESTATE_DATA = <!-- ESTATE_JSON_PLACEHOLDER -->;
+
+// SVG Icons for AWS Services (Offline, self-contained)
+const ICONS = {
+  Account: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>`,
+  VPC: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>`,
+  Subnet: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  SecurityGroup: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  EC2Instance: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>`,
+  LambdaFunction: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><path d="m4 19 8-14 4 7 4-3"/></svg>`,
+  CICDIdentity: `<svg viewBox="0 0 24 24" fill="none" stroke="#98c379" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  S3Bucket: `<svg viewBox="0 0 24 24" fill="none" stroke="#6fbf73" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>`,
+  RdsInstance: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+  EbsSnapshot: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="8" y1="2" x2="8" y2="4"/><line x1="16" y1="2" x2="16" y2="4"/></svg>`,
+  DataSet: `<svg viewBox="0 0 24 24" fill="none" stroke="#6fbf73" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14v4M14 10v8M10 6v12"/></svg>`,
+  SecretsManagerSecret: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  EcrRepository: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  SqsQueue: `<svg viewBox="0 0 24 24" fill="none" stroke="#b084cc" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
+  KmsKey: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="m21 2-2 2m-1.5 1.5L14 9M3 21l9-9M9 3a6 6 0 0 0-6 6c0 3.31 2.69 6 6 6a6 6 0 0 0 6-6c0-3.31-2.69-6-6-6z"/></svg>`,
+  LogTrail: `<svg viewBox="0 0 24 24" fill="none" stroke="#8b8371" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  IAMRole: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  IAMPolicy: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  Application: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`
+};
+
+const CANONICAL_FINDINGS = [
+  { id: "iam_privesc_policy_version", label: "IAM: CreatePolicyVersion Escalation" },
+  { id: "ec2_imdsv1_enabled", label: "Compute: EC2 IMDSv1 Credential Exfiltration" },
+  { id: "lambda_function_url_unauthenticated", label: "Serverless: Lambda Public Unauthenticated Function URL" },
+  { id: "secretsmanager_policy_overbroad", label: "Secrets: Secrets Manager Overbroad Resource Policy" },
+  { id: "rds_instance_public", label: "Database: Publicly Accessible RDS Instance" },
+  { id: "ecr_repository_public_read", label: "Containers: Public Read ECR Repository Policy" },
+  { id: "sqs_queue_policy_overbroad", label: "Queues: SQS Queue Overbroad Access Policy" },
+  { id: "kms_key_policy_overbroad", label: "Cryptography: KMS Key Wildcard Decrypt Policy" },
+  { id: "ebs_snapshot_public", label: "Storage: Unencrypted Public EBS Snapshot" },
+  { id: "iam_passrole_risk", label: "IAM: PassRole Escalation Chain" },
+  { id: "iam_cross_account_trust", label: "IAM: External Cross-Account Trust" },
+  { id: "iam_excessive_privilege", label: "IAM: Overly Broad Permissions (s3:Get*/List*)" },
+  { id: "s3_public_exposure", label: "Storage: Public S3 Bucket Read/Write" },
+  { id: "s3_logging_missing", label: "Governance: S3 Server Access Logging Missing" },
+  { id: "security_group_overexposed", label: "Network: Security Group Ingress 0.0.0.0/0" },
+  { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" }
+];
+
+// Layer Definitions
+const LAYERS = [
+  { id: "perimeter", title: "Perimeter & Network Ingress", types: ["Account", "VPC", "Subnet", "SecurityGroup"] },
+  { id: "compute", title: "Compute & Serverless Runtime", types: ["EC2Instance", "LambdaFunction", "CICDIdentity", "Application"] },
+  { id: "storage", title: "Data Assets & Storage", types: ["S3Bucket", "RdsInstance", "EbsSnapshot", "DataSet"] },
+  { id: "services", title: "Application Services & Messaging", types: ["SecretsManagerSecret", "EcrRepository", "SqsQueue", "KmsKey", "LogTrail"] },
+  { id: "identity", title: "Identity & Access Management", types: ["IAMRole", "IAMPolicy"] },
+];
+
+let selectedPath = [];
+let selectedFindings = new Set();
+
+function init() {
+  renderLayers();
+  renderFindingsChecklist();
+  renderRelationships();
+  setupEventListeners();
+  updateYaml();
+}
+
+function renderLayers() {
+  const root = document.getElementById("layers-root");
+  root.innerHTML = "";
+
+  LAYERS.forEach(layer => {
+    const matchingNodes = ESTATE_DATA.nodes.filter(n => layer.types.includes(n.type));
+    if (matchingNodes.length === 0) return;
+
+    const container = document.createElement("div");
+    container.className = "layer-container";
+    container.innerHTML = `
+      <div class="layer-header">
+        <div class="layer-title">${layer.title}</div>
+        <div class="layer-count">${matchingNodes.length} resources</div>
+      </div>
+      <div class="nodes-grid" id="layer-${layer.id}"></div>
+    `;
+    root.appendChild(container);
+
+    const grid = container.querySelector(`#layer-${layer.id}`);
+    matchingNodes.forEach(node => {
+      const card = createNodeCard(node);
+      grid.appendChild(card);
+    });
+  });
+}
+
+function createNodeCard(node) {
+  const card = document.createElement("div");
+  card.className = "node-card";
+  card.dataset.id = node.id;
+
+  const iconSvg = ICONS[node.type] || ICONS.Account;
+  
+  let attrHtml = "";
+  if (node.attributes) {
+    Object.entries(node.attributes).forEach(([k, v]) => {
+      const isAlert = (k === "public" && v === "true") || 
+                      (k === "imds_version" && v === "v1") || 
+                      (k === "publicly_accessible" && v === "true") ||
+                      (k === "auth_type" && v === "NONE");
+      const valStr = Array.isArray(v) ? v.join(",") : v;
+      attrHtml += `<span class="attr-chip ${isAlert ? 'alert' : ''}">${k}: ${valStr}</span>`;
+    });
+  }
+
+  card.innerHTML = `
+    <div class="step-badge" id="badge-${node.id}">1</div>
+    <div class="node-card-top">
+      <div class="service-icon">${iconSvg}</div>
+      <div class="node-meta">
+        <div class="node-type">${node.type}</div>
+        <div class="node-name" title="${node.name}">${node.name}</div>
+      </div>
+    </div>
+    <div class="node-id">${node.id}</div>
+    <div class="node-attrs">${attrHtml}</div>
+  `;
+
+  card.addEventListener("click", () => toggleNodeSelection(node.id));
+  return card;
+}
+
+function toggleNodeSelection(nodeId) {
+  const idx = selectedPath.indexOf(nodeId);
+  if (idx >= 0) {
+    selectedPath.splice(idx, 1);
+  } else {
+    selectedPath.push(nodeId);
+  }
+  updatePathUI();
+  updateYaml();
+}
+
+function updatePathUI() {
+  // Update node card classes and step badges
+  document.querySelectorAll(".node-card").forEach(card => {
+    const nid = card.dataset.id;
+    const stepIdx = selectedPath.indexOf(nid);
+    const badge = card.querySelector(".step-badge");
+    if (stepIdx >= 0) {
+      card.classList.add("selected");
+      badge.textContent = stepIdx + 1;
+    } else {
+      card.classList.remove("selected");
+    }
+  });
+
+  // Update right sidebar path list
+  const list = document.getElementById("path-list");
+  if (selectedPath.length === 0) {
+    list.innerHTML = `<div class="empty-hint">Click cards on the architecture canvas to sequence an attack path.</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  selectedPath.forEach((nid, i) => {
+    const row = document.createElement("div");
+    row.className = "path-step-row";
+    row.innerHTML = `
+      <div class="path-step-num">${i + 1}</div>
+      <div class="path-step-id" title="${nid}">${nid}</div>
+      <div class="path-step-remove" title="Remove">✕</div>
+    `;
+    row.querySelector(".path-step-remove").addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleNodeSelection(nid);
+    });
+    list.appendChild(row);
+  });
+}
+
+function renderFindingsChecklist() {
+  const container = document.getElementById("findings-list");
+  container.innerHTML = "";
+
+  CANONICAL_FINDINGS.forEach(f => {
+    const label = document.createElement("label");
+    label.className = "finding-option";
+    label.innerHTML = `
+      <input type="checkbox" value="${f.id}">
+      <div class="finding-text">
+        <span class="finding-code">${f.id}</span>
+        ${f.label}
+      </div>
+    `;
+    const cb = label.querySelector("input");
+    cb.addEventListener("change", () => {
+      if (cb.checked) {
+        selectedFindings.add(f.id);
+      } else {
+        selectedFindings.delete(f.id);
+      }
+      document.getElementById("findings-selected-count").textContent = `${selectedFindings.size} selected`;
+      updateYaml();
+    });
+    container.appendChild(label);
+  });
+}
+
+function renderRelationships() {
+  document.getElementById("edge-count").textContent = ESTATE_DATA.edges.length;
+  const list = document.getElementById("relationships-list");
+  list.innerHTML = "";
+  ESTATE_DATA.edges.forEach(e => {
+    const item = document.createElement("div");
+    item.style.padding = "4px 8px";
+    item.style.background = "var(--bg-card)";
+    item.style.borderRadius = "4px";
+    item.innerHTML = `<span style="color:var(--ink);">${e.from}</span> <span style="color:var(--ember);">--${e.type}--></span> <span style="color:var(--ink);">${e.to}</span>`;
+    list.appendChild(item);
+  });
+}
+
+function updateYaml() {
+  const payload = {
+    paths: selectedPath.length > 0 ? [{ nodes: selectedPath }] : [],
+    findings: Array.from(selectedFindings)
+  };
+
+  let yaml = "paths:\n";
+  if (selectedPath.length > 0) {
+    yaml += "  - nodes:\n";
+    selectedPath.forEach(n => {
+      yaml += `      - ${n}\n`;
+    });
+  } else {
+    yaml += "    []\n";
+  }
+
+  yaml += "findings:\n";
+  if (selectedFindings.size > 0) {
+    selectedFindings.forEach(f => {
+      yaml += `  - ${f}\n`;
+    });
+  } else {
+    yaml += "  []\n";
+  }
+
+  document.getElementById("yaml-box").textContent = yaml;
+  return yaml;
+}
+
+function setupEventListeners() {
+  // Tabs
+  document.querySelectorAll(".panel-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".panel-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      const tabId = tab.dataset.tab;
+      document.getElementById("tab-submission").style.display = tabId === "submission" ? "flex" : "none";
+      document.getElementById("tab-evaluator").style.display = tabId === "evaluator" ? "flex" : "none";
+      document.getElementById("tab-edges").style.display = tabId === "edges" ? "flex" : "none";
+    });
+  });
+
+  // Clear Path
+  document.getElementById("btn-clear-path").addEventListener("click", () => {
+    selectedPath = [];
+    updatePathUI();
+    updateYaml();
+  });
+
+  // Copy YAML
+  document.getElementById("btn-copy-yaml").addEventListener("click", () => {
+    const yaml = updateYaml();
+    navigator.clipboard.writeText(yaml).then(() => {
+      const btn = document.getElementById("btn-copy-yaml");
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = "Copy submission.yaml"; }, 1500);
+    });
+  });
+
+  // Download YAML
+  document.getElementById("btn-download-yaml").addEventListener("click", () => {
+    const yaml = updateYaml();
+    const blob = new Blob([yaml], { type: "text/yaml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "submission.yaml";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // In-Browser Deterministic Evaluator (Matches app/cloudforge/lab/grade.py exactly)
+  document.getElementById("btn-evaluate").addEventListener("click", () => {
+    const keyRaw = document.getElementById("key-input").value.trim();
+    const resultBox = document.getElementById("eval-result");
+    if (!keyRaw) {
+      resultBox.className = "score-result fail";
+      resultBox.innerHTML = "<strong>Error:</strong> Please paste the contents of instructor/grade_key.json";
+      return;
+    }
+
+    try {
+      const key = JSON.parse(keyRaw);
+      const submittedNodes = selectedPath;
+      const submittedFindings = selectedFindings;
+
+      // Grade Paths (Subsequence matching)
+      let pathHits = [];
+      let pathMisses = [];
+      (key.paths || []).forEach(p => {
+        if (isSubsequence(p.nodes, submittedNodes)) {
+          pathHits.push(p.id);
+        } else {
+          pathMisses.push(p.id);
+        }
+      });
+
+      // Grade Findings
+      const expectedFamilies = new Set(key.finding_families || []);
+      const findingHits = [];
+      const findingMisses = [];
+      const extras = [];
+
+      submittedFindings.forEach(f => {
+        if (expectedFamilies.has(f)) {
+          findingHits.push(f);
+        } else {
+          extras.push(f);
+        }
+      });
+
+      expectedFamilies.forEach(f => {
+        if (!submittedFindings.has(f)) {
+          findingMisses.push(f);
+        }
+      });
+
+      const totalExpected = (key.paths || []).length + expectedFamilies.size;
+      const totalHits = pathHits.length + findingHits.length;
+      const scorePct = totalExpected > 0 ? Math.round((totalHits / totalExpected) * 100) : 100;
+      const isPass = pathMisses.length === 0 && scorePct >= 70;
+
+      resultBox.className = `score-result ${isPass ? 'pass' : 'fail'}`;
+      resultBox.innerHTML = `
+        <div style="font-size:14px; font-weight:800; margin-bottom:6px;">
+          ${isPass ? '✅ EVALUATION PASSED' : '⚠️ EVALUATION INCOMPLETE'} — ${scorePct}% SCORE
+        </div>
+        <div><strong>Path Coverage:</strong> ${pathHits.length}/${pathHits.length + pathMisses.length} paths identified</div>
+        <div><strong>Finding Hits:</strong> ${findingHits.length}/${expectedFamilies.size} (${findingHits.join(", ") || "none"})</div>
+        ${findingMisses.length > 0 ? `<div><strong>Missing Findings:</strong> ${findingMisses.join(", ")}</div>` : ""}
+        ${extras.length > 0 ? `<div style="color:var(--stop);"><strong>False Positives (Extras):</strong> ${extras.join(", ")}</div>` : ""}
+        <div style="margin-top:8px; font-size:11px; opacity:0.8;">Deterministic evaluation computed client-side matching CLI grade output.</div>
+      `;
+    } catch (err) {
+      resultBox.className = "score-result fail";
+      resultBox.innerHTML = `<strong>Invalid JSON:</strong> ${err.message}`;
+    }
+  });
+}
+
+function isSubsequence(sub, full) {
+  let subIdx = 0;
+  let fullIdx = 0;
+  while (subIdx < sub.length && fullIdx < full.length) {
+    if (sub[subIdx] === full[fullIdx]) {
+      subIdx++;
+    }
+    fullIdx++;
+  }
+  return subIdx === sub.length;
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
