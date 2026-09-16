@@ -7,11 +7,9 @@
 # Active Context
 
 ## Current Focus
-- **FXL-E2 "Cloud Risk Pattern Learning Corpus" epic COMPLETE** (2026-07-06, master `af475aa`).
-  `cloudforge learn` is a working CLI: fetch-sources / ingest / validate-corpus / summarize /
-  export-training. The corpus has 14 hand-authored, semantically-REAL graph fragments; the
-  export gate produces an HONEST 12/14 training bundle (2 excluded = genuinely-simple
-  absence-of-logging seeds, below the 0.70 quality bar — not gamed).
+- **FXL-VAR-1h** — variation docs + large-run evidence. Large run **GO**: 2,000
+  scenarios, 0 FAIL, 77 shapes, gate exit 0. Next: merge 1g (#143) + 1h, then
+  `cloudforge lab` (FXL-144).
 
 ## Recent Changes
 - [2026-07-06] **#98** — authored 14 real, semantically-correct `graph_fragment`s in
