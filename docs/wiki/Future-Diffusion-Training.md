@@ -1,8 +1,8 @@
 # Future Diffusion Training
 
-> **No model is trained in this epic.** FXL-E2 stops at the DATA. This page documents how
-> the learning corpus *prepares* a possible future graph-diffusion effort — it does not
-> build one, and nothing described as "future" below exists in this repo today.
+> **Not in v1.** No model is trained here. FXL-E2 stops at the DATA. This page documents
+> how the learning corpus *prepares* a possible future graph-diffusion effort — it does
+> not build one, and nothing described as "future" below exists in this repo today.
 
 ## The one-line boundary
 

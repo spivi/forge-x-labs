@@ -5,203 +5,159 @@
 <h1 align="center">Forge X Labs — <code>cloudforge</code></h1>
 
 <p align="center">
-  Local-first generation of <strong>validated</strong> cloud-risk scenarios for scanner
-  benchmarking, security training, and prioritization research.
+  Generate a unique, validated, <strong>never-applied</strong> AWS misconfig lab
+  per student — no cloud account required.
+</p>
+
+<p align="center">
+  <a href="LICENSE">Apache-2.0</a>
 </p>
 
 ---
 
-## What it is
+## Job
 
-`cloudforge` is a **local-first cloud-misconfiguration scenario generator**. It produces
-realistic, **labeled, validated** cloud-risk scenarios as:
+A trainer, SOC lead, or detection-eng onboarding owner needs analysts to
+practice finding a **cloud-risk path** — and cannot hand everyone a sandbox
+AWS account.
 
-- a normalized **risk graph** (`graph.json`) — the source of truth,
-- **never-applied Terraform** (`terraform/`) — a compiled artifact for static scanning,
-- **ground truth**: intended risk paths + expected findings (`ground_truth_paths.json`,
-  `expected_findings.json`),
-- a human-readable **report** (`report.md`).
+`cloudforge` generates a labeled estate (risk graph + Terraform + ground
+truth), hides the answer key from the student, and auto-grades a guessed
+path. This is a **tabletop / static-analysis lab**, not a deploy-to-AWS
+range.
 
-The core thesis: cloud-misconfiguration scenario generation is not about generating
-vulnerable Terraform — it is about generating **realistic, labeled, validated cloud-risk
-graphs** with machine-checkable ground truth.
+## vs CloudGoat / TerraGoat
 
-Use cases: scanner benchmarking, cloud-security training, prioritization-engine
-evaluation, remediation-order testing, analyst exercises, and (future) generative-graph
-research.
+| | CloudGoat | TerraGoat | cloudforge |
+|---|---|---|---|
+| Student gets | A live AWS account | A static `.tf` tree | A generated estate: brief + graph view + never-applied Terraform |
+| AWS account | Required | No | **No** |
+| Same lab for everyone | Yes | Yes | No — `--seed` / composer decoys |
+| Auto-grade the path | No | No | `cloudforge grade` |
+| You learn | Console muscle memory | Whether a scanner flags a resource | Attack **paths** and labeled false positives |
 
-## What it is NOT
-
-- ❌ Not a deployer. It **never** runs `terraform apply` and needs **no AWS credentials**.
-- ❌ Not an exploit toolkit. No offensive/operational content — **defensive research only**.
-- ❌ Not (yet) an LLM/diffusion system. MVP generation is **deterministic and rule-based**.
-- ❌ No real secrets, no live account IDs (dummy `000000000000` is clearly marked).
-
-## Local-only MVP scope
-
-The MVP runs entirely on your machine. Optional external scanners (Checkov, OPA) are used
-**if present** and skipped with a warning if not — the pipeline never fails just because a
-tool is missing. `terraform validate` runs if `terraform` is on your `PATH`.
+We lose on live console practice and catalog depth. We win on no account,
+per-student copies, and a machine-checkable key.
 
 ## Install
 
-Requires Python **3.12+** and [Poetry](https://python-poetry.org/).
+Python **3.12+**. Contributors use Poetry; users can install the package:
 
 ```bash
-poetry env use 3.12      # match the mypy target; the repo pins python ^3.12
+pip install -e .
+cloudforge version
+```
+
+Or with Poetry:
+
+```bash
+poetry env use 3.12
 poetry install
+PYTHONPATH=. poetry run python -m app.cli version
 ```
 
-> The console script is `cloudforge` (`poetry run cloudforge ...`).
+If `.venv/bin/cloudforge` has a stale shebang, use `python -m app.cli`.
 
-## Quickstart
+Optional on `PATH` for `validate`: `terraform`, `checkov`, `opa`. Missing
+tools are skipped (WARN), not a hard fail.
+
+## 15 minutes
+
+Generate, check, and read one lab (works on this tree):
 
 ```bash
-poetry run cloudforge generate examples/ci_cd_iam_chain.yaml --out out/scenario_001
-poetry run cloudforge validate out/scenario_001
-poetry run cloudforge report   out/scenario_001
+cloudforge generate examples/ci_cd_iam_chain.yaml --out out/scenario_001 --engine composer --seed 17
+cloudforge validate out/scenario_001
+cloudforge report   out/scenario_001
 ```
 
-`validate` prints fail-soft results, e.g.:
+Open `out/scenario_001/report.md`. The critical path is
+`github-actions-oidc → DeployRole → RuntimeRole → customer-exports`. Checkov
+typically catches the resource-level findings and **misses the PassRole
+chain** — that miss is the teaching point.
 
-```
-[PASS] scenario schema valid.
-[PASS] graph schema valid.
-[PASS] terraform validate.
-[WARN] checkov scan. not found — skipping
-[WARN] opa eval. not found — skipping
-[PASS] ground-truth path exists.
-[PASS] no forbidden permissions.
+### Trainer loop (`lab` / `grade`)
+
+These commands land in PR #147. After that merge:
+
+```bash
+cloudforge lab examples/ci_cd_iam_chain.yaml --seed 17 --out out/alice
+# student/  — brief.md, estate.html, terraform/  (no answer key)
+# instructor/ — report.md, expected_findings.json, grade_key.json
+
+cloudforge grade out/alice --submission alice_guess.yaml
+# paths hit / miss — a wrong answer still exits 0
+
+cloudforge lab-cohort examples/ci_cd_iam_chain.yaml --students names.txt --out out/cohort
+cloudforge grade-cohort out/cohort --submissions out/subs
 ```
 
-## Output structure
+Student pack must not contain `expected_findings.json`, ground-truth paths,
+or `security.risk` / `criticality` on the estate (FXL-D010). Copy node ids
+for guesses from `student/estate.json` (composer ids are namespaced).
+
+## Families
+
+| `scenario_type` | Teaching point | Example |
+|---|---|---|
+| `ci_cd_iam_chain` | CI OIDC → PassRole → data | `examples/ci_cd_iam_chain.yaml` |
+| `public_data_exposure` | Public-read bucket of PII | `examples/public_data_exposure.yaml` |
+| `cross_account_trust` | External dummy account trusted into data | PR #149 |
+| `kms_key_overbroad` | KMS Decrypt to `*` | PR #151 |
+| `public_ebs_snapshot` | Unencrypted public snapshot | PR #151 |
+
+AWS Terraform only. Dummy account `000000000000`. Never applied.
+
+## Safety
+
+- **Never** `terraform apply`. No AWS credentials. `deployable: true` is rejected.
+- No real secrets. No offensive/operational content.
+- Destructive IAM (`iam:Delete*`, `s3:DeleteBucket`, `ec2:TerminateInstances`,
+  `kms:ScheduleKeyDeletion`, `organizations:*`) is a validation FAIL.
+- Broad read/list grants are allowed only when documented as expected findings.
+- **No ML / LLM / diffusion / GPU / Modal in v1.** Uniqueness is combinatoric
+  (seed, decoys, path hops). A future generator would still have to pass these
+  validators.
+
+See [SECURITY.md](SECURITY.md) and [Safety & Scope](docs/wiki/Safety-and-Scope.md).
+
+## `generate` / `validate` / `report`
 
 ```
 out/scenario_001/
-├── scenario.yaml            # user intent (echoed)
-├── graph.json               # generated scenario — SOURCE OF TRUTH
-├── terraform/
-│   ├── providers.tf  variables.tf  main.tf
-│   ├── iam.tf        s3.tf          network.tf
-├── expected_findings.json   # labeled findings (with ground_truth + remediation)
-├── ground_truth_paths.json  # intended critical risk path(s)
-├── scanner_results/
-│   └── checkov.json         # written only if checkov is installed
-├── opa_results.json         # written only if opa is installed
-└── report.md                # human-facing explanation
+├── scenario.yaml              # intent
+├── graph.json                 # SOURCE OF TRUTH
+├── terraform/                 # compiled artifact, never applied
+├── expected_findings.json
+├── ground_truth_paths.json
+└── report.md
 ```
 
-**Source-of-truth hierarchy:** `scenario.yaml` (intent) → `graph.json` (truth) →
-`terraform/` (artifact) → `scanner_results/` (observed) vs. `ground_truth_paths.json`
-(expected) → `report.md` (explanation). Terraform is **never** the source of truth.
+`validate` is fail-soft: missing checkov/opa/terraform → WARN. A real schema
+or risk-engine failure → FAIL and exit 1.
 
-## The first scenario: `ci_cd_iam_chain`
+## Learning corpus
 
-A staging b2b_saas environment where a GitHub Actions OIDC identity assumes a DeployRole
-that can `iam:PassRole` a RuntimeRole, and the RuntimeRole holds broad S3 read over a
-sensitive customer-exports bucket:
-
-```
-github-actions-oidc → DeployRole → (iam:PassRole) RuntimeRole → (s3:Get*/List*) customer-exports
-```
-
-It ships one **critical** IAM chain, a **high** excessive-privilege finding, two **medium**
-findings (missing S3 logging, a `0.0.0.0/0` security group), and one **benign
-false-positive** (a public-looking bucket with a compensating control).
-
-## Safety & scope statement
-
-> Every generated scenario is for **local static analysis, scanner benchmarking, and
-> defensive security training. It is not deployed and does not require cloud credentials.**
-> The generator refuses destructive permissions (`iam:Delete*`, `s3:DeleteBucket`,
-> `ec2:TerminateInstances`, `kms:ScheduleKeyDeletion`, `organizations:*`) — broad *read*
-> grants are permitted only as explicitly-documented, intended misconfigurations.
-
-## Roadmap
-
-- **Now (MVP):** deterministic `TemplateGenerator`, one scenario family, fail-soft
-  validators, ground-truth risk engine, report.
-- **Next:** `MutationGenerator` (name/tag/resource variants), more scenario families,
-  Checkov/OPA wired into CI.
-- **Future (documented, not built):** `LLMGenerator`, `ModalBatchGenerator`,
-  `DiffusionGraphGenerator` — all behind the same `ScenarioGenerator` interface. Local
-  validators remain the source of truth regardless of the generation engine. See the
-  [wiki](docs/wiki/Roadmap.md).
-
-## Learning corpus (FXL-E2)
-
-`cloudforge` also has a **local-first learning-corpus pipeline** (`app/cloudforge/learn/`)
-that builds the **DATA foundation** for a possible future graph-generation/diffusion
-effort: fetch → ingest → normalize → validate → dedup → score → export cloud-risk
-**patterns** from approved sources into a validated, provenance-complete corpus of
-`RiskPattern`s.
-
-**What it does:**
-
-- Fetches from an **allow-list only** — `data/source_registry.yaml`. There is **no broad
-  crawling and no spider**; the fetcher refuses anything not listed in the registry.
-- Ingests via typed adapters (three ship today: `cloudforge_scenario`, `rule_catalog_yaml`,
-  `checkov_policy_index`) into `RawPatternRecord`s, each carrying full provenance.
-- Normalizes, validates, dedups, and quality-scores patterns into `RiskPattern`s whose
-  `graph_fragment` reuses the existing `ScenarioGraph` model — the same graph vocabulary
-  `generate`/`validate`/`report` already speak.
-- Gates a training export on validation, safety classification, and licensing — see below.
-
-**What it does NOT do:**
-
-- ❌ Does **not** train a model. No diffusion, no GNN, no embeddings, no training loop.
-- ❌ Does **not** use Modal or any GPU.
-- ❌ Does **not** crawl the internet — registry-gated fetching only.
-- ❌ Does **not** ingest exploit/offensive/operational-attack content — rejected at
-  classification.
-
-**Source governance:** every source in the registry has a `license` and a `reuse_status`
-(`full_reuse` / `attribution` / `metadata_only` / `mappings_only` / `restricted` /
-`unknown`). `unknown` license and `restricted`/`metadata_only` reuse status are always
-forced to `allowed_for_training: false` — **unknown or restricted material is excluded
-from the training export by default**, no matter what a registry entry claims. See
-[Source Registry](docs/wiki/Source-Registry.md) and
-[Provenance and Licensing](docs/wiki/Provenance-and-Licensing.md).
-
-**Training-export rules:** a pattern is exported only if it is validated, safely
-classified (`defensive_pattern` / `benchmark_pattern` / `training_pattern`), its
-provenance allows training, its `reuse_status` permits reuse, and its `quality_score` is
-at least 0.70. `unsafe_operational` content is never exportable, under any flag.
-
-**Example commands** (the `cloudforge learn` CLI is planned in issue #73 — not yet
-runnable):
-
-```bash
-cloudforge learn fetch-sources              # fetch every enabled registry source
-cloudforge learn ingest --adapter <name>    # run one adapter -> normalized patterns
-cloudforge learn validate-corpus            # corpus + fragment validation, PASS/WARN/FAIL
-cloudforge learn summarize                  # coverage: provider / domain / family / quality
-cloudforge learn export-training            # apply the export gate; write the training bundle
-```
-
-This epic **prepares** a future diffusion effort without implementing it: a future
-generator would consume this corpus's export and emit candidate graphs, which then go
-through the same local validators every scenario already goes through — no model is
-trained here. See [Learning Corpus](docs/wiki/Learning-Corpus.md) and
-[Future Diffusion Training](docs/wiki/Future-Diffusion-Training.md).
+`cloudforge learn` is a **data** pipeline (fetch → ingest → validate → export),
+not a training loop. Allow-list only (`data/source_registry.yaml`). It does
+not train a model. See [Learning Corpus](docs/wiki/Learning-Corpus.md).
 
 ## Development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md). Product code lives in `app/cloudforge/`.
+Maintainer scaffolding (`.dev-context/`, `lemmings/`, `flavors/`) is not the
+product.
+
 ```bash
-poetry run ruff check --fix && poetry run ruff format   # lint + format
-poetry run mypy --strict app/                            # type check
-poetry run pytest tests/cloudforge/ --cov=app            # tests (95%+ coverage)
+ruff check --fix && ruff format
+mypy --strict app/
+PYTHONPATH=. .venv/bin/pytest tests/cloudforge tests/security -q --no-cov
 ```
 
-## Documentation
+## Docs
 
-Full docs are staged under [`docs/wiki/`](docs/wiki/) (mirroring the GitHub Wiki):
-Home, Architecture, Scenario Schema, Graph Model, Validation Pipeline, Scenario Families,
-Roadmap, Modal & Diffusion, Safety & Scope, Template Feedback, and the learning-corpus
-pages (Learning Corpus, Source Registry, Risk Pattern Ontology, Source Adapters,
-Provenance and Licensing, Corpus Quality Scoring, Future Diffusion Training).
+[`docs/wiki/`](docs/wiki/) — Architecture, Graph Model, Validation Pipeline,
+Scenario Families, [Labs](docs/wiki/Labs.md), Safety. Diffusion pages are
+**not in v1**.
 
----
-
-<sub>Built on an agentic Claude Code dev template; the agentic scaffolding is kept inert —
-the deliverable is the local generator, not a multi-agent runtime.</sub>
+License: [Apache-2.0](LICENSE).

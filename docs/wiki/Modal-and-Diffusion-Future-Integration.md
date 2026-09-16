@@ -1,7 +1,7 @@
 # Modal & Diffusion — Future Integration
 
-> **Status: documented, not built.** None of this exists in the MVP. Modal is **not** a
-> dependency and must never become a core one.
+> **Not in v1.** Documented, not built. Modal is **not** a dependency and must never
+> become a core one.
 
 ## The intended shape
 
