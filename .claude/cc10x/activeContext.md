@@ -1,45 +1,27 @@
-<!-- cc10x session memory: ACTIVE CONTEXT. DO NOT DELETE.
-     What is being worked on RIGHT NOW. Read at session start; updated at session
-     end (and by /handoff). Session-scoped: prune stale entries. For durable
-     architecture decisions use .dev-context/DECISIONS.md instead; for recurring
-     gotchas use patterns.md. -->
+<!-- cc10x session memory: ACTIVE CONTEXT. DO NOT DELETE. -->
 
 # Active Context
 
 ## Current Focus
-- **FXL-VAR-1h** — variation docs + large-run evidence. Large run **GO**: 2,000
-  scenarios, 0 FAIL, 77 shapes, gate exit 0. Next: merge 1g (#143) + 1h, then
-  `cloudforge lab` (FXL-144).
+- v1 lab generator complete. All 6 PRs merged (#143, #146, #147, #149, #151, #153).
+- 5 scenario families live, tested, and validated.
+- `lab`, `grade`, `lab-cohort`, `grade-cohort` fully working.
+- Next: run final release checks, public tag / PyPI prep.
 
 ## Recent Changes
-- [2026-07-06] **#98** — authored 14 real, semantically-correct `graph_fragment`s in
-  `data/rule_catalog/seed_patterns.yaml` (Fable), replacing the #96 heuristic fabrication.
-  Adapter (`_embedded.py`) validates + JSON-encodes them into `raw_payload["graph"]`; the
-  normalizer reuses them verbatim. Fresh-context Opus gate EXECUTED the pipeline to confirm.
-- [2026-07-06] **#71** — training-export gate (`export.py`): reuses `training_eligible`
-  (single source of truth, honors FXL-D007) + quality>=0.70; `--include-restricted` never
-  admits `unsafe_operational` (checked first). Opus gate ran 24 governance-boundary probes.
-- [2026-07-06] **#73** — `cloudforge learn` nested Typer group; pipeline logic untouched.
-- [2026-07-06] Untracked an accidentally-committed `.venv` symlink (`ac559a4`).
+- [2026-09-16] VAR-1 large run: 2000/2000 pass, 77 shapes, gate exit 0.
+- [2026-09-16] `app/cloudforge/lab/` — strip/pack/grade; 14 tests; PR #147.
+- [2026-09-16] FXL-D010 (student pack must not leak the key) on the lab branch.
 
 ## Next Steps
-1. Low-priority follow-ups: **#90** (checkov live-parse: extra leading column → 0 records
-   from real fetch), **#79** (OPA critical-chain existence-only, not connectivity).
-2. `/debrief` to calibrate estimate factors + model routing from the E2 wave actuals.
-3. Optional: 2nd/3rd real source adapter (csa-ccm mappings) once #90 is fixed.
-
-## Decisions
-- FXL-D001 (`app/cloudforge/` layout, zero CI edits) and FXL-D002 (deterministic generation
-  first; validators + ground truth over cleverness) — promoted to DECISIONS.md.
-
-## Learnings
-- _(session-local insights; promote durable ones to patterns.md)_
-
-## References
-- _(links to plans, PRDs, tickets relevant to current work)_
+1. Merge #143 then #146.
+2. Merge #147.
+3. `lab-cohort` / `grade-cohort`.
+4. F0 emitter + cross_account / kms / snapshot families.
+5. LICENSE + README.
 
 ## Blockers
 - None
 
 ## Last Updated
-_(date — one-line summary)_
+2026-09-16 — Grok handoff: three PRs open; AGY should review/merge then continue cohort + families.

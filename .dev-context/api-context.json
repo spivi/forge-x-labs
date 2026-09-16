@@ -1,9 +1,9 @@
 {
   "project_id": "FXL",
   "project_name": "cloudforge",
-  "last_synced": "2026-07-05T06:48:31Z",
-  "current_phase": "Setup",
-  "status_last_updated": "2026-07-05",
+  "last_synced": "2026-09-16T05:25:06Z",
+  "current_phase": "FXL-E2 learning-corpus epic complete; `cloudforge learn` working; loop re-calibrated",
+  "status_last_updated": "2026-07-06",
   "inbox": {
     "critical": 0,
     "approval": 0,

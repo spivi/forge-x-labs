@@ -1,1 +1,4 @@
 timestamp_utc,ticket,pr,rail,claim,measurable
+2026-07-15T10:31:54Z,FXL-VAR-1d,139,R,new `variation/` package adds shape_signature + diversity_report proven by 30 passing tests (24→30); the review-caught mutation-signature bug drove signature flips 10/20 → 0/20 across both families.,true
+2026-07-15T20:41:27Z,FXL-VAR-1e,141,R,"run_suite composes+validates+reports 10 smoke scenarios with 0 FAIL, writes the §9 run tree + manifest + diversity report, and replay proves byte-identical artifacts across all 10 scenarios (13 integration tests, 1.7s hermetic).",true
+2026-07-16T08:39:07Z,FXL-VAR-1f,142,R,"new `cloudforge variation` CLI (4 commands) writes a run manifest at `<out>/manifest.json` (verified: 10 scenarios, 0 failed) and `summarize` prints 9 unique graph shapes + diversity %; 8 CLI integration tests, all bad-input paths return a clean error (exit 1) with 0 raw tracebacks.",true
