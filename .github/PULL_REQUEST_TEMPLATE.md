@@ -1,13 +1,5 @@
 ## Summary
--
 
-## Ticket
-FXL-
+## Test plan
 
-## Test Plan
 - [ ]
-
-## Tier
-Feature / Fix / Tweak
-
-Rail evidence:

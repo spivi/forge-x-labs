@@ -1,4 +1,4 @@
-# Smoke VariationSpec — quick local run: 2 families x 1 scale x 5 seeds = 10 scenarios.
+# Smoke VariationSpec - quick local run: 2 families x 1 scale x 5 seeds = 10 scenarios.
 # See docs/superpowers/specs/2026-07-06-FXL-VAR-1-variation-validation-design.md §8.
 families:
   - ci_cd_iam_chain

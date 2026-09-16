@@ -17,13 +17,9 @@ poetry.lock
 dist/
 *.egg-info/
 
-# Cursor/VSCode
+# Editors
 .vscode/
 .idea/
-
-# Claude Code
-.claude/env
-.claude/settings.local.json
 
 # Mac
 .DS_Store
@@ -34,37 +30,55 @@ credentials.json
 .coverage
 coverage.xml
 
-# Alembic
-alembic/versions/__pycache__/
-
-# mypy
+# Tool caches
 .mypy_cache/
-
-# pytest
 .pytest_cache/
-
-# ruff
 .ruff_cache/
-
-# Node (Playwright)
+.hypothesis/
 node_modules/
 
-# cloudforge generated scenario artifacts (never committed — regenerated locally)
+# Generated scenario artifacts (regenerated locally)
 out/
 
-# FXL-112/FXL-STRESS-10 benchmark output (regenerated locally; a reviewable sample
-# lives at tests/cloudforge/data/benchmark_results.sample.json instead)
+# Stress-benchmark output (sample committed under tests/cloudforge/data/)
 benchmark_results.json
 
-# cloudforge learning-corpus raw fetch cache (regenerated locally, content-addressed)
+# Learning-corpus raw fetch cache
 data/raw/*
 !data/raw/.gitkeep
 
-# Social media animation assets (generated)
-social-assets/
-.tmp.driveupload/
+# Internal agent tooling and harness. Kept on disk for local work; not published.
+.dev-context/
+.claude/
+.cursor/
+.antigravity/
+lemmings/
+flavors/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+claude-project-instructions.md
+STATUS.md
+setup.sh
+.env.example
 
-# Vendored third-party clones (reconstructed from pins in .dev-context/vendor/README.md).
-# The clone keeps its own .git and is not committed as content; our README is tracked.
-.dev-context/vendor/*
-!.dev-context/vendor/README.md
+# Agent/harness scripts. Product scripts below stay tracked via the negations.
+scripts/*
+!scripts/check-signoff.sh
+!scripts/no-master-commit.sh
+!scripts/generate_demo_video.py
+!scripts/stress_benchmark.py
+!scripts/stress_benchmark_corpus.py
+!scripts/stress_benchmark_corpus_factory.py
+!scripts/stress_benchmark_scenario.py
+!scripts/stress_benchmark_util.py
+!scripts/validate-pipeline.sh
+
+tests/hooks/
+tests/harness/
+tests/scripts/
+
+docs/plans/
+docs/project-management/
+docs/superpowers/
+docs/wiki/Template-Feedback.md

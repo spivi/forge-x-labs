@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "cloudforge"
-version = "1.0.0"
-description = "Local-first generator of validated, never-applied AWS misconfig labs — no cloud account required."
+version = "1.1.0"
+description = "Local-first generator of validated, never-applied AWS misconfig labs. No cloud account required."
 authors = ["Alex Spivakovsky <alex.spivakovsky@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
@@ -44,10 +44,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 99
 target-version = "py312"
-# `flavors/` holds un-instantiated project templates whose pyproject.toml files still
-# contain un-substituted placeholder tokens (invalid TOML keys). They are scaffolding,
-# not source, so exclude them from linting/parsing.
-extend-exclude = ["flavors/"]
+# Local-only trees that stay on disk via .gitignore.
+extend-exclude = ["flavors/", "lemmings/", ".claude/", ".dev-context/"]
 
 [tool.ruff.lint]
 # TCH/TC intentionally omitted: this codebase resolves type annotations at runtime
@@ -58,6 +56,7 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 # terraform_blocks.py embeds HCL templates; a few HCL lines exceed the line length.
 "app/cloudforge/pipeline/terraform_blocks.py" = ["E501"]
+"app/cloudforge/io/__init__.py" = ["A005"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -70,19 +69,16 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-# `-m "not stress and not internet"` keeps the slow mutation stress suite (FXL-N3) and
-# real-network tests OUT of the default run — a bare `pytest` (local and CI, which invokes
-# `pytest tests/ ...` with no `-m`) deselects everything marked `stress` or `internet`.
-# Opt in explicitly with `pytest -m stress` or `pytest -m internet`. Property tests (hypothesis)
-# are included by default when running the fast profile; run them deterministically with
-# `--hypothesis-profile=ci` in CI.
+norecursedirs = [".*", "build", "dist", "CVS", "_darcs", "{arch}", "*.egg", "venv", "hooks", "harness", "scripts"]
+# Default run skips slow mutation stress and real-network tests.
+# Opt in with `pytest -m stress` or `pytest -m internet`.
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80 -m 'not stress and not internet'"
 markers = [
   "unit: unit tests (fast, no external dependencies)",
-  "security: security-focused tests (validation, injection, auth, CORS)",
-  "property: property-based tests via hypothesis (FXL-STRESS-11)",
-  "integration: integration tests (multiple components, light I/O)",
-  "internet: opt-in real-network tests (FXL-E2 learning-corpus fetcher, ticket #74); deselected by default, run with `pytest -m internet`",
-  "stress: slow, many-seed mutation risk-preservation stress tests (FXL-N3, FXL-STRESS-4); deselected by default, run with `pytest -m stress`",
-  "slow: heavy/long-running tests; the pre-push backstop deselects these (`-m 'not slow'`)",
+  "security: security-focused tests",
+  "property: property-based tests via hypothesis",
+  "integration: integration tests",
+  "internet: opt-in real-network tests; run with `pytest -m internet`",
+  "stress: slow mutation stress tests; run with `pytest -m stress`",
+  "slow: heavy or long-running tests",
 ]

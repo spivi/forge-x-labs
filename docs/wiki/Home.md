@@ -1,18 +1,18 @@
-# Forge X Labs — Wiki Home
+# Wiki home
 
 **`cloudforge`** is a local-first generator of **validated, never-applied AWS
-misconfig labs** — unique per student, with a hidden answer key. No cloud
-account required. Scanner scoring is a property of every lab, not the headline.
+misconfig labs**. Each student gets a unique copy with a hidden answer key.
+No cloud account required.
 
-> **Core thesis:** the value is in labeled, validated cloud-risk **graphs** with
-> machine-checkable ground truth — not in clever Terraform generation.
+The value is labeled, validated cloud-risk **graphs** with machine-checkable
+ground truth, not clever Terraform generation.
 
-## Pipeline at a glance
+## Pipeline
 
 ```
-scenario.yaml ──generate──▶ graph.json (+ terraform/, findings, ground truth)
-graph.json    ──validate──▶ schema · terraform · checkov · opa · graph-risk engine
-scenario dir  ──report────▶ report.md
+scenario.yaml  --generate-->  graph.json (+ terraform/, findings, ground truth)
+graph.json     --validate-->  schema, terraform, checkov, opa, graph-risk engine
+scenario dir   --report---->  report.md
 ```
 
 ```bash
@@ -25,20 +25,24 @@ cloudforge report   out/scenario_001
 
 | Page | What it covers |
 |------|----------------|
-| [Architecture](Architecture) | Module layout, pipeline flow, source-of-truth hierarchy |
-| [Scenario Schema](Scenario-Schema) | The `scenario.yaml` input contract |
-| [Graph Model](Graph-Model) | Node/edge types, metadata, self-consistency invariants |
-| [Validation Pipeline](Validation-Pipeline) | Fail-soft checks, the risk engine, exit policy |
-| [Labs](Labs) | Student/instructor pack, grade, cohort (FXL-D010) |
-| [Scenario Families](Scenario-Families) | Shipped families and how to add one |
-| [Roadmap](Roadmap) | What's next; the generator extension seam |
-| [Safety & Scope](Safety-and-Scope) | Local-only guarantees, forbidden permissions |
-| [Learning Corpus](Learning-Corpus) | Data pipeline (not a training loop) |
-| [Source Registry](Source-Registry) | Allow-list, governance, source tiers |
-| [Modal & Diffusion Future Integration](Modal-and-Diffusion-Future-Integration) | **Not in v1** |
-| [Future Diffusion Training](Future-Diffusion-Training) | **Not in v1** |
+| [Architecture](Architecture.md) | Module layout, pipeline, source of truth |
+| [Scenario Schema](Scenario-Schema.md) | The `scenario.yaml` input contract |
+| [Graph Model](Graph-Model.md) | Node and edge types, invariants |
+| [Validation Pipeline](Validation-Pipeline.md) | Fail-soft checks, risk engine, exit policy |
+| [Labs](Labs.md) | Student/instructor pack, grade, cohort |
+| [Scenario Families](Scenario-Families.md) | Shipped families and how to add one |
+| [Roadmap](Roadmap.md) | What shipped, what is next |
+| [Safety and Scope](Safety-and-Scope.md) | Local-only guarantees, forbidden permissions |
+| [Learning Corpus](Learning-Corpus.md) | Data pipeline (not a training loop) |
+| [Source Registry](Source-Registry.md) | Allow-list and reuse rules |
+| [Source Adapters](Source-Adapters.md) | How sources become patterns |
+| [Provenance and Licensing](Provenance-and-Licensing.md) | No provenance, no corpus |
+| [Risk Pattern Ontology](Risk-Pattern-Ontology.md) | `RiskPattern` fields |
+| [Corpus Quality Scoring](Corpus-Quality-Scoring.md) | Rubric scores, not a learned model |
+| [Stress Test Plan](Stress-Test-Plan.md) | Hostile validation of the pipeline |
 
 ## Scope in one line
 
-Local-only · no AWS creds · never `terraform apply` · no real secrets · defensive only ·
-deterministic generation first · validators + ground truth over generation cleverness.
+Local only. No AWS creds. Never `terraform apply`. No real secrets. Defensive
+only. Deterministic generation first. Validators and ground truth over
+generation cleverness.

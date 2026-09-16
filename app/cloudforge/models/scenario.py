@@ -43,12 +43,25 @@ class Constraints(BaseModel):
         return value
 
 
+class AccountTopology(BaseModel):
+    """Configuration for single/multi-account and cross-cloud tenant structures."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["single_account", "multi_account", "multi_tenant", "cross_cloud"] = (
+        "single_account"
+    )
+    primary_account_id: str = "000000000000"
+    secondary_accounts: list[str] = Field(default_factory=list)
+    organization_id: str | None = None
+
+
 class ScenarioSpec(BaseModel):
     """A validated scenario definition (the ``scenario.yaml`` contract)."""
 
     model_config = ConfigDict(extra="forbid")
 
-    cloud: Literal["aws"]
+    cloud: Literal["aws", "azure", "gcp", "k8s", "multi_cloud"] = "aws"
     scenario_type: str
     environment: str
     difficulty: str
@@ -57,6 +70,7 @@ class ScenarioSpec(BaseModel):
     constraints: Constraints
     scale_profile: str = "small"
     variation_axes: dict[str, str] = Field(default_factory=dict)
+    topology: AccountTopology = Field(default_factory=AccountTopology)
 
     @field_validator("variation_axes")
     @classmethod

@@ -34,6 +34,9 @@ class FindingFamily(StrEnum):
     PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL = (
         "public_looking_bucket_with_compensating_control"
     )
+    K8S_POD_IRSA_EXFIL = "k8s_pod_irsa_exfil"
+    AZURE_IMDS_KEYVAULT_HARVEST = "azure_imds_keyvault_harvest"
+    GCP_WORKLOAD_IDENTITY_FEDERATION = "gcp_workload_identity_federation"
 
 
 class ExpectedFinding(BaseModel):

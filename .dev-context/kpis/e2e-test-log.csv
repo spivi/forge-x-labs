@@ -1,1 +1,0 @@
-timestamp,pr_number,branch,total,passed,failed,skipped,duration_s,coverage_pr,coverage_base,coverage_delta,regressions,verdict

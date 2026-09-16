@@ -1,4 +1,4 @@
-# Fixture: valid YAML but one entry is missing a required field (title) — tests the
+# Fixture: valid YAML but one entry is missing a required field (title) - tests the
 # adapter's clear-error-not-crash path for schema-invalid catalogs.
 entries:
   - id: no-title-entry

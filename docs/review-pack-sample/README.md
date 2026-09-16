@@ -1,22 +1,22 @@
-# Sample Review Pack — 10 scenarios
+# Sample Review Pack: 10 scenarios
 
-Ten review sheets assembled from **real cloudforge output**, for use with the [quality rubric](../review-rubric.md) and the [1-page format](../review-pack-template.md). Each sheet is one scenario: a ground-truth-**hidden** reviewer view (score blind) followed by a **reveal**.
+Ten review sheets assembled from real cloudforge output, for use with the
+[quality rubric](../review-rubric.md) and the
+[1-page format](../review-pack-template.md). Each sheet is one scenario: a
+ground-truth-hidden reviewer view (score blind) followed by a reveal.
 
 ## How this pack was generated
 
-From the repo root, against the two shipped families and the deterministic mutation engine:
-
 ```bash
-# base families
 python -m app.cli generate examples/ci_cd_iam_chain.yaml     --out out/ci
 python -m app.cli generate examples/public_data_exposure.yaml --out out/pub
-# seeded, ground-truth-preserving mutations (seeds 1..4 per family)
 python -m app.cli generate examples/ci_cd_iam_chain.yaml     --out out/ci-s1  --mutate-seed 1
-#   ... seeds 2,3,4 for ci_cd_iam_chain, seeds 1..4 for public_data_exposure
-python -m app.cli report out/ci   # renders report.md per scenario
+python -m app.cli report out/ci
 ```
 
-Each sheet's fields are copied from that scenario's `report.md`, `graph.json`, `ground_truth_paths.json`, and `expected_findings.json` — nothing is invented. The raw `out/` artifact trees are gitignored; only these assembled 1-page sheets are committed.
+Each sheet's fields are copied from that scenario's `report.md`, `graph.json`,
+`ground_truth_paths.json`, and `expected_findings.json`. The raw `out/` trees
+are gitignored. Only these assembled sheets are committed.
 
 ## Contents
 
@@ -35,4 +35,9 @@ Each sheet's fields are copied from that scenario's `report.md`, `graph.json`, `
 
 ## What the mutations exercise
 
-The 8 seeded variants rename resource **display labels** and add one benign, unconnected decoy node — while leaving the ground-truth critical-path node IDs and edges **byte-identical** to their base (verified per sheet in the reveal). This lets a reviewer probe two things the base scenarios can't: (1) does a cosmetic rename change the realism read, and (2) does the reviewer correctly ignore the benign decoy. It is also the human-facing evidence for point #12 of the 12-point validated definition ([FXL-D003](../../.dev-context/DECISIONS.md)): *mutation, if used, preserves ground truth.*
+The 8 seeded variants rename resource display labels and add one benign,
+unconnected decoy node, while leaving the ground-truth critical-path node IDs
+and edges byte-identical to their base. That lets a reviewer check two things:
+(1) does a cosmetic rename change the realism read, and (2) does the reviewer
+correctly ignore the benign decoy. It is also evidence that mutation, if used,
+preserves ground truth.

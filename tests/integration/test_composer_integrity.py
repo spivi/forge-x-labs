@@ -36,6 +36,9 @@ _FAMILIES = [
     "public_rds_instance",
     "ecr_repository_public_read",
     "sqs_queue_overbroad_policy",
+    "k8s_pod_irsa_exfil",
+    "azure_imds_keyvault_harvest",
+    "gcp_workload_identity_federation",
 ]
 
 

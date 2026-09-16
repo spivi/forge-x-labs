@@ -1,4 +1,4 @@
-# Large VariationSpec — manual/nightly: 2 families × 4 scales × 250 seeds = 2,000 scenarios.
+# Large VariationSpec - manual/nightly: 2 families × 4 scales × 250 seeds = 2,000 scenarios.
 # See docs/superpowers/specs/2026-07-06-FXL-VAR-1-variation-validation-design.md §8.
 # Do not run this in the default pytest suite.
 families:

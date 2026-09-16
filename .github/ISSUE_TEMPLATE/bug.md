@@ -9,4 +9,4 @@ about: A tool bug (not "the generated Terraform is insecure")
 
 **Expected**
 
-Do not file "this Terraform is insecure" — that is intentional. See SECURITY.md.
+Do not file "this Terraform is insecure" - that is intentional. See SECURITY.md.
