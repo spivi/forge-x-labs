@@ -16,7 +16,7 @@ from typing import Protocol
 
 from hypothesis import strategies as st
 
-from app.cloudforge.generate import ci_cd_iam_chain, public_data_exposure
+from app.cloudforge.generate import ci_cd_iam_chain, cross_account_trust, public_data_exposure
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.models.findings import (
     ExpectedFinding,
@@ -72,7 +72,11 @@ class _ScenarioBuilderModule(Protocol):
 
 # Real, valid bundles from the two shipped generators — the ground truth for
 # "what a self-consistent bundle looks like" that every mutation strategy starts from.
-REAL_BUILDERS: tuple[_ScenarioBuilderModule, ...] = (ci_cd_iam_chain, public_data_exposure)  # type: ignore[assignment]
+REAL_BUILDERS: tuple[_ScenarioBuilderModule, ...] = (
+    ci_cd_iam_chain,
+    public_data_exposure,
+    cross_account_trust,
+)  # type: ignore[assignment]
 
 
 def real_bundle(builder: _ScenarioBuilderModule) -> ScenarioBundle:

@@ -18,6 +18,7 @@ Severity = Literal["low", "medium", "high", "critical"]
 class FindingFamily(StrEnum):
     IAM_EXCESSIVE_PRIVILEGE = "iam_excessive_privilege"
     IAM_PASSROLE_RISK = "iam_passrole_risk"
+    IAM_CROSS_ACCOUNT_TRUST = "iam_cross_account_trust"
     S3_LOGGING_MISSING = "s3_logging_missing"
     S3_PUBLIC_EXPOSURE = "s3_public_exposure"
     SECURITY_GROUP_OVEREXPOSED = "security_group_overexposed"

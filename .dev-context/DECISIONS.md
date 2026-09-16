@@ -214,6 +214,21 @@ somehow disconnected from all sinks post-generation.
 New scenario families automatically benefit (no rego coupling needed). The BFS is O(V + E) and
 runs once per validated scenario, negligible cost. The git push will reference issue #79 (Closes).
 
+## FXL-D009: Third scenario family is unblocked after VAR-1 large-run GO
+
+**Status**: accepted
+**Date**: 2026-09-16
+
+**Context**: FXL-D004 gated a third family on the 12-point definition being enforceable.
+M7, STRESS, VAR-1 composer, the diversity gate, and the 2,000-scenario large run
+(0 FAIL, 77 shapes, `--gate` exit 0) make that bar enforceable.
+
+**Decision**: New families may be added. Each must join the composer integrity net
+(seeds `{0,1,2,17,99}`, zero FAIL) and emit only resource types the Terraform
+emitter already knows, or land with an emitter ticket in the same change.
+
+**Consequences**: `cross_account_trust` is the first new family (IAM/S3 only).
+
 ---
 
 ## FXL-D010: Student lab pack must not contain the answer key
