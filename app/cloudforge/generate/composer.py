@@ -136,7 +136,7 @@ class GraphComposer:
     def _salt(self) -> str:
         if self._seed == 0:
             return ""
-        return f"{Random(self._seed + 101).randint(0x1000, 0xffff):04x}"
+        return f"{Random(self._seed + 101).randint(0x1000, 0xFFFF):04x}"
 
     def _ns(self, kind: str, index: int) -> str:
         prefix = SHORT.get(kind, "node")

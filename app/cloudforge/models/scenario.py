@@ -48,9 +48,9 @@ class AccountTopology(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    mode: Literal[
-        "single_account", "multi_account", "multi_tenant", "cross_cloud"
-    ] = "single_account"
+    mode: Literal["single_account", "multi_account", "multi_tenant", "cross_cloud"] = (
+        "single_account"
+    )
     primary_account_id: str = "000000000000"
     secondary_accounts: list[str] = Field(default_factory=list)
     organization_id: str | None = None
