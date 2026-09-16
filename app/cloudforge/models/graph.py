@@ -27,6 +27,12 @@ class NodeType(StrEnum):
     S3_BUCKET = "S3Bucket"
     KMS_KEY = "KmsKey"
     EBS_SNAPSHOT = "EbsSnapshot"
+    EC2_INSTANCE = "EC2Instance"
+    LAMBDA_FUNCTION = "LambdaFunction"
+    SECRETS_MANAGER_SECRET = "SecretsManagerSecret"
+    RDS_INSTANCE = "RdsInstance"
+    ECR_REPOSITORY = "EcrRepository"
+    SQS_QUEUE = "SqsQueue"
     APPLICATION = "Application"
     DATASET = "DataSet"
     LOG_TRAIL = "LogTrail"
@@ -45,6 +51,7 @@ class EdgeType(StrEnum):
     HAS_SECURITY_GROUP = "has_security_group"
     DEPLOYED_BY = "deployed_by"
     CAN_DECRYPT = "can_decrypt"
+    CAN_INVOKE = "can_invoke"
 
 
 class NodeTags(BaseModel):

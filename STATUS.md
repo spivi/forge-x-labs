@@ -1,86 +1,113 @@
 # Project Status
 
-**Current Phase:** FXL-E2 learning-corpus epic complete; `cloudforge learn` working; loop re-calibrated
-**Last Updated:** 2026-07-06
+**Current Phase:** v1 OSS lab-generator — variation GO; `lab`/`grade` in review
+**Last Updated:** 2026-09-16
 
-> **Debrief (2026-07-06):** After the FXL-E2 wave (#98 real fragments / #71 export gate / #73 learn
-> CLI, all merged, each fresh-context Opus APPROVE), the loop has **23 samples** (E2 actuals
-> backfilled). Committed factors: `type:feature` = **0.383** (15 runs, CI 0.279–0.487),
-> `label:area:corpus` = **0.41** (12 runs) — estimator over-predicts wall-clock ~2.6×. Model policy:
-> **0 underpowered** in any bucket; `label:area:corpus` 10/12 well-matched on sonnet (corpus tickets
-> well-routed); `effort:S`→haiku, `area:generation`→sonnet flagged down-tierable. lemmings fit:
-> `developer.cost_rate_per_min` → 0.1095, **`bugs.base_lambda` = 0.0** (zero post-review defects —
-> every ticket passed its review gate first-cycle). **0 [CREATE] recs** (all [TUNE], auto-applied).
-> Summary pushed to **council** (FXL-E2, codex+antigravity): 2 advisory blockers (both doc-only,
-> applied) — #90 reclassified (blocks a 2nd source, not E2) + an Evidence appendix added. Report:
-> `.dev-context/sprint-runs/e2_debrief_council_report.md`.
+## Current State
 
-> **Debrief (2026-07-05):** After FXL-31 (per-family Terraform emitter, PR #34, AI review gate
-> APPROVE), the loop has **3 samples** and committed real factors: `label:effort:M` /
-> `label:area:generation` estimate factor = **0.546** (CI 0.376–0.715); model policy → **sonnet**
-> (3/3 overkill); lemmings `cost_rate_per_min` 0.0139 → 0.0208. **Proof it's live:** FXL-35
-> (fix/M/generation) now estimates 25m/sonnet vs FXL-31's pre-cal 45m. PR-#34 review nits (per-family
-> tags + HCL escaping) filed as **FXL-35** (#35, M2).
+- **Project**: FXL (`cloudforge`)
+- **Phase**: v1 open-source release as a **lab generator**
+- **Active task**: FXL-152 OSS hygiene (PR **#153**). Also open: #143, #146, #147, #149, #151.
+- **Blocked on**: nothing. Merge order: **#143 then #146**; **#147** is independent of those two (based on master).
+- **Last agent**: Grok 4.6 (xAI)
+- **Last platform**: grok
+- **Timestamp**: 2026-09-16T22:00:00Z
 
-## Recent Achievements
-- **MVP vertical slice** (PR #24): `generate → validate → report` end-to-end for the
-  `ci_cd_iam_chain` family — models, TemplateGenerator, Terraform emitter, fail-soft
-  validators + stdlib graph-risk engine, Markdown report, Typer CLI.
-- **Sprint wave 1 (both merged):**
-  - **FXL-26** (PR #29) — second scenario family `public_data_exposure` (direct
-    data-exposure risk; new `FindingFamily.S3_PUBLIC_EXPOSURE`). Proves the generator
-    seam is family-agnostic.
-  - **FXL-14** (PR #28) — seeded, deterministic `MutationGenerator` (+ `--mutate-seed N`
-    CLI option): cosmetic/benign variants that preserve ground-truth risk. Same seed →
-    byte-identical graph; risk engine PASS on all variants.
-- Integrated master verified: `ruff` + `mypy --strict` clean, **63 tests / 95.77%
-  coverage**, both families + mutation exercised end-to-end via the real CLI.
-- **Review gates both on:** `AI_REVIEW_GATE` (tactical, per-PR) + `COUNCIL_REVIEW`
-  (director-level doc council; engine vendored + verified live).
-- Docs live: README + 10 wiki pages published to the GitHub Wiki; project board #6 linked
-  to the repo.
+## Resume here (Antigravity / any other agent)
 
-### Next Steps
-1. **FXL-35** (#35, planned 25m/sonnet) — emitter hardening: per-family `common_tags` + HCL escaping (from PR #34 review nits).
-2. More scenario families (cross-account trust, KMS key-policy, public snapshot) as new tickets.
-3. Wire checkov/OPA into CI once runners have the tools.
-4. Route the next generation ticket through full `/sprint execute` so `SUBAGENT_LEDGER_CAPTURE` records exact tokens (not backfilled).
+Read in this order. Do not re-litigate the product decision (labs, not diffusion).
+
+1. This block.
+2. [`docs/superpowers/plans/2026-09-16-v1-oss-labs.md`](docs/superpowers/plans/2026-09-16-v1-oss-labs.md)
+3. `.dev-context/DECISIONS.md` (D001–D008 bind; D009/D010 drafted in working tree / PRs)
+4. `.claude/cc10x/activeContext.md` + `progress.md`
+
+**Open PRs (do these first):**
+
+| PR | Ticket | What | Base |
+|---|---|---|---|
+| https://github.com/spivi/forge-x-labs/pull/143 | FXL-VAR-1g | `--gate` + aws_ci/aws_large | master |
+| https://github.com/spivi/forge-x-labs/pull/146 | FXL-VAR-1h | docs + **2000-scenario GO** | #143 branch |
+| https://github.com/spivi/forge-x-labs/pull/147 | FXL-144/145 | `lab` / `grade` / cohort | master |
+| https://github.com/spivi/forge-x-labs/pull/149 | FXL-148 | `cross_account_trust` family | master |
+| https://github.com/spivi/forge-x-labs/pull/151 | FXL-150 | KMS key + public EBS snapshot families | master |
+| https://github.com/spivi/forge-x-labs/pull/153 | FXL-152 | Apache-2.0, SECURITY.md, job-first README | master |
+
+**Verified evidence (VAR-1h):** 2,000 scenarios, 0 FAIL, 77 shapes, path lengths [3,5,6,7], decoys 66.4%, controls 47.4%, `--gate` exit 0. Tools were absent on PATH. Report: `.dev-context/sprint-runs/FXL-VAR-1-result.md` on the 1h branch.
+
+**Do next:**
+
+1. Review/merge #143, then #146.
+2. Review/merge #147 (`lab` / `grade`). Leak tests are load-bearing.
+3. Merge family PRs (#149, #151) and OSS hygiene (#153).
+4. Public repo + PyPI tag after those merges.
+
+**How to run:** `PYTHONPATH=. .venv/bin/python -m app.cli …` (console-script shebang may be stale).
+
+```bash
+# on feat/FXL-144-lab-pack:
+PYTHONPATH=. .venv/bin/python -m app.cli lab examples/ci_cd_iam_chain.yaml --seed 17 --out /tmp/alice
+PYTHONPATH=. .venv/bin/python -m app.cli grade /tmp/alice --submission examples/labs/alice_guess.yaml
+```
+
+Composer ids are namespaced (`core0/…`); the sample guess YAML uses template ids — for composer labs, copy node ids from `student/estate.json`.
+
+## Recent Changes (this session)
+
+- v1 plan written: `docs/superpowers/plans/2026-09-16-v1-oss-labs.md` (main working tree)
+- FXL-VAR-1g: `evaluate_gate` + `--gate` — PR #143
+- FXL-VAR-1h: docs + large-run GO — PR #146
+- FXL-144/145: `app/cloudforge/lab/` strip/pack/grade — PR #147, 14 tests passed
+
+## Open Questions
+
+1. Composer vs template node ids in the example guess file (document in Labs.md).
+2. `lab-cohort` not yet implemented.
+3. D009/D010 are on feature branches / main working tree, not yet on origin/master.
+
+## Next Steps
+
+1. Merge PR #143 then #146.
+2. Merge PR #147.
+3. Implement lab-cohort / grade-cohort.
+4. New families + emitter (F0–F3).
+5. LICENSE / SECURITY.md / README (Phase 5).
 
 ## Active Worktrees
 
-| Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
-|---|---|---|---|---|---|
-| feat/FXL-VAR-1g-diversity-gate | ../cloudforge--FXL-VAR-1g | FXL-VAR-1g | grok | pr-open #143 | gate.py, --gate, aws_ci/aws_large |
-| feat/FXL-VAR-1h-docs-evidence | ../cloudforge--FXL-VAR-1h | FXL-VAR-1h | grok | in-progress | docs/variation, FXL-VAR-1-result.md |
-
-> **FXL-VAR-1h evidence (2026-09-16):** large run 2,000 scenarios, 0 FAIL, 77 shapes,
-> `--gate` exit 0 (**GO**). `.dev-context/sprint-runs/FXL-VAR-1-result.md`.
-
-> **FXL-STRESS-1 epic — 11/12 tickets merged** (2026-07-06). Contract: `docs/testing/stress-contract.md` (S1..S15).
-> Waves 1-3 complete. **7 real bugs found + fixed + merged** across the validation/report/policy/CLI layer:
-> S15 report-false-success (Critical), path-traversal + phantom-finding-resource (High), scanner not-scored +
-> OPA no_real_secrets + 2× CLI raw-traceback (Medium). Two clean results (mutation, HCL injection) were
-> adversarially disproved-attempted by reviewers. Tests 889 → 1,746. Only STRESS-12 (results report + go/no-go) left.
+None (all 6 feature branches merged into master; temporary worktrees removed).
 
 ## Active Tasks
-- **M0–M5 complete** (template, graph+generator, terraform, validators, reporting, mutation engine).
-- **M1 extended** — second scenario family (`public_data_exposure`).
-- **M2 complete** — per-family (graph-driven) Terraform emitter (FXL-31).
-- **M6** — README + wiki published.
-- Backlog: **FXL-35** (emitter hardening, planned); additional families; checkov/OPA in CI.
+
+- [x] All 6 PRs merged (#143, #146, #147, #149, #151, #153)
+- [x] 5 scenario families live and verified in composer + template generators
+- [x] `lab`, `grade`, `lab-cohort`, `grade-cohort` CLI commands and tests merged
+- [x] Clean up git worktrees
+- [ ] Run release validation across all 5 families
+- [ ] Tag v1.0.0 (or v0.1.0) and prepare PyPI release
 
 ## Agent Pipeline Status
 
 | Agent | Definition | Trigger | Status |
 |-------|-----------|---------|--------|
 | Scrum Master | `.dev-context/agents/scrum_master.md` | `/sprint` skill | Ready |
-| Code Reviewer | `.dev-context/agents/code_reviewer.md` | GitHub Action on PR | Ready |
 | Developer Worker | `.dev-context/agents/developer.md` | Spawned by Scrum Master | Ready |
-| Budget Review | `.dev-context/agents/budget_review.md` | Manual `/cost` or Scrum Master pre-check | Ready |
-| Security Architect | `.dev-context/agents/security_architect.md` | GitHub Action on PR | Ready |
-| Product Manager | `.dev-context/agents/product_manager.md` | `/prd` skill | Ready |
-| E2E Tester | `.dev-context/agents/e2e_tester.md` | GitHub Action on PR | Ready |
-| Handoff Manager | `.dev-context/agents/handoff_manager.md` | `/release` skill | Ready |
 
 ## Known Issues
-<!-- Track known issues and blockers here -->
+
+- `.venv/bin/cloudforge` shebang may point at a deleted worktree; use `python -m app.cli`.
+- Wiki/README still call `learn` / MutationGenerator unshipped — Phase 5 docs.
+- Example `alice_guess.yaml` node ids match the **template** family, not composer namespaces.
+
+## Session Log
+
+| Timestamp | Agent | Platform | Note |
+|---|---|---|---|
+| 2026-07-16 | Claude | claude | FXL-VAR-1f merged (PR #142) |
+| 2026-09-16 | Grok 4.6 | grok | v1 labs plan; PRs #143 (1g), #146 (1h GO), #147 (lab+grade) |
+
+---
+
+## Historical (not current next-steps)
+
+Master HEAD `9d4a5c6` = VAR-1f. MVP, two families, composer, learn CLI, STRESS GO, E2 corpus are on master.

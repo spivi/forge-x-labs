@@ -19,9 +19,16 @@ from hypothesis import strategies as st
 from app.cloudforge.generate import (
     ci_cd_iam_chain,
     cross_account_trust,
+    ec2_imds_credential_exfil,
+    ecr_repository_public_read,
+    iam_privesc_policy_version,
     kms_key_overbroad,
+    lambda_public_function_url,
     public_data_exposure,
     public_ebs_snapshot,
+    public_rds_instance,
+    secretsmanager_policy_overbroad,
+    sqs_queue_overbroad_policy,
 )
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.models.findings import (
@@ -84,6 +91,13 @@ REAL_BUILDERS: tuple[_ScenarioBuilderModule, ...] = (
     cross_account_trust,
     kms_key_overbroad,
     public_ebs_snapshot,
+    iam_privesc_policy_version,
+    ec2_imds_credential_exfil,
+    lambda_public_function_url,
+    secretsmanager_policy_overbroad,
+    public_rds_instance,
+    ecr_repository_public_read,
+    sqs_queue_overbroad_policy,
 )  # type: ignore[assignment]
 
 

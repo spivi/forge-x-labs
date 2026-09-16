@@ -220,14 +220,15 @@ runs once per validated scenario, negligible cost. The git push will reference i
 **Date**: 2026-09-16
 
 **Context**: FXL-D004 gated a third family on the 12-point definition being enforceable.
-M7, STRESS, VAR-1 composer, the diversity gate, and the 2,000-scenario large run
-(0 FAIL, 77 shapes, `--gate` exit 0) make that bar enforceable.
+M7, STRESS (GO), VAR-1a–1f, the diversity gate (VAR-1g), and the 2,000-scenario large
+run (VAR-1h: 0 FAIL, 77 shapes, `--gate` exit 0) make that bar enforceable.
 
 **Decision**: New families may be added. Each must join the composer integrity net
 (seeds `{0,1,2,17,99}`, zero FAIL) and emit only resource types the Terraform
 emitter already knows, or land with an emitter ticket in the same change.
 
-**Consequences**: `cross_account_trust` is the first new family (IAM/S3 only).
+**Consequences**: v1 family set in the OSS labs plan (`cross_account_trust`,
+`kms_key_overbroad`, `public_ebs_snapshot`) may proceed after `lab`/`grade`.
 
 ---
 
@@ -236,14 +237,18 @@ emitter already knows, or land with an emitter ticket in the same change.
 **Status**: accepted
 **Date**: 2026-09-16
 
-**Context**: `cloudforge lab` splits a scenario into student/ and instructor/. The full
-graph labels criticality and edge risk, which is the answer key.
+**Context**: `cloudforge lab` splits a scenario into student/ and instructor/.
+The full `graph.json` carries `security.criticality` and `security.risk`, which
+label the critical path. Shipping that to the student makes `grade` a formality.
 
-**Decision**: Student pack = stripped estate (no `security` on nodes/edges), brief (no
-`can_pass_role`, no critical-path node-id chain), Terraform, spec. Findings, ground-truth
-paths, report, and grade_key live only under `instructor/`.
+**Decision**: The student pack contains a stripped estate (nodes: id/type/name/tags/
+attributes; edges: from/to/type — **no** `security` objects), a brief that does not
+name `can_pass_role` or the critical-path node id list, Terraform, and the spec.
+`expected_findings.json`, `ground_truth_paths.json`, `report.md`, and `grade_key.json`
+live only under `instructor/`.
 
-**Consequences**: Leak tests are load-bearing. `grade` reads `instructor/grade_key.json` only.
+**Consequences**: Leak tests are load-bearing. `grade` reads `instructor/grade_key.json`
+only. A student tree alone cannot score itself.
 
 ---
 

@@ -14,7 +14,13 @@ from pathlib import Path
 
 from app.cloudforge.io.loaders import write_text
 from app.cloudforge.models.graph import GraphNode, ScenarioGraph
-from app.cloudforge.pipeline import terraform_blocks as blocks
+from app.cloudforge.pipeline import (
+    terraform_blocks as blocks,
+    terraform_compute as compute,
+    terraform_database as database,
+    terraform_serverless as serverless,
+    terraform_services as services,
+)
 from app.cloudforge.pipeline.label_collisions import check_label_collisions
 
 _STATIC_BUILDERS: dict[str, Callable[[], str]] = {
@@ -31,6 +37,10 @@ _GRAPH_BUILDERS: dict[str, Callable[[list[GraphNode]], str]] = {
     "network.tf": blocks.build_network_tf,
     "kms.tf": blocks.build_kms_tf,
     "snapshot.tf": blocks.build_snapshot_tf,
+    "compute.tf": compute.build_compute_tf,
+    "serverless.tf": serverless.build_serverless_tf,
+    "database.tf": database.build_database_tf,
+    "services.tf": services.build_services_tf,
 }
 
 
