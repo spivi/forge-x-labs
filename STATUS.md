@@ -50,7 +50,11 @@
 
 | Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
 |---|---|---|---|---|---|
-| feat/FXL-VAR-1g-diversity-gate | ../cloudforge--FXL-VAR-1g | FXL-VAR-1g | grok | in-progress | variation/gate.py, --gate CLI, aws_ci/aws_large specs |
+| feat/FXL-VAR-1g-diversity-gate | ../cloudforge--FXL-VAR-1g | FXL-VAR-1g | grok | pr-open #143 | gate.py, --gate, aws_ci/aws_large |
+| feat/FXL-VAR-1h-docs-evidence | ../cloudforge--FXL-VAR-1h | FXL-VAR-1h | grok | in-progress | docs/variation, FXL-VAR-1-result.md |
+
+> **FXL-VAR-1h evidence (2026-09-16):** large run 2,000 scenarios, 0 FAIL, 77 shapes,
+> `--gate` exit 0 (**GO**). `.dev-context/sprint-runs/FXL-VAR-1-result.md`.
 
 > **FXL-STRESS-1 epic — 11/12 tickets merged** (2026-07-06). Contract: `docs/testing/stress-contract.md` (S1..S15).
 > Waves 1-3 complete. **7 real bugs found + fixed + merged** across the validation/report/policy/CLI layer:
