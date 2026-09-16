@@ -23,7 +23,13 @@ from app.cloudforge.validate.orchestrator import run_validations
 from app.cloudforge.validate.results import Status
 
 _SEEDS = [0, 1, 2, 17, 99]
-_FAMILIES = ["ci_cd_iam_chain", "public_data_exposure", "cross_account_trust"]
+_FAMILIES = [
+    "ci_cd_iam_chain",
+    "public_data_exposure",
+    "cross_account_trust",
+    "kms_key_overbroad",
+    "public_ebs_snapshot",
+]
 
 
 @pytest.fixture(autouse=True)

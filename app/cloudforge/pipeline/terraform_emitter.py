@@ -29,11 +29,13 @@ _GRAPH_BUILDERS: dict[str, Callable[[list[GraphNode]], str]] = {
     "iam.tf": blocks.build_iam_tf,
     "s3.tf": blocks.build_s3_tf,
     "network.tf": blocks.build_network_tf,
+    "kms.tf": blocks.build_kms_tf,
+    "snapshot.tf": blocks.build_snapshot_tf,
 }
 
 
 class TerraformEmitter:
-    """Writes the six ``.tf`` files that make up the compiled scenario."""
+    """Writes the compiled scenario ``.tf`` files (static + graph-driven)."""
 
     def __init__(self, graph: ScenarioGraph) -> None:
         self._graph = graph

@@ -19,6 +19,7 @@ from collections.abc import Callable
 
 from app.cloudforge import constants
 from app.cloudforge.models.graph import GraphNode, NodeTags, NodeType
+from app.cloudforge.pipeline import terraform_kms_snapshot as kms_snap
 from app.cloudforge.pipeline import terraform_resource_blocks as res
 from app.cloudforge.pipeline.terraform_resource_blocks import hcl_str
 
@@ -133,3 +134,13 @@ def build_network_tf(nodes: list[GraphNode]) -> str:
         res.security_group_block(n, vpc_ref) for n in _of_type(nodes, NodeType.SECURITY_GROUP)
     ]
     return "\n".join(blocks) if blocks else _EMPTY
+
+
+def build_kms_tf(nodes: list[GraphNode]) -> str:
+    """Render one KMS key per KmsKey node."""
+    return _render(_of_type(nodes, NodeType.KMS_KEY), kms_snap.kms_key_block)
+
+
+def build_snapshot_tf(nodes: list[GraphNode]) -> str:
+    """Render one EBS snapshot per EbsSnapshot node."""
+    return _render(_of_type(nodes, NodeType.EBS_SNAPSHOT), kms_snap.snapshot_block)

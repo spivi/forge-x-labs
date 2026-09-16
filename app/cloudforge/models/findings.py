@@ -21,6 +21,8 @@ class FindingFamily(StrEnum):
     IAM_CROSS_ACCOUNT_TRUST = "iam_cross_account_trust"
     S3_LOGGING_MISSING = "s3_logging_missing"
     S3_PUBLIC_EXPOSURE = "s3_public_exposure"
+    KMS_KEY_POLICY_OVERBROAD = "kms_key_policy_overbroad"
+    EBS_SNAPSHOT_PUBLIC = "ebs_snapshot_public"
     SECURITY_GROUP_OVEREXPOSED = "security_group_overexposed"
     PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL = (
         "public_looking_bucket_with_compensating_control"
