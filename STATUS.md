@@ -50,7 +50,7 @@
 
 | Branch | Worktree Dir | Ticket | Agent | Status | Files Touched |
 |---|---|---|---|---|---|
-| (none) | — | — | — | — | — |
+| feat/FXL-VAR-1g-diversity-gate | ../cloudforge--FXL-VAR-1g | FXL-VAR-1g | grok | in-progress | variation/gate.py, --gate CLI, aws_ci/aws_large specs |
 
 > **FXL-STRESS-1 epic — 11/12 tickets merged** (2026-07-06). Contract: `docs/testing/stress-contract.md` (S1..S15).
 > Waves 1-3 complete. **7 real bugs found + fixed + merged** across the validation/report/policy/CLI layer:

@@ -23,6 +23,7 @@ from app.cloudforge.errors import CloudforgeError
 from app.cloudforge.io.loaders import dump_json, load_json, load_yaml
 from app.cloudforge.io.paths import ScenarioPaths
 from app.cloudforge.models.scenario import ScenarioSpec
+from app.cloudforge.variation.gate import cosmetic_message, evaluate_gate
 from app.cloudforge.variation.minimize import minimize
 from app.cloudforge.variation.models import RunManifest, ScenarioManifestEntry, VariationSpec
 from app.cloudforge.variation.replay import replay
@@ -45,6 +46,10 @@ def run(
     run_id: Annotated[
         str, typer.Option("--run-id", help="Run id label (a parameter, never generated).")
     ],
+    gate: Annotated[
+        bool,
+        typer.Option("--gate", help="Fail the command if the diversity gate is not met."),
+    ] = False,
 ) -> None:
     """Compose+validate+report every cell of the spec's sweep, writing the run tree
     directly under ``--out`` (so ``--out <dir>`` yields ``<dir>/manifest.json``). The
@@ -65,6 +70,26 @@ def run(
     )
     if result.aborted:
         raise typer.Exit(code=1)
+    if gate:
+        try:
+            _apply_gate(out)
+        except _CLI_ERRORS as exc:
+            console.print(f"[red]error:[/red] {exc}")
+            raise typer.Exit(code=1) from exc
+
+
+def _apply_gate(run_dir: Path) -> None:
+    """Load the run's diversity report and exit 1 if the depth bar is missed."""
+    report = load_json(run_dir / "diversity_report.json")
+    result = evaluate_gate(report)
+    for warning in result.warnings:
+        console.print(f"[yellow]gate:[/yellow] {warning}")
+    if result.passed:
+        return
+    for failure in result.failures:
+        console.print(f"[red]gate:[/red] {failure}")
+    console.print(f"[red]{cosmetic_message()}[/red]")
+    raise typer.Exit(code=1)
 
 
 def _relabel_run(run_dir: Path, run_id: str) -> None:

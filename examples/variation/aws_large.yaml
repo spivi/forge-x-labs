@@ -1,0 +1,28 @@
+# Large VariationSpec — manual/nightly: 2 families × 4 scales × 250 seeds = 2,000 scenarios.
+# See docs/superpowers/specs/2026-07-06-FXL-VAR-1-variation-validation-design.md §8.
+# Do not run this in the default pytest suite.
+families:
+  - ci_cd_iam_chain
+  - public_data_exposure
+seed_start: 0
+seed_count: 250
+scale_profiles:
+  - tiny
+  - small
+  - medium
+  - large
+variation_axes:
+  decoy: ["0", "1", "2"]
+  fp: ["0", "1"]
+  ctrl: ["0", "1"]
+  path_length: ["3", "4", "5", "6"]
+constraints:
+  no_apply: true
+  no_credentials: true
+  max_failures_before_abort: 25
+validation_profile:
+  run_validate: true
+  run_report: true
+  run_terraform_validate: if_available
+  run_checkov: if_available
+  run_opa: if_available
