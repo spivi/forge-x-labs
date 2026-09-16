@@ -1,4 +1,4 @@
-# CI VariationSpec — PR/CI run: 2 families × 2 scales × 25 seeds = 100 scenarios.
+# CI VariationSpec - PR/CI run: 2 families × 2 scales × 25 seeds = 100 scenarios.
 # See docs/superpowers/specs/2026-07-06-FXL-VAR-1-variation-validation-design.md §8.
 families:
   - ci_cd_iam_chain

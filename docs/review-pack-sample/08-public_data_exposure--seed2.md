@@ -1,36 +1,36 @@
-# Review Sheet 08 — `public_data_exposure--seed2`
+# Review Sheet 08 - `public_data_exposure--seed2`
 
 > Sheet auto-assembled from this scenario's real generated artifacts (`report.md` / `graph.json` / `ground_truth_paths.json` / `expected_findings.json`). Score the reviewer view **blind**, then read the reveal. Rubric: [`../review-rubric.md`](../review-rubric.md).
 
-## Reviewer view — score this half BLIND (do not scroll to the reveal)
+## Reviewer view - score this half BLIND (do not scroll to the reveal)
 
 - **Cloud:** aws
 - **Type:** public_data_exposure
 - **Environment:** prod (medium)
-- **Company:** b2b_saas, medium — app `customer-data-lake`
+- **Company:** b2b_saas, medium - app `customer-data-lake`
 - **Resource budget:** max 30
 - **Size:** 8 resources, 6 edges
 
 **Generated resources**
 
-- `acct-main` — **Account** prod-account (high)
-- `vpc-prod` — **VPC** res-prod-vpc-b (low)
-- `s3-public-data` — **S3Bucket** env-customer-pii-x (critical)
-- `s3-locked-backups` — **S3Bucket** env-public-looking-backups-b (medium)
-- `app-data-lake` — **Application** customer-data-lake (high)
-- `data-customer-pii` — **DataSet** app-customer-pii-records-alt (critical)
-- `trail-main` — **LogTrail** svc-main-trail-v2 (medium)
-- `subnet-benign-extra` — **Subnet** svc-spare-subnet-v2 (low)
+- `acct-main` - **Account** prod-account (high)
+- `vpc-prod` - **VPC** res-prod-vpc-b (low)
+- `s3-public-data` - **S3Bucket** env-customer-pii-x (critical)
+- `s3-locked-backups` - **S3Bucket** env-public-looking-backups-b (medium)
+- `app-data-lake` - **Application** customer-data-lake (high)
+- `data-customer-pii` - **DataSet** app-customer-pii-records-alt (critical)
+- `trail-main` - **LogTrail** svc-main-trail-v2 (medium)
+- `subnet-benign-extra` - **Subnet** svc-spare-subnet-v2 (low)
 
 **Risk narrative (as an analyst would read it)**
 
 A medium b2b saas prod account fronting a customer data lake. There are S3 buckets holding PII, a public-looking backups bucket, and the usual account / VPC / trail scaffolding. One or more buckets appear reachable from the internet. Your job blind: decide which exposure is real customer-PII risk versus a decoy, whether the logging posture matters, and whether a scanner would flag the right bucket.
 
-**Findings surfaced** (family · severity · resources · expected scanner visibility — _the "why" and remediation are withheld until the reveal_)
+**Findings surfaced** (family · severity · resources · expected scanner visibility - _the "why" and remediation are withheld until the reveal_)
 
-- **[critical]** `s3_public_exposure` — `s3-public-data`, `data-customer-pii` · visibility: **visible**
-- **[medium]** `s3_logging_missing` — `s3-public-data`, `trail-main` · visibility: **visible**
-- **[low]** `public_looking_bucket_with_compensating_control` — `s3-locked-backups` · visibility: **visible**
+- **[critical]** `s3_public_exposure` - `s3-public-data`, `data-customer-pii` · visibility: **visible**
+- **[medium]** `s3_logging_missing` - `s3-public-data`, `trail-main` · visibility: **visible**
+- **[low]** `public_looking_bucket_with_compensating_control` - `s3-locked-backups` · visibility: **visible**
 
 **Blind scoring** (anchors in the rubric)
 
@@ -46,7 +46,7 @@ A medium b2b saas prod account fronting a customer data lake. There are S3 bucke
 
 ---
 
-## Reveal — read only AFTER scoring the reviewer view
+## Reveal - read only AFTER scoring the reviewer view
 
 **Ground-truth critical path** (critical)
 
@@ -54,22 +54,22 @@ A medium b2b saas prod account fronting a customer data lake. There are S3 bucke
 
 > The customer-pii bucket has public-read access with no compensating control, so it is reachable directly from the internet -> anonymous read of the sensitive customer-PII dataset it stores.
 
-**Expected findings — and why**
+**Expected findings - and why**
 
-- **[critical]** `s3_public_exposure` — customer-pii allows public read and stores sensitive data. → *Enable S3 Block Public Access and remove the public-read ACL/bucket policy.*
-- **[medium]** `s3_logging_missing` — The public bucket has no access logging / CloudTrail data events. → *Enable S3 access logging and CloudTrail data events for the bucket.*
-- **[low]** `public_looking_bucket_with_compensating_control` — benign → *None needed — a bucket policy restricts access despite the public-looking name.*
+- **[critical]** `s3_public_exposure` - customer-pii allows public read and stores sensitive data. → *Enable S3 Block Public Access and remove the public-read ACL/bucket policy.*
+- **[medium]** `s3_logging_missing` - The public bucket has no access logging / CloudTrail data events. → *Enable S3 access logging and CloudTrail data events for the bucket.*
+- **[low]** `public_looking_bucket_with_compensating_control` - benign → *None needed - a bucket policy restricts access despite the public-looking name.*
 
 **Remediation order (highest risk first)**
 
 1. **[critical]** Enable S3 Block Public Access and remove the public-read ACL/bucket policy.
 2. **[medium]** Enable S3 access logging and CloudTrail data events for the bucket.
-3. **[low]** None needed — a bucket policy restricts access despite the public-looking name.
+3. **[low]** None needed - a bucket policy restricts access despite the public-looking name.
 
 **Decoy / mutation note**
 
-_Seeded mutation (`--mutate-seed 2`) of the base `public_data_exposure`._ The mutation renamed resource **display labels** and added a benign decoy node: `subnet-benign-extra` (svc-spare-subnet-v2) — a spare, unconnected subnet with no risk edge. A reviewer should NOT let the renamed labels or the extra resource change the score. Ground-truth critical-path node IDs identical to base: **True**; edges identical: **True** — i.e. the mutation preserved ground truth (12-point definition #12).
+_Seeded mutation (`--mutate-seed 2`) of the base `public_data_exposure`._ The mutation renamed resource **display labels** and added a benign decoy node: `subnet-benign-extra` (svc-spare-subnet-v2) - a spare, unconnected subnet with no risk edge. A reviewer should NOT let the renamed labels or the extra resource change the score. Ground-truth critical-path node IDs identical to base: **True**; edges identical: **True** - i.e. the mutation preserved ground truth (12-point definition #12).
 
 **Coherence check**
 
-- Was the scenario coherent (did the reveal match your blind read)?  y / n — why:
+- Was the scenario coherent (did the reveal match your blind read)?  y / n - why:

@@ -1,4 +1,4 @@
-# cloudforge seed rule catalog — hand-authored defensive cloud-risk patterns.
+# cloudforge seed rule catalog - hand-authored defensive cloud-risk patterns.
 #
 # Ticket: FXL-72 (design §8 "Seed rule catalog"). This is the Tier-4 local rule
 # catalog referenced by `data/source_registry.yaml` (`local-rule-catalog`, path
@@ -9,7 +9,7 @@
 #   - hand-authored and fully owned by this repo (license: CC0-1.0, reuse_status:
 #     full_reuse, allowed_for_training: true)
 #   - DEFENSIVE and high-level: it names the misconfiguration and its remediation
-#     only — no operational attacker steps, no persistence/evasion technique
+#     only - no operational attacker steps, no persistence/evasion technique
 #   - free of real secrets, credentials, or live/real cloud account IDs (any
 #     account-id-shaped example uses the project's DUMMY_ACCOUNT_ID convention,
 #     "000000000000", or a generic placeholder ARN)
@@ -20,7 +20,7 @@
 #
 # Ticket #98: every entry additionally carries a HAND-AUTHORED `graph_fragment`
 # (a `ScenarioGraph`-shaped mapping: real nodes + the edges the risk ACTUALLY
-# describes — ground truth, never fabricated from flat fields) and >=1
+# describes - ground truth, never fabricated from flat fields) and >=1
 # `expected_findings` entry (an `ExpectedFinding`-shaped mapping referencing real
 # fragment node ids). The adapter validates both against the product models and
 # serializes them into the raw record's `graph` / `expected_findings` fields
@@ -39,7 +39,7 @@
 # `FindingFamily` is narrower than `WeaknessFamily`; each finding uses the CLOSEST
 # real family and non-obvious choices are documented inline.
 # The absence of a relationship (e.g. a bucket that does NOT log to a trail) is
-# modeled as the ABSENT edge plus a finding naming both endpoints — mirroring
+# modeled as the ABSENT edge plus a finding naming both endpoints - mirroring
 # `generate/ci_cd_iam_chain.py` / `generate/public_data_exposure.py`.
 
 entries:
@@ -69,7 +69,7 @@ entries:
       dedicated, access-restricted logging bucket.
     references:
       - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerLogs.html"
-    # #98: an inherently simple risk modeled honestly — the bucket plus the log
+    # #98: an inherently simple risk modeled honestly - the bucket plus the log
     # destination its access events SHOULD flow to. The risk is the ABSENCE of the
     # `s3-app-data -> logs_to -> trail-main` edge, so `edges` is deliberately empty
     # (mirrors the ci_cd_iam_chain scenario's s3_logging_missing modeling). No
@@ -132,7 +132,7 @@ entries:
       signed URLs or a CDN origin-access identity instead.
     references:
       - "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
-    # #98: direct public exposure — the account's public-read bucket is reachable
+    # #98: direct public exposure - the account's public-read bucket is reachable
     # from the internet and every object in it is world-readable (mirrors the
     # public_data_exposure scenario: account -exposed_to_internet-> bucket
     # -stores_sensitive_data-> data).
@@ -206,7 +206,7 @@ entries:
       classification for the bucket.
     references:
       - "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege"
-    # #98: the ROLE is the actor — role -attached_policy-> policy grants it
+    # #98: the ROLE is the actor - role -attached_policy-> policy grants it
     # role -can_read-> bucket over the whole sensitive bucket (NEVER
     # policy -can_read-> role, the exact false edge the #96 review rejected).
     # The bucket is declared sensitive by the seed, so its stored records are a
@@ -399,7 +399,7 @@ entries:
       - "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
     # #98: the SG's 0.0.0.0/0 tcp/22 rule exposes the subnet it guards to the
     # internet (same sg -exposed_to_internet-> subnet shape as the
-    # ci_cd_iam_chain scenario). Only the resources the risk names — no invented
+    # ci_cd_iam_chain scenario). Only the resources the risk names - no invented
     # instances or data nodes.
     graph_fragment:
       nodes:
@@ -544,7 +544,7 @@ entries:
     # #98 NodeType mapping (documented, per issue #98): there is no KMS-key
     # NodeType, and the risk lives entirely in the key POLICY document, so the
     # key is modeled via its key policy as an IAMPolicy node (NOT silently as
-    # Application — the #96 bug). The wildcard "*" Principal literally means any
+    # Application - the #96 bug). The wildcard "*" Principal literally means any
     # AWS principal, modeled as an Account node that can use (decrypt with,
     # i.e. can_read) the key.
     graph_fragment:
@@ -613,7 +613,7 @@ entries:
       trail-stopped events.
     references:
       - "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-create-a-trail-using-the-console-first-time.html"
-    # #98: another inherently simple absence risk, modeled honestly — the account
+    # #98: another inherently simple absence risk, modeled honestly - the account
     # whose API activity SHOULD flow to the trail, and the stopped trail. The
     # risk is the ABSENT `acct-main -> logs_to -> trail-main` edge, so `edges`
     # is deliberately empty; no unrelated edges are fabricated.
@@ -769,7 +769,7 @@ entries:
     # Vault is a generic Application node. A vault literally stores secrets and
     # keys (a real stores_sensitive_data edge to a DataSet), and its public
     # endpoint is reachable from all networks (subscription
-    # -exposed_to_internet-> vault). Auth is still required — this is network
+    # -exposed_to_internet-> vault). Auth is still required - this is network
     # overexposure, NOT anonymous public read.
     graph_fragment:
       nodes:
@@ -797,7 +797,7 @@ entries:
         - {from: kv-app-secrets, to: data-vault-secrets, type: stores_sensitive_data, security: {risk: "critical"}}
     expected_findings:
       # security_group_overexposed is FindingFamily's network-overexposure
-      # family — the closest real family for an endpoint open to all networks
+      # family - the closest real family for an endpoint open to all networks
       # (documented, #98; NOT s3_public_exposure, since access still requires
       # authentication). The seed's weakness_family stays unrestricted_access.
       - id: find-az-kv-010
@@ -842,7 +842,7 @@ entries:
       Access Prevention on the bucket.
     references:
       - "https://cloud.google.com/storage/docs/access-control/making-data-public"
-    # #98: the IAM binding IS the risk, modeled precisely — the public allUsers
+    # #98: the IAM binding IS the risk, modeled precisely - the public allUsers
     # principal (documented as an Account node; there is no anonymous-principal
     # NodeType) holds roles/storage.objectViewer, i.e. allUsers -can_read->
     # bucket, and the bucket's objects are the exposed data.
@@ -1000,7 +1000,7 @@ entries:
     references:
       - "https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services"
     # #98 NodeType mapping (documented): the IAM user (and its long-lived static
-    # access key, aws_iam_access_key — a credential attribute of the identity,
+    # access key, aws_iam_access_key - a credential attribute of the identity,
     # not a separate graph resource) is modeled as an IAMRole identity node.
     # The pipeline authenticates AS that identity with the stored key
     # (pipeline -assumes-> identity); the risk is that this standing credential
@@ -1028,7 +1028,7 @@ entries:
         - {from: cicd-pipeline, to: iam-user-ci-deployer, type: assumes, security: {risk: "high"}}
     expected_findings:
       # FindingFamily has no secrets/credential-hygiene value; a never-expiring
-      # static credential is standing privilege that should be ephemeral OIDC —
+      # static credential is standing privilege that should be ephemeral OIDC -
       # iam_excessive_privilege is the closest real family (documented, #98).
       # The seed's weakness_family stays secrets_exposure.
       - id: find-cicd-static-013

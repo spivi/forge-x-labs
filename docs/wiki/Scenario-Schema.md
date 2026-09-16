@@ -29,17 +29,17 @@ constraints:
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `cloud` | `"aws"` | AWS only in the MVP |
-| `scenario_type` | string | Dispatches to a generator (e.g. `ci_cd_iam_chain`) |
-| `environment` | string | e.g. `staging` |
-| `difficulty` | string | e.g. `medium` |
+| `cloud` | `"aws"` | AWS only in v1 |
+| `scenario_type` | string | Dispatches to a generator (for example `ci_cd_iam_chain`) |
+| `environment` | string | for example `staging` |
+| `difficulty` | string | for example `medium` |
 | `company_profile.type/size/app_name` | string | Narrative context |
 | `requirements.critical_chains` | int | Expected critical risk paths |
 | `requirements.medium_findings` | int | Expected medium findings |
 | `requirements.false_positives` | int | Expected benign/near-miss findings |
 | `constraints.no_real_secrets` | bool | Must be true |
 | `constraints.no_destructive_permissions` | bool | Must be true |
-| `constraints.max_resources` | int | Graph node budget (enforced by the risk engine) |
-| `constraints.deployable` | bool | **Must be `false`** — a validator rejects `true` |
+| `constraints.max_resources` | int | Graph node budget |
+| `constraints.deployable` | bool | **Must be `false`**. A validator rejects `true`. |
 
-Unknown fields are rejected (`extra="forbid"`), so typos fail fast at load time.
+Unknown fields are rejected (`extra="forbid"`), so typos fail at load time.

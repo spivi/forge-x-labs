@@ -1,4 +1,4 @@
-# Example scenario input — user intent for a CI/CD IAM privilege-chain scenario.
+# Example scenario input - user intent for a CI/CD IAM privilege-chain scenario.
 # This is the source of intent; the generated graph.json is the source of truth.
 cloud: aws
 scenario_type: ci_cd_iam_chain

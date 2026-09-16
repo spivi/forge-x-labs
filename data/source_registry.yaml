@@ -1,10 +1,10 @@
-# cloudforge learning-corpus — source registry (allow-list)
+# cloudforge learning-corpus - source registry (allow-list)
 #
 # This file is the ONLY set of sources the corpus fetcher/ingester is allowed to touch.
-# There is NO broad crawling and NO spider — the fetcher refuses anything not listed here
+# There is NO broad crawling and NO spider - the fetcher refuses anything not listed here
 # (and anything with `enabled: false`). Every entry's provenance is stamped onto the
-# RiskPatterns it produces. See docs/plans/2026-07-05-FXL-E2-learning-corpus-design.md §4
-# and (once written) docs/wiki/Source-Registry.md + Provenance-and-Licensing.md.
+# RiskPatterns it produces. See docs/wiki/Source-Registry.md and
+# docs/wiki/Provenance-and-Licensing.md.
 #
 # Per-entry schema:
 #   id                    stable slug; used in provenance + raw-cache path data/raw/<id>/
@@ -48,7 +48,7 @@ sources:
       rule source or logic. Apache-2.0 permits more, but we stay metadata-only by policy.
       Ingested from a recorded fixture HTML in unit tests (no live Checkov, no internet).
 
-  # ── Tier 4: public "bad-env" IaC — LOCAL curated registry ONLY (no broad scraping) ──
+  # ── Tier 4: public "bad-env" IaC - LOCAL curated registry ONLY (no broad scraping) ──
   - id: local-rule-catalog
     name: "cloudforge local curated rule catalog (seed patterns)"
     type: local_rule_catalog
@@ -77,14 +77,14 @@ sources:
       Ingests existing out/<scenario> dirs (scenario.yaml / graph.json /
       expected_findings.json / ground_truth_paths.json). Already validated & self-consistent.
 
-  # ── Scaffolded-for-the-future (disabled): control frameworks — HUMAN CALL on reuse ──
+  # ── Scaffolded-for-the-future (disabled): control frameworks - HUMAN CALL on reuse ──
   - id: csa-ccm
-    name: "CSA Cloud Controls Matrix (CCM v4) — 197 controls / 17 domains"
+    name: "CSA Cloud Controls Matrix (CCM v4) - 197 controls / 17 domains"
     type: control_framework
     url: "https://cloudsecurityalliance.org/research/cloud-controls-matrix"
     adapter: rule_catalog_yaml   # placeholder; a CCM adapter is future work, not this epic
     enabled: false
-    license: "CSA CCM — machine-readable (JSON/YAML/OSCAL); mappings reusable, text not"
+    license: "CSA CCM - machine-readable (JSON/YAML/OSCAL); mappings reusable, text not"
     reuse_status: mappings_only   # control-ID mappings reusable; control TEXT is not
     allowed_for_training: true     # per FXL-D007: CCM control-ID MAPPINGS are training-eligible
     notes: >-
@@ -93,7 +93,7 @@ sources:
       export is NOT permitted. Adapters must emit control_mappings only, never control body text.
 
   - id: cis-benchmarks
-    name: "CIS Benchmarks (cloud) — metadata only"
+    name: "CIS Benchmarks (cloud) - metadata only"
     type: control_framework
     url: "https://www.cisecurity.org/cis-benchmarks"
     adapter: rule_catalog_yaml   # placeholder; not ingested this epic
