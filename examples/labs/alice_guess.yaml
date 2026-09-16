@@ -1,0 +1,11 @@
+# Example student submission for ``cloudforge grade``.
+# Node ids must match the lab's stripped estate (they vary by --seed).
+paths:
+  - nodes:
+      - cicd-github
+      - role-deploy
+      - role-runtime
+      - s3-customer-exports
+findings:
+  - iam_passrole_risk
+  - s3_logging_missing

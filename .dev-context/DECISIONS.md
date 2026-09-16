@@ -215,3 +215,20 @@ New scenario families automatically benefit (no rego coupling needed). The BFS i
 runs once per validated scenario, negligible cost. The git push will reference issue #79 (Closes).
 
 ---
+
+## FXL-D010: Student lab pack must not contain the answer key
+
+**Status**: accepted
+**Date**: 2026-09-16
+
+**Context**: `cloudforge lab` splits a scenario into student/ and instructor/. The full
+graph labels criticality and edge risk, which is the answer key.
+
+**Decision**: Student pack = stripped estate (no `security` on nodes/edges), brief (no
+`can_pass_role`, no critical-path node-id chain), Terraform, spec. Findings, ground-truth
+paths, report, and grade_key live only under `instructor/`.
+
+**Consequences**: Leak tests are load-bearing. `grade` reads `instructor/grade_key.json` only.
+
+---
+
