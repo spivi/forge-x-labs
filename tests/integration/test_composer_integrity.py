@@ -18,11 +18,17 @@ from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.io.paths import ScenarioPaths
 from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.pipeline.artifacts import ScenarioArtifacts
+from app.cloudforge.validate import tool_probe
 from app.cloudforge.validate.orchestrator import run_validations
 from app.cloudforge.validate.results import Status
 
 _SEEDS = [0, 1, 2, 17, 99]
-_FAMILIES = ["ci_cd_iam_chain", "public_data_exposure"]
+_FAMILIES = ["ci_cd_iam_chain", "public_data_exposure", "cross_account_trust"]
+
+
+@pytest.fixture(autouse=True)
+def _no_external_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tool_probe, "detect_tool", lambda name: False)
 
 
 def _spec(family: str) -> ScenarioSpec:

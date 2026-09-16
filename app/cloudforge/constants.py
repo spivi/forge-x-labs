@@ -32,6 +32,7 @@ TERRAFORM_FILES: Final = (
 
 # --- safe fake values (never deployed) ---------------------------------------
 DUMMY_ACCOUNT_ID: Final = "000000000000"
+EXTERNAL_DUMMY_ACCOUNT_ID: Final = "999999999999"
 DEFAULT_REGION: Final = "us-east-1"
 
 # --- terraform emitter defaults ----------------------------------------------

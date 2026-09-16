@@ -25,6 +25,7 @@ from app.cloudforge.generate.fragments import (
     benign_noise,  # noqa: F401
     compensating_control,  # noqa: F401
     core_ci_cd,  # noqa: F401
+    core_cross_account,  # noqa: F401
     core_public_data,  # noqa: F401
     decoy,  # noqa: F401
     false_positive,  # noqa: F401
@@ -43,6 +44,7 @@ from app.cloudforge.models.scenario import ScenarioSpec
 _CORE_KINDS = {
     "ci_cd_iam_chain": "core.ci_cd_iam_chain",
     "public_data_exposure": "core.public_data_exposure",
+    "cross_account_trust": "core.cross_account_trust",
 }
 _NOISE_KIND = "benign_noise.unrelated_bucket"
 _EXTRA_KINDS = (
@@ -53,6 +55,7 @@ _EXTRA_KINDS = (
 _SHORT = {
     "core.ci_cd_iam_chain": "core",
     "core.public_data_exposure": "core",
+    "core.cross_account_trust": "core",
     "decoy.iam_role_dead_end": "decoy",
     "false_positive.public_denied_bucket": "fp",
     "compensating_control.explicit_deny": "ctrl",
