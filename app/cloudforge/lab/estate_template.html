@@ -6,35 +6,34 @@
   <title>cloudforge · Interactive Lab Workbench</title>
   <style>
     :root {
-      --bg: #13110c;
-      --bg-raise: #1a1812;
-      --bg-panel: #221f17;
-      --bg-card: #28241b;
-      --bg-card-hover: #332e23;
-      --ink: #f2ede1;
-      --ink-soft: #c4bca8;
-      --ink-faint: #8b8371;
-      --rule: #3a352a;
-      --rule-light: #4c4637;
-      --ember: #e8873a;
-      --ember-glow: rgba(232,135,58,0.25);
-      --pass: #6fbf73;
-      --pass-bg: rgba(111,191,115,0.15);
-      --stop: #d6705f;
-      --stop-bg: rgba(214,112,95,0.15);
-      --info: #5ab0f6;
-      --code-bg: #0d0c08;
-      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+      /* Spivitz Design System Tokens */
+      --color-bg: #f9f9f7;
+      --color-text: #1a1a1a;
+      --color-border: #e5e5e5;
+      --color-border-dark: #1a1a1a;
+      --color-code-bg: #f0f0ee;
+      --color-muted: #63635e;
+      --color-surface: #f2f2f0;
+      --color-surface-card: #ffffff;
+      --color-accent: #2f5d3a;
+      --color-accent-hover: #23462b;
+      --color-glitch-red: #b3122a;
+      --color-glitch-cyan: #006c7a;
+      --radius: 2px;
+      --transition: 150ms ease-out;
+
+      --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, sfmono-regular, menlo, Consolas, monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: var(--bg);
-      color: var(--ink);
+      background: var(--color-bg);
+      color: var(--color-text);
       font-family: var(--font-sans);
-      font-size: 14px;
-      line-height: 1.5;
+      font-size: 13px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -43,8 +42,8 @@
 
     /* Top Bar */
     header {
-      background: var(--bg-raise);
-      border-bottom: 1px solid var(--rule);
+      background: var(--color-surface-card);
+      border-bottom: 1px solid var(--color-border);
       padding: 12px 24px;
       display: flex;
       align-items: center;
@@ -53,60 +52,79 @@
     }
     .brand {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 12px;
     }
-    .brand h1 {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.01em;
-    }
-    .brand .logo-badge {
-      background: var(--ember-glow);
-      color: var(--ember);
-      border: 1px solid var(--ember);
+    .wordmark {
+      font-family: var(--font-mono);
       font-weight: 700;
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 4px;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+      color: var(--color-text);
       text-transform: uppercase;
+    }
+    .wordmark__glitch {
+      color: var(--color-text);
+      text-shadow:
+        -1px 0 var(--color-glitch-red),
+        1px 0 var(--color-glitch-cyan);
+    }
+    .version-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--color-accent);
+      background: #f0f7f2;
+      border: 1px solid #d2e7d7;
+      padding: 1px 5px;
+      border-radius: var(--radius);
+      letter-spacing: 0.04em;
+    }
+    .header-title {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .header-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-muted);
       letter-spacing: 0.05em;
     }
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
     }
     .btn {
-      background: var(--bg-panel);
-      border: 1px solid var(--rule);
-      color: var(--ink);
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-text);
+      color: var(--color-text);
       padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 13px;
+      border-radius: var(--radius);
+      font-size: 11px;
       font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.15s ease;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
     }
     .btn:hover {
-      background: var(--bg-card);
-      border-color: var(--rule-light);
+      background: var(--color-text);
+      color: #ffffff;
     }
     .btn.primary {
-      background: var(--ember);
-      border-color: var(--ember);
-      color: #111;
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #ffffff;
     }
     .btn.primary:hover {
-      background: #f0954b;
-    }
-    .btn.pass-btn {
-      background: var(--pass-bg);
-      border-color: var(--pass);
-      color: var(--pass);
+      background: var(--color-accent-hover);
+      border-color: var(--color-accent-hover);
     }
 
     /* Main Container */
@@ -116,7 +134,7 @@
       overflow: hidden;
     }
 
-    /* Left: Architecture & Layers (70%) */
+    /* Left: Architecture Canvas (70%) */
     .arch-canvas {
       flex: 1;
       overflow-y: auto;
@@ -124,12 +142,13 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
+      background: var(--color-bg);
     }
 
     .layer-container {
-      background: var(--bg-raise);
-      border: 1px solid var(--rule);
-      border-radius: 10px;
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
       padding: 16px 20px;
     }
     .layer-header {
@@ -138,21 +157,23 @@
       justify-content: space-between;
       margin-bottom: 14px;
       padding-bottom: 8px;
-      border-bottom: 1px dashed var(--rule);
+      border-bottom: 1px solid var(--color-border);
     }
     .layer-title {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--ink-soft);
+      letter-spacing: 0.08em;
+      color: var(--color-text);
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .layer-count {
-      font-size: 11px;
-      color: var(--ink-faint);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--color-muted);
+      letter-spacing: 0.04em;
     }
 
     .nodes-grid {
@@ -162,26 +183,24 @@
     }
 
     .node-card {
-      background: var(--bg-card);
-      border: 1px solid var(--rule);
-      border-radius: 8px;
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
       padding: 12px 14px;
       cursor: pointer;
       position: relative;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: border-color var(--transition), background-color var(--transition);
       user-select: none;
     }
     .node-card:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--rule-light);
-      transform: translateY(-2px);
+      border-color: var(--color-border-dark);
     }
     .node-card.selected {
-      border-color: var(--ember);
-      box-shadow: 0 0 0 1px var(--ember), 0 4px 12px var(--ember-glow);
+      border: 2px solid var(--color-accent);
+      background: #f4f8f5;
     }
     .node-card.active-hover {
-      border-color: var(--info);
+      border-color: var(--color-glitch-cyan);
     }
 
     .node-card-top {
@@ -191,10 +210,9 @@
       margin-bottom: 8px;
     }
     .service-icon {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       flex-shrink: 0;
-      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -207,16 +225,17 @@
       overflow: hidden;
     }
     .node-type {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--ink-faint);
+      letter-spacing: 0.08em;
+      color: var(--color-muted);
+      font-family: var(--font-mono);
     }
     .node-name {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--ink);
+      color: var(--color-text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -224,10 +243,11 @@
     .node-id {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--ember);
-      background: var(--code-bg);
+      color: var(--color-accent);
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
       padding: 2px 6px;
-      border-radius: 4px;
+      border-radius: var(--radius);
       display: inline-block;
       margin-bottom: 6px;
     }
@@ -239,33 +259,35 @@
     }
     .attr-chip {
       font-size: 10px;
-      background: rgba(255,255,255,0.06);
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
       padding: 1px 6px;
-      border-radius: 3px;
-      color: var(--ink-soft);
+      border-radius: var(--radius);
+      color: var(--color-muted);
       font-family: var(--font-mono);
     }
     .attr-chip.alert {
-      background: var(--stop-bg);
-      color: var(--stop);
+      background: #fff5f5;
+      border-color: var(--color-glitch-red);
+      color: var(--color-glitch-red);
       font-weight: 600;
     }
 
     .step-badge {
       position: absolute;
-      top: -8px;
-      right: -8px;
-      background: var(--ember);
-      color: #111;
-      font-weight: 800;
-      font-size: 11px;
+      top: -1px;
+      right: -1px;
+      background: var(--color-accent);
+      color: #ffffff;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-size: 10px;
       width: 20px;
       height: 20px;
-      border-radius: 50%;
+      border-radius: var(--radius);
       display: none;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
     }
     .node-card.selected .step-badge {
       display: flex;
@@ -274,32 +296,35 @@
     /* Right: Investigation Sidebar (30%) */
     .investigation-panel {
       width: 440px;
-      background: var(--bg-raise);
-      border-left: 1px solid var(--rule);
+      background: var(--color-surface);
+      border-left: 1px solid var(--color-border);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
     }
     .panel-tabs {
       display: flex;
-      border-bottom: 1px solid var(--rule);
-      background: var(--bg-panel);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface);
     }
     .panel-tab {
       flex: 1;
       padding: 10px 14px;
       text-align: center;
       font-weight: 600;
-      font-size: 12px;
-      color: var(--ink-soft);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--color-muted);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      transition: all 0.15s;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
     }
     .panel-tab.active {
-      color: var(--ember);
-      border-bottom-color: var(--ember);
-      background: var(--bg-raise);
+      color: var(--color-text);
+      font-weight: 700;
+      border-bottom-color: var(--color-accent);
+      background: var(--color-surface-card);
     }
 
     .panel-content {
@@ -308,51 +333,69 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .panel-section {
-      background: var(--bg-panel);
-      border: 1px solid var(--rule);
-      border-radius: 8px;
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
       padding: 14px 16px;
     }
     .panel-section-title {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--ink-soft);
+      letter-spacing: 0.08em;
+      color: var(--color-text);
       margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--color-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+
+    .mission-brief-box {
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--color-text);
+      background: var(--color-bg);
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-left: 3px solid var(--color-accent);
+      border-radius: var(--radius);
     }
 
     /* Path List */
     .path-sequence {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .path-step-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: var(--bg-card);
-      border: 1px solid var(--rule);
-      padding: 8px 12px;
-      border-radius: 6px;
+      gap: 8px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      padding: 6px 10px;
+      border-radius: var(--radius);
       font-size: 12px;
+      transition: border-color var(--transition);
+    }
+    .path-step-row:hover {
+      border-color: var(--color-text);
     }
     .path-step-num {
-      background: var(--ember);
-      color: #111;
-      font-weight: 800;
-      font-size: 11px;
+      background: var(--color-accent);
+      color: #ffffff;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-size: 10px;
       width: 18px;
       height: 18px;
-      border-radius: 50%;
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -360,24 +403,25 @@
     }
     .path-step-id {
       font-family: var(--font-mono);
-      color: var(--ink);
+      font-size: 11px;
+      color: var(--color-text);
       flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .path-step-remove {
-      color: var(--ink-faint);
+      color: var(--color-muted);
       cursor: pointer;
-      font-weight: 700;
-      padding: 2px 6px;
+      font-size: 12px;
+      padding: 0 4px;
     }
     .path-step-remove:hover {
-      color: var(--stop);
+      color: var(--color-glitch-red);
     }
     .empty-hint {
-      font-size: 12px;
-      color: var(--ink-faint);
+      font-size: 11px;
+      color: var(--color-muted);
       font-style: italic;
       text-align: center;
       padding: 12px;
@@ -387,7 +431,7 @@
     .findings-checklist {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       max-height: 240px;
       overflow-y: auto;
       padding-right: 4px;
@@ -397,81 +441,90 @@
       align-items: flex-start;
       gap: 8px;
       padding: 6px 8px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       cursor: pointer;
       font-size: 12px;
-      transition: background 0.1s;
+      border: 1px solid transparent;
+      transition: background var(--transition), border-color var(--transition);
     }
     .finding-option:hover {
-      background: var(--bg-card);
+      background: var(--color-surface);
+      border-color: var(--color-border);
     }
     .finding-option input {
       margin-top: 3px;
-      accent-color: var(--ember);
+      accent-color: var(--color-accent);
     }
     .finding-text {
-      color: var(--ink-soft);
+      color: var(--color-muted);
       line-height: 1.4;
+      font-size: 11px;
     }
     .finding-code {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--ink);
+      font-weight: 600;
+      color: var(--color-text);
       display: block;
     }
 
     /* YAML Preview */
     .yaml-preview {
-      background: var(--code-bg);
-      border: 1px solid var(--rule);
-      border-radius: 6px;
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
       padding: 12px;
       font-family: var(--font-mono);
-      font-size: 12px;
-      color: #98c379;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--color-text);
       white-space: pre-wrap;
-      max-height: 200px;
+      max-height: 180px;
       overflow-y: auto;
     }
 
     /* Evaluation Modal / Card */
     .eval-box {
-      background: var(--bg-panel);
-      border: 1px solid var(--rule);
-      border-radius: 8px;
+      background: var(--color-surface-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
       padding: 16px;
     }
     .eval-input {
       width: 100%;
-      background: var(--code-bg);
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      color: var(--ink);
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      color: var(--color-text);
       font-family: var(--font-mono);
       font-size: 11px;
-      padding: 8px;
+      padding: 10px;
       resize: vertical;
       min-height: 80px;
       margin-top: 6px;
       margin-bottom: 12px;
     }
+    .eval-input:focus {
+      outline: 2px solid var(--color-text);
+      outline-offset: -1px;
+    }
     .score-result {
       margin-top: 14px;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 12px;
       display: none;
     }
     .score-result.pass {
-      background: var(--pass-bg);
-      border: 1px solid var(--pass);
-      color: var(--pass);
+      background: #eef7f0;
+      border: 1px solid var(--color-accent);
+      color: var(--color-accent);
       display: block;
     }
     .score-result.fail {
-      background: var(--stop-bg);
-      border: 1px solid var(--stop);
-      color: var(--stop);
+      background: #fff5f5;
+      border: 1px solid var(--color-glitch-red);
+      color: var(--color-glitch-red);
       display: block;
     }
 
@@ -485,9 +538,10 @@
 
 <header>
   <div class="brand">
-    <span class="logo-badge">cloudforge</span>
-    <h1><span id="title-slot"><!-- SCENARIO_TITLE_PLACEHOLDER --></span></h1>
-    <span style="color:var(--ink-faint); font-size:12px;">| Interactive Challenge Workbench</span>
+    <span class="wordmark">CLOUDFORG<span class="wordmark__glitch">E</span></span>
+    <span class="version-tag">v1.0.0</span>
+    <h1 class="header-title"><span id="title-slot"><!-- SCENARIO_TITLE_PLACEHOLDER --></span></h1>
+    <span class="header-sub">/ INTERACTIVE WORKBENCH</span>
   </div>
   <div class="header-actions">
     <button class="btn" id="btn-clear-path">Clear Selection</button>
@@ -516,7 +570,7 @@
         <div class="panel-section-title">
           <span>Mission Objective</span>
         </div>
-        <div style="font-size:12px; line-height:1.5; color:var(--ink-soft); background:var(--bg-card); padding:10px 12px; border-radius:6px; border-left: 3px solid var(--ember);">
+        <div class="mission-brief-box">
           <span id="brief-slot"><!-- BRIEF_PROMPT_PLACEHOLDER --></span>
         </div>
       </div>
@@ -626,27 +680,27 @@ if (!ESTATE_DATA || !ESTATE_DATA.nodes) {
   };
 }
 
-// SVG Icons for AWS Services (Offline, self-contained)
+// SVG Icons for AWS Services (Precision vector line art)
 const ICONS = {
-  Account: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>`,
-  VPC: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>`,
-  Subnet: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
-  SecurityGroup: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-  EC2Instance: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>`,
-  LambdaFunction: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><path d="m4 19 8-14 4 7 4-3"/></svg>`,
-  CICDIdentity: `<svg viewBox="0 0 24 24" fill="none" stroke="#98c379" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-  S3Bucket: `<svg viewBox="0 0 24 24" fill="none" stroke="#6fbf73" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>`,
-  RdsInstance: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
-  EbsSnapshot: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="8" y1="2" x2="8" y2="4"/><line x1="16" y1="2" x2="16" y2="4"/></svg>`,
-  DataSet: `<svg viewBox="0 0 24 24" fill="none" stroke="#6fbf73" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14v4M14 10v8M10 6v12"/></svg>`,
-  SecretsManagerSecret: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
-  EcrRepository: `<svg viewBox="0 0 24 24" fill="none" stroke="#e8873a" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
-  SqsQueue: `<svg viewBox="0 0 24 24" fill="none" stroke="#b084cc" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
-  KmsKey: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="m21 2-2 2m-1.5 1.5L14 9M3 21l9-9M9 3a6 6 0 0 0-6 6c0 3.31 2.69 6 6 6a6 6 0 0 0 6-6c0-3.31-2.69-6-6-6z"/></svg>`,
-  LogTrail: `<svg viewBox="0 0 24 24" fill="none" stroke="#8b8371" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
-  IAMRole: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
-  IAMPolicy: `<svg viewBox="0 0 24 24" fill="none" stroke="#d6705f" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-  Application: `<svg viewBox="0 0 24 24" fill="none" stroke="#5ab0f6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`
+  Account: `<svg viewBox="0 0 24 24" fill="none" stroke="#2f5d3a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>`,
+  VPC: `<svg viewBox="0 0 24 24" fill="none" stroke="#006c7a" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`,
+  Subnet: `<svg viewBox="0 0 24 24" fill="none" stroke="#006c7a" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  SecurityGroup: `<svg viewBox="0 0 24 24" fill="none" stroke="#b3122a" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  EC2Instance: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>`,
+  LambdaFunction: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="m4 19 8-14 4 7 4-3"/></svg>`,
+  CICDIdentity: `<svg viewBox="0 0 24 24" fill="none" stroke="#2f5d3a" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  S3Bucket: `<svg viewBox="0 0 24 24" fill="none" stroke="#2f5d3a" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>`,
+  RdsInstance: `<svg viewBox="0 0 24 24" fill="none" stroke="#006c7a" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+  EbsSnapshot: `<svg viewBox="0 0 24 24" fill="none" stroke="#006c7a" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="8" y1="2" x2="8" y2="4"/><line x1="16" y1="2" x2="16" y2="4"/></svg>`,
+  DataSet: `<svg viewBox="0 0 24 24" fill="none" stroke="#2f5d3a" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14v4M14 10v8M10 6v12"/></svg>`,
+  SecretsManagerSecret: `<svg viewBox="0 0 24 24" fill="none" stroke="#b3122a" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  EcrRepository: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  SqsQueue: `<svg viewBox="0 0 24 24" fill="none" stroke="#006c7a" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
+  KmsKey: `<svg viewBox="0 0 24 24" fill="none" stroke="#b3122a" stroke-width="2"><path d="m21 2-2 2m-1.5 1.5L14 9M3 21l9-9M9 3a6 6 0 0 0-6 6c0 3.31 2.69 6 6 6a6 6 0 0 0 6-6c0-3.31-2.69-6-6-6z"/></svg>`,
+  LogTrail: `<svg viewBox="0 0 24 24" fill="none" stroke="#63635e" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  IAMRole: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  IAMPolicy: `<svg viewBox="0 0 24 24" fill="none" stroke="#b3122a" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  Application: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`
 };
 
 const CANONICAL_FINDINGS = [
