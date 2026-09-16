@@ -121,8 +121,7 @@ def _findings(ns: str) -> list[ExpectedFinding]:
             resource_ids=[_nid(ns, "role-developer"), _nid(ns, "pol-dev-tools")],
             expected_scanner_visibility="partial",
             ground_truth=(
-                "Role possesses iam:CreatePolicyVersion permitting policy "
-                "privilege escalation"
+                "Role possesses iam:CreatePolicyVersion permitting policy privilege escalation"
             ),
             remediation="Enforce an iam:PermissionsBoundary on all non-admin IAM roles",
         ),

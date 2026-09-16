@@ -16,9 +16,17 @@ from app.cloudforge.io.loaders import write_text
 from app.cloudforge.models.graph import GraphNode, ScenarioGraph
 from app.cloudforge.pipeline import (
     terraform_blocks as blocks,
+)
+from app.cloudforge.pipeline import (
     terraform_compute as compute,
+)
+from app.cloudforge.pipeline import (
     terraform_database as database,
+)
+from app.cloudforge.pipeline import (
     terraform_serverless as serverless,
+)
+from app.cloudforge.pipeline import (
     terraform_services as services,
 )
 from app.cloudforge.pipeline.label_collisions import check_label_collisions

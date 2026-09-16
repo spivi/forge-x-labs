@@ -102,8 +102,7 @@ def _findings(ns: str) -> list[ExpectedFinding]:
             expected_scanner_visibility="visible",
             ground_truth="SQS queue policy allows wildcard principal to receive and send messages",
             remediation=(
-                "Restrict SQS queue access policy to explicit "
-                "producer and consumer IAM roles"
+                "Restrict SQS queue access policy to explicit producer and consumer IAM roles"
             ),
         ),
     ]

@@ -13,7 +13,7 @@ from app.cloudforge.errors import CloudforgeError
 from app.cloudforge.io.loaders import load_json, load_yaml
 from app.cloudforge.lab.cohort import CohortRequest, grade_cohort, load_names, write_cohort
 from app.cloudforge.lab.grade import grade_submission
-from app.cloudforge.lab.pack import LabRequest, write_lab
+from app.cloudforge.lab.pack import LabRequest, write_challenge_workbench, write_lab
 from app.cloudforge.lab.paths import LabPaths
 from app.cloudforge.lab.submission import GradeResult, LabSubmission
 from app.cloudforge.models.scenario import ScenarioSpec
@@ -23,11 +23,30 @@ _CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OS
 
 
 def register_lab_commands(app: typer.Typer) -> None:
-    """Attach lab/grade/cohort commands to the root Typer app."""
+    """Attach lab/grade/cohort/challenge commands to the root Typer app."""
     app.command("lab")(lab)
+    app.command("challenge")(challenge)
     app.command("grade")(grade)
     app.command("lab-cohort")(lab_cohort)
     app.command("grade-cohort")(grade_cohort_cmd)
+
+
+def challenge(
+    scenario: Annotated[Path, typer.Argument(help="Path to a scenario YAML file.")],
+    out: Annotated[Path, typer.Option("--out", help="Output HTML file path.")] = Path(
+        "challenge.html"
+    ),
+    seed: Annotated[int, typer.Option("--seed", help="Composer seed (deterministic).")] = 0,
+    engine: Annotated[str, typer.Option("--engine", help="template or composer.")] = "composer",
+) -> None:
+    """Generate a standalone rich interactive HTML challenge workbench."""
+    try:
+        spec = ScenarioSpec.model_validate(load_yaml(scenario))
+        target = write_challenge_workbench(LabRequest(spec=spec, seed=seed, engine=engine), out)
+    except _CLI_ERRORS as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]challenge[/green] HTML workbench written to {target}")
 
 
 def lab(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
@@ -12,7 +13,7 @@ from app.cloudforge.generate.composer import GraphComposer
 from app.cloudforge.generate.template_generator import TemplateGenerator
 from app.cloudforge.io.loaders import dump_json, dump_yaml, write_text
 from app.cloudforge.io.paths import ScenarioPaths
-from app.cloudforge.lab.brief import render_brief
+from app.cloudforge.lab.brief import _DEFAULT_PROMPT, _PROMPTS, render_brief
 from app.cloudforge.lab.estate import render_estate_html
 from app.cloudforge.lab.paths import LabPaths
 from app.cloudforge.lab.strip import strip_graph
@@ -41,6 +42,20 @@ def write_lab(request: LabRequest, out_dir: LabPaths) -> ScenarioBundle:
     return bundle
 
 
+def write_challenge_workbench(request: LabRequest, out_path: Path) -> Path:
+    """Generate a single self-contained interactive challenge HTML workbench."""
+    bundle = _build_bundle(request)
+    estate = strip_graph(bundle.graph)
+    prompt = _PROMPTS.get(request.spec.scenario_type, _DEFAULT_PROMPT)
+    html = render_estate_html(
+        estate, prompt=prompt, title=f"Challenge · {request.spec.scenario_type}"
+    )
+    target = out_path if out_path.suffix == ".html" else out_path / "challenge.html"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    write_text(target, html)
+    return target
+
+
 def _build_bundle(request: LabRequest) -> ScenarioBundle:
     if request.engine == "composer":
         return GraphComposer(request.spec, seed=request.seed).generate()
@@ -60,7 +75,9 @@ def _write_student(out_dir: LabPaths, spec: ScenarioSpec, bundle: ScenarioBundle
     dump_yaml(out_dir.student / "scenario.yaml", spec.model_dump())
     dump_json(out_dir.estate_json, estate)
     write_text(out_dir.brief, render_brief(spec, bundle.graph))
-    write_text(out_dir.estate_html, render_estate_html(estate))
+    prompt = _PROMPTS.get(spec.scenario_type, _DEFAULT_PROMPT)
+    title = f"Lab · {spec.scenario_type}"
+    write_text(out_dir.estate_html, render_estate_html(estate, prompt=prompt, title=title))
     terraform = ScenarioPaths.from_dir(out_dir.instructor).terraform_dir
     shutil.copytree(terraform, out_dir.student / "terraform", dirs_exist_ok=True)
 

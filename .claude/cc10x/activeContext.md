@@ -3,25 +3,24 @@
 # Active Context
 
 ## Current Focus
-- v1 lab generator complete. All 6 PRs merged (#143, #146, #147, #149, #151, #153).
-- 5 scenario families live, tested, and validated.
-- `lab`, `grade`, `lab-cohort`, `grade-cohort` fully working.
-- Next: run final release checks, public tag / PyPI prep.
+- v1.0.0 release complete: 12 scenario families, interactive HTML architecture workbench (`estate.html`), demo video and GIF.
+- Full test suite: 2,005 tests passing, 0 failures, 98.35% coverage.
+- Version bumped to 1.0.0.
+- Ready for git release tag `v1.0.0` and package publishing.
 
 ## Recent Changes
-- [2026-09-16] VAR-1 large run: 2000/2000 pass, 77 shapes, gate exit 0.
-- [2026-09-16] `app/cloudforge/lab/` — strip/pack/grade; 14 tests; PR #147.
-- [2026-09-16] FXL-D010 (student pack must not leak the key) on the lab branch.
+- [2026-09-16] 7 new scenario families merged into `master` via PR #154 (12 families total).
+- [2026-09-16] Interactive layered architecture workbench (`estate.html`) with AWS icons, step badges, and client-side scoring.
+- [2026-09-16] Demo video & GIF generated (`docs/demo/cloudforge-vs-cloudgoat.mp4` / `.gif`).
+- [2026-09-16] Version bumped to 1.0.0 in `pyproject.toml` and `app/cloudforge/__init__.py`.
 
 ## Next Steps
-1. Merge #143 then #146.
-2. Merge #147.
-3. `lab-cohort` / `grade-cohort`.
-4. F0 emitter + cross_account / kms / snapshot families.
-5. LICENSE + README.
+1. Create git tag `v1.0.0` and push to remote.
+2. Publish release notes.
 
 ## Blockers
 - None
 
 ## Last Updated
-2026-09-16 — Grok handoff: three PRs open; AGY should review/merge then continue cohort + families.
+2026-09-16 — Antigravity: v1.0.0 release complete.
+

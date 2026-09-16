@@ -153,7 +153,6 @@ def _critical(ns: str) -> GroundTruthPath:
             _ek(ns, "s3-customer-pii", EdgeType.STORES_SENSITIVE_DATA, "data-customer-pii"),
         ],
         explanation=(
-            "Public web instance with IMDSv1 enables SSRF "
-            "credential theft to access PII records"
+            "Public web instance with IMDSv1 enables SSRF credential theft to access PII records"
         ),
     )

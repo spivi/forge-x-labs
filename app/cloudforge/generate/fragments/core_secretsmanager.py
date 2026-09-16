@@ -136,7 +136,6 @@ def _critical(ns: str) -> GroundTruthPath:
             _ek(ns, "sec-db-creds", EdgeType.STORES_SENSITIVE_DATA, "data-prod-db-creds"),
         ],
         explanation=(
-            "Untrusted external AWS account can directly "
-            "decrypt master database credentials"
+            "Untrusted external AWS account can directly decrypt master database credentials"
         ),
     )

@@ -83,3 +83,18 @@ def test_grade_missing_key_exits_one(tmp_path: Path) -> None:
     result = runner.invoke(app, ["grade", str(tmp_path), "--submission", str(guess)])
     assert result.exit_code == 1
     assert "error:" in result.output
+
+
+def test_challenge_command_emits_standalone_html(tmp_path: Path) -> None:
+    target = tmp_path / "workbench.html"
+    result = runner.invoke(app, ["challenge", _SPEC, "--out", str(target), "--seed", "17"])
+    assert result.exit_code == 0, result.output
+    assert target.is_file()
+    html = target.read_text(encoding="utf-8")
+    assert "Mission Objective" in html
+    assert "Perimeter & Network Ingress" in html
+    assert "submission.yaml" in html
+    assert "Deterministic In-Browser Evaluator" in html
+    # Ensure no leaked answers or risk labels
+    assert "remediation" not in html.lower()
+    assert '"risk"' not in html
