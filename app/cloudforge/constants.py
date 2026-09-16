@@ -28,11 +28,14 @@ TERRAFORM_FILES: Final = (
     "iam.tf",
     "s3.tf",
     "network.tf",
+    "kms.tf",
+    "snapshot.tf",
 )
 
 # --- safe fake values (never deployed) ---------------------------------------
 DUMMY_ACCOUNT_ID: Final = "000000000000"
 EXTERNAL_DUMMY_ACCOUNT_ID: Final = "999999999999"
+DUMMY_VOLUME_ID: Final = "vol-00000000"
 DEFAULT_REGION: Final = "us-east-1"
 
 # --- terraform emitter defaults ----------------------------------------------

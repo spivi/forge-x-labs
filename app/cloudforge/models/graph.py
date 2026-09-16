@@ -25,6 +25,8 @@ class NodeType(StrEnum):
     IAM_POLICY = "IAMPolicy"
     CICD_IDENTITY = "CICDIdentity"
     S3_BUCKET = "S3Bucket"
+    KMS_KEY = "KmsKey"
+    EBS_SNAPSHOT = "EbsSnapshot"
     APPLICATION = "Application"
     DATASET = "DataSet"
     LOG_TRAIL = "LogTrail"
@@ -42,6 +44,7 @@ class EdgeType(StrEnum):
     LOGS_TO = "logs_to"
     HAS_SECURITY_GROUP = "has_security_group"
     DEPLOYED_BY = "deployed_by"
+    CAN_DECRYPT = "can_decrypt"
 
 
 class NodeTags(BaseModel):

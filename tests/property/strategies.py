@@ -16,7 +16,13 @@ from typing import Protocol
 
 from hypothesis import strategies as st
 
-from app.cloudforge.generate import ci_cd_iam_chain, cross_account_trust, public_data_exposure
+from app.cloudforge.generate import (
+    ci_cd_iam_chain,
+    cross_account_trust,
+    kms_key_overbroad,
+    public_data_exposure,
+    public_ebs_snapshot,
+)
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.models.findings import (
     ExpectedFinding,
@@ -76,6 +82,8 @@ REAL_BUILDERS: tuple[_ScenarioBuilderModule, ...] = (
     ci_cd_iam_chain,
     public_data_exposure,
     cross_account_trust,
+    kms_key_overbroad,
+    public_ebs_snapshot,
 )  # type: ignore[assignment]
 
 

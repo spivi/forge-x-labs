@@ -34,6 +34,8 @@ _RESOURCE_TYPE_BY_NODE_TYPE: dict[NodeType, str] = {
     NodeType.VPC: "aws_vpc",
     NodeType.SUBNET: "aws_subnet",
     NodeType.SECURITY_GROUP: "aws_security_group",
+    NodeType.KMS_KEY: "aws_kms_key",
+    NodeType.EBS_SNAPSHOT: "aws_ebs_snapshot",
 }
 
 
