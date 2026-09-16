@@ -21,6 +21,7 @@ from app.cloudforge.generate.mutation_generator import MutationGenerator
 from app.cloudforge.generate.template_generator import TemplateGenerator
 from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.io.paths import ScenarioPaths
+from app.cloudforge.lab.cli import register_lab_commands
 from app.cloudforge.learn.cli import learn_app
 from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.pipeline.artifacts import ScenarioArtifacts
@@ -32,6 +33,7 @@ from app.cloudforge.variation.cli import variation_app
 app = typer.Typer(help="Local-first cloud-risk scenario generator (defensive research only).")
 app.add_typer(learn_app, name="learn")
 app.add_typer(variation_app, name="variation")
+register_lab_commands(app)
 console = Console()
 
 _STATUS_STYLE = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "red"}
