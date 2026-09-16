@@ -285,8 +285,8 @@ class TestSchemaInvalidScenarioYamlLeaksCleanly:
     """BUG(CRITICAL): a schema-invalid-but-well-formed ``scenario.yaml`` leaked a raw
     ``pydantic.ValidationError`` traceback from ``validate`` and ``report``.
 
-    Reproducer: hand-edit a generated ``scenario.yaml`` to set ``cloud: gcp`` (a
-    well-formed YAML mapping that fails the ``Literal["aws"]`` schema check).
+    Reproducer: hand-edit a generated ``scenario.yaml`` to set ``cloud: ibm`` (a
+    well-formed YAML mapping that fails the allowed-cloud schema check).
     ``validate``'s risk-engine path and ``report``'s renderer both call
     ``ScenarioSpec.model_validate`` directly, and the CLI commands caught only
     ``CloudforgeError`` — ``ValidationError`` is not a ``CloudforgeError`` subclass, so
@@ -297,7 +297,7 @@ class TestSchemaInvalidScenarioYamlLeaksCleanly:
     def test_validate_on_schema_invalid_scenario_yaml_fails_cleanly(self, tmp_path: Path) -> None:
         out = _generate(tmp_path)
         (out / "scenario.yaml").write_text(
-            _valid_scenario_yaml().replace("cloud: aws", "cloud: gcp")
+            _valid_scenario_yaml().replace("cloud: aws", "cloud: ibm")
         )
 
         result = runner.invoke(app, ["validate", str(out)])
@@ -307,7 +307,7 @@ class TestSchemaInvalidScenarioYamlLeaksCleanly:
     def test_report_on_schema_invalid_scenario_yaml_fails_cleanly(self, tmp_path: Path) -> None:
         out = _generate(tmp_path)
         (out / "scenario.yaml").write_text(
-            _valid_scenario_yaml().replace("cloud: aws", "cloud: gcp")
+            _valid_scenario_yaml().replace("cloud: aws", "cloud: ibm")
         )
 
         result = runner.invoke(app, ["report", str(out)])

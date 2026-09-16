@@ -49,8 +49,14 @@ jobs:
           echo "has_terraform=false" >> "$GITHUB_OUTPUT"
           echo "has_checkov=false" >> "$GITHUB_OUTPUT"
           echo "has_opa=false" >> "$GITHUB_OUTPUT"
-          command -v terraform >/dev/null && echo "has_terraform=true" >> "$GITHUB_OUTPUT"
-          command -v checkov >/dev/null && echo "has_checkov=true" >> "$GITHUB_OUTPUT"
-          command -v opa >/dev/null && echo "has_opa=true" >> "$GITHUB_OUTPUT"
+          if command -v terraform >/dev/null; then
+            echo "has_terraform=true" >> "$GITHUB_OUTPUT"
+          fi
+          if command -v checkov >/dev/null; then
+            echo "has_checkov=true" >> "$GITHUB_OUTPUT"
+          fi
+          if command -v opa >/dev/null; then
+            echo "has_opa=true" >> "$GITHUB_OUTPUT"
+          fi
       - if: steps.tools.outputs.has_opa == 'true'
         run: opa test policies/ -v || true
