@@ -3,7 +3,7 @@
 A sibling of ``TemplateGenerator`` behind the ``ScenarioGenerator`` protocol.
 Given ``(spec, seed)`` it draws a deterministic *fragment plan* — one
 ``core.<family>`` fragment plus decoy / false-positive / compensating-control
-counts derived from ``spec.variation_axes`` — then fills with ``benign_noise``
+counts derived from ``spec.variation_axes`` — then fills with diverse ``benign_noise``
 until the scale profile's node band is met. Every fragment owns its own
 namespaced ids, so the assembled graph, findings, and ground truth cannot
 disagree; a globally-duplicate id raises ``GraphIntegrityError`` before any
@@ -18,17 +18,23 @@ from typing import Any
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
-
-# Importing the fragment modules registers them in the shared registry (side
-# effect) so ``get_fragment`` can resolve every kind the plan may reference.
+from app.cloudforge.generate.composer_kinds import (
+    CORE_KINDS,
+    EXTRA_KINDS,
+    NOISE_KINDS,
+    SHORT,
+)
 from app.cloudforge.generate.fragments import (
     benign_noise,  # noqa: F401
     compensating_control,  # noqa: F401
+    core_azure_managed_identity,  # noqa: F401
     core_ci_cd,  # noqa: F401
     core_cross_account,  # noqa: F401
     core_ec2_imds,  # noqa: F401
     core_ecr,  # noqa: F401
+    core_gcp_workload_identity,  # noqa: F401
     core_iam_privesc,  # noqa: F401
+    core_k8s_irsa,  # noqa: F401
     core_kms,  # noqa: F401
     core_lambda,  # noqa: F401
     core_public_data,  # noqa: F401
@@ -49,45 +55,6 @@ from app.cloudforge.models.findings import (
 )
 from app.cloudforge.models.graph import GraphEdge, GraphNode, ScenarioGraph
 from app.cloudforge.models.scenario import ScenarioSpec
-
-_CORE_KINDS = {
-    "ci_cd_iam_chain": "core.ci_cd_iam_chain",
-    "public_data_exposure": "core.public_data_exposure",
-    "cross_account_trust": "core.cross_account_trust",
-    "kms_key_overbroad": "core.kms_key_overbroad",
-    "public_ebs_snapshot": "core.public_ebs_snapshot",
-    "iam_privesc_policy_version": "core.iam_privesc_policy_version",
-    "ec2_imds_credential_exfil": "core.ec2_imds_credential_exfil",
-    "lambda_public_function_url": "core.lambda_public_function_url",
-    "secretsmanager_policy_overbroad": "core.secretsmanager_policy_overbroad",
-    "public_rds_instance": "core.public_rds_instance",
-    "ecr_repository_public_read": "core.ecr_repository_public_read",
-    "sqs_queue_overbroad_policy": "core.sqs_queue_overbroad_policy",
-}
-_NOISE_KIND = "benign_noise.unrelated_bucket"
-_EXTRA_KINDS = (
-    "decoy.iam_role_dead_end",
-    "false_positive.public_denied_bucket",
-    "compensating_control.explicit_deny",
-)
-_SHORT = {
-    "core.ci_cd_iam_chain": "core",
-    "core.public_data_exposure": "core",
-    "core.cross_account_trust": "core",
-    "core.kms_key_overbroad": "core",
-    "core.public_ebs_snapshot": "core",
-    "core.iam_privesc_policy_version": "core",
-    "core.ec2_imds_credential_exfil": "core",
-    "core.lambda_public_function_url": "core",
-    "core.secretsmanager_policy_overbroad": "core",
-    "core.public_rds_instance": "core",
-    "core.ecr_repository_public_read": "core",
-    "core.sqs_queue_overbroad_policy": "core",
-    "decoy.iam_role_dead_end": "decoy",
-    "false_positive.public_denied_bucket": "fp",
-    "compensating_control.explicit_deny": "ctrl",
-    _NOISE_KIND: "noise",
-}
 
 _Plan = list[tuple[str, str, dict[str, Any]]]
 
@@ -111,15 +78,15 @@ class GraphComposer:
     def _plan(self, rng: Random) -> _Plan:
         core = self._core_kind()
         plan: _Plan = [(core, self._ns(core, 0), {"path_hops": rng.randint(3, 5)})]
-        for kind in _EXTRA_KINDS:
+        for kind in EXTRA_KINDS:
             self._add_extras(plan, kind, self._axis_count(kind, rng))
         return self._fill_to_scale(plan, rng)
 
     def _core_kind(self) -> str:
-        return _CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
+        return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
 
     def _axis_count(self, kind: str, rng: Random) -> int:
-        override = self._spec.variation_axes.get(_SHORT[kind])
+        override = self._spec.variation_axes.get(SHORT[kind])
         if override is not None:
             return max(0, int(override))
         return rng.randint(1, 3)
@@ -137,7 +104,8 @@ class GraphComposer:
         planned = self._planned_node_count(plan)
         index = 0
         while planned < target and planned < self._profile.max_nodes:
-            plan.append((_NOISE_KIND, self._ns(_NOISE_KIND, index), {}))
+            kind = rng.choice(NOISE_KINDS)
+            plan.append((kind, self._ns(kind, index), {}))
             planned += 1
             index += 1
         return plan
@@ -152,8 +120,12 @@ class GraphComposer:
         edges: list[GraphEdge] = []
         findings: list[ExpectedFinding] = []
         paths: list[GroundTruthPath] = []
+        salt = self._salt()
         for kind, ns, params in plan:
             part = get_fragment(kind).build(ns, rng, params)
+            if salt:
+                for node in part.nodes:
+                    node.name = f"{node.name}-{salt}"
             nodes.extend(part.nodes)
             edges.extend(part.edges)
             findings.extend(part.findings)
@@ -161,8 +133,15 @@ class GraphComposer:
         _assert_unique_ids(nodes)
         return FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=paths)
 
+    def _salt(self) -> str:
+        if self._seed == 0:
+            return ""
+        return f"{Random(self._seed + 101).randint(0x1000, 0xffff):04x}"
+
     def _ns(self, kind: str, index: int) -> str:
-        return f"{_SHORT[kind]}{index}"
+        prefix = SHORT.get(kind, "node")
+        salt = self._salt()
+        return f"{prefix}{index}_{salt}" if salt else f"{prefix}{index}"
 
 
 def _assert_unique_ids(nodes: list[GraphNode]) -> None:

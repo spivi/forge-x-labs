@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+Three graph-only labs outside AWS Terraform:
+
+- `k8s_pod_irsa_exfil`: pod IRSA token to an IAM role that reads a sensitive bucket.
+- `azure_imds_keyvault_harvest`: App Service managed identity to Key Vault.
+- `gcp_workload_identity_federation`: Workload Identity Pool to a GCS bucket.
+
+These families generate a risk graph, workbench, and grade key. Terraform remains
+AWS-only. Azure, GCP, and Kubernetes nodes do not emit `.tf` resources yet.
+
 ## 1.0.0 (2026-09-16)
 
 Local-first AWS misconfig lab generator.

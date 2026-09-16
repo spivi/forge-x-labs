@@ -5,16 +5,31 @@ defined by `app/cloudforge/models/graph.py`.
 
 ## Node types (v1)
 
-`Account`, `VPC`, `Subnet`, `SecurityGroup`, `IAMRole`, `IAMPolicy`,
+AWS: `Account`, `VPC`, `Subnet`, `SecurityGroup`, `IAMRole`, `IAMPolicy`,
 `CICDIdentity`, `S3Bucket`, `KmsKey`, `EbsSnapshot`, `EC2Instance`,
 `LambdaFunction`, `SecretsManagerSecret`, `RdsInstance`, `EcrRepository`,
 `SqsQueue`, `Application`, `DataSet`, `LogTrail`.
+
+Kubernetes: `K8sCluster`, `K8sNamespace`, `K8sPod`, `K8sServiceAccount`,
+`K8sRole`, `K8sRoleBinding`, `K8sSecret`.
+
+Azure: `AzureManagementGroup`, `AzureSubscription`, `AzureEntraTenant`,
+`AzureResourceGroup`, `AzureAppService`, `AzureManagedIdentity`,
+`AzureRoleAssignment`, `AzureKeyVault`, `AzureStorageContainer`.
+
+GCP: `GcpOrganization`, `GcpFolder`, `GcpProject`, `GcpComputeInstance`,
+`GcpServiceAccount`, `GcpWorkloadIdentityPool`, `GcpStorageBucket`.
+
+Azure, GCP, and Kubernetes nodes are modeled in the graph and workbench.
+They do not emit Terraform yet.
 
 ## Edge types (v1)
 
 `assumes`, `can_pass_role`, `attached_policy`, `can_read`, `can_write`,
 `belongs_to_app`, `stores_sensitive_data`, `exposed_to_internet`, `logs_to`,
-`has_security_group`, `deployed_by`, `can_decrypt`, `can_invoke`.
+`has_security_group`, `deployed_by`, `can_decrypt`, `can_invoke`,
+`organizational_child`, `applies_scp`, `in_namespace`,
+`binds_service_account`, `federates_to`, `impersonates`, `role_assigned_to`.
 
 ## Node shape
 

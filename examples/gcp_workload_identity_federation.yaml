@@ -1,0 +1,18 @@
+cloud: gcp
+scenario_type: gcp_workload_identity_federation
+environment: prod
+difficulty: medium
+scale_profile: small
+company_profile:
+  type: healthtech
+  size: startup
+  app_name: gcp-analytics-engine
+requirements:
+  critical_chains: 1
+  medium_findings: 1
+  false_positives: 0
+constraints:
+  no_real_secrets: true
+  no_destructive_permissions: true
+  max_resources: 100
+  deployable: false

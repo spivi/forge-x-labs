@@ -17,6 +17,7 @@ EdgeRisk = Literal["none", "low", "medium", "high", "critical"]
 
 
 class NodeType(StrEnum):
+    # AWS / Generic Core
     ACCOUNT = "Account"
     VPC = "VPC"
     SUBNET = "Subnet"
@@ -36,6 +37,36 @@ class NodeType(StrEnum):
     APPLICATION = "Application"
     DATASET = "DataSet"
     LOG_TRAIL = "LogTrail"
+    # Multi-Account / Organizations
+    AWS_ORGANIZATION = "AwsOrganization"
+    ORGANIZATIONAL_UNIT = "OrganizationalUnit"
+    SERVICE_CONTROL_POLICY = "ServiceControlPolicy"
+    # Kubernetes (K8s)
+    K8S_CLUSTER = "K8sCluster"
+    K8S_NAMESPACE = "K8sNamespace"
+    K8S_POD = "K8sPod"
+    K8S_SERVICE_ACCOUNT = "K8sServiceAccount"
+    K8S_ROLE = "K8sRole"
+    K8S_ROLE_BINDING = "K8sRoleBinding"
+    K8S_SECRET = "K8sSecret"
+    # Azure
+    AZURE_MANAGEMENT_GROUP = "AzureManagementGroup"
+    AZURE_SUBSCRIPTION = "AzureSubscription"
+    AZURE_ENTRA_TENANT = "AzureEntraTenant"
+    AZURE_RESOURCE_GROUP = "AzureResourceGroup"
+    AZURE_APP_SERVICE = "AzureAppService"
+    AZURE_MANAGED_IDENTITY = "AzureManagedIdentity"
+    AZURE_ROLE_ASSIGNMENT = "AzureRoleAssignment"
+    AZURE_KEY_VAULT = "AzureKeyVault"
+    AZURE_STORAGE_CONTAINER = "AzureStorageContainer"
+    # GCP
+    GCP_ORGANIZATION = "GcpOrganization"
+    GCP_FOLDER = "GcpFolder"
+    GCP_PROJECT = "GcpProject"
+    GCP_COMPUTE_INSTANCE = "GcpComputeInstance"
+    GCP_SERVICE_ACCOUNT = "GcpServiceAccount"
+    GCP_WORKLOAD_IDENTITY_POOL = "GcpWorkloadIdentityPool"
+    GCP_STORAGE_BUCKET = "GcpStorageBucket"
 
 
 class EdgeType(StrEnum):
@@ -52,6 +83,14 @@ class EdgeType(StrEnum):
     DEPLOYED_BY = "deployed_by"
     CAN_DECRYPT = "can_decrypt"
     CAN_INVOKE = "can_invoke"
+    # Multi-Account & Multi-Cloud
+    ORGANIZATIONAL_CHILD = "organizational_child"
+    APPLIES_SCP = "applies_scp"
+    IN_NAMESPACE = "in_namespace"
+    BINDS_SERVICE_ACCOUNT = "binds_service_account"
+    FEDERATES_TO = "federates_to"
+    IMPERSONATES = "impersonates"
+    ROLE_ASSIGNED_TO = "role_assigned_to"
 
 
 class NodeTags(BaseModel):

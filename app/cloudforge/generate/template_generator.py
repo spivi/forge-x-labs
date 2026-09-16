@@ -25,6 +25,8 @@ from app.cloudforge.generate import (
     sqs_queue_overbroad_policy,
 )
 from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.composer import GraphComposer
+from app.cloudforge.generate.composer_kinds import CORE_KINDS
 from app.cloudforge.models.scenario import ScenarioSpec
 
 
@@ -145,9 +147,11 @@ class TemplateGenerator:
 
     def generate(self, spec: ScenarioSpec) -> ScenarioBundle:
         builder = _BUILDERS.get(spec.scenario_type)
-        if builder is None:
-            known = ", ".join(sorted(_BUILDERS)) or "(none)"
-            raise UnknownScenarioTypeError(
-                f"no generator for scenario_type={spec.scenario_type!r}; known: {known}"
-            )
-        return builder()
+        if builder is not None:
+            return builder()
+        if spec.scenario_type in CORE_KINDS:
+            return GraphComposer(spec, seed=0).generate()
+        known = ", ".join(sorted({*_BUILDERS, *CORE_KINDS})) or "(none)"
+        raise UnknownScenarioTypeError(
+            f"no generator for scenario_type={spec.scenario_type!r}; known: {known}"
+        )

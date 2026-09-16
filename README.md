@@ -118,7 +118,7 @@ The workbench is a single HTML file with no CDN:
 - YAML export for `cloudforge grade`
 - Client-side scoring against the same math as `grade`
 
-## Scenario families (v1.0)
+## Scenario families
 
 | `scenario_type` | Teaching point | Example |
 |---|---|---|
@@ -134,8 +134,15 @@ The workbench is a single HTML file with no CDN:
 | `public_rds_instance` | Public RDS with `0.0.0.0/0` ingress | `examples/public_rds_instance.yaml` |
 | `ecr_repository_public_read` | Public registry leaking deploy tokens | `examples/ecr_repository_public_read.yaml` |
 | `sqs_queue_overbroad_policy` | Wildcard SQS policy | `examples/sqs_queue_overbroad_policy.yaml` |
+| `k8s_pod_irsa_exfil` | Pod IRSA token -> IAM role -> sensitive S3 | `examples/k8s_pod_irsa_exfil.yaml` |
+| `azure_imds_keyvault_harvest` | App Service IMDS -> Key Vault | `examples/azure_imds_keyvault_harvest.yaml` |
+| `gcp_workload_identity_federation` | Workload Identity Pool -> GCS | `examples/gcp_workload_identity_federation.yaml` |
 
-AWS Terraform only. Dummy account `000000000000`. Never applied.
+Dummy account `000000000000`. Never applied.
+
+The last three families are **graph-only**. They generate a risk graph, workbench,
+and grade key. Terraform is still AWS-only: Azure, GCP, and Kubernetes nodes
+do not emit `.tf` resources yet. Use `--engine composer` (the `lab` default).
 
 ## Safety
 

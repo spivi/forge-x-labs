@@ -114,4 +114,18 @@ def test_stays_within_max_nodes_for_tiny_profile() -> None:
 def test_unknown_scenario_type_falls_back_to_ci_cd_core() -> None:
     spec = _spec(scenario_type="unmapped_family", scale_profile="small")
     bundle = GraphComposer(spec, seed=1).generate()
-    assert any("core0/" in n.id for n in bundle.graph.nodes)
+    assert any("core0" in n.id for n in bundle.graph.nodes)
+
+
+def test_seed_salting_produces_unique_namespaces() -> None:
+    spec = _spec(scale_profile="small")
+    b0 = GraphComposer(spec, seed=0).generate()
+    b1 = GraphComposer(spec, seed=1).generate()
+    b2 = GraphComposer(spec, seed=2).generate()
+    ids0 = {n.id for n in b0.graph.nodes}
+    ids1 = {n.id for n in b1.graph.nodes}
+    ids2 = {n.id for n in b2.graph.nodes}
+    assert any(nid.startswith("core0/") for nid in ids0)
+    assert any("core0_" in nid for nid in ids1)
+    assert any("core0_" in nid for nid in ids2)
+    assert ids1.isdisjoint(ids2)

@@ -13,9 +13,8 @@
 
 ## Next
 
-Graph-only labs for Kubernetes IRSA, Azure managed identity, and GCP
-workload identity. Same generate / lab / grade loop. Terraform remains
-AWS-only until dedicated emitters exist.
+Terraform emitters for Azure, GCP, and Kubernetes, so the graph-only families
+become dual-target (graph + HCL) like the AWS set.
 
 ## The extension seam
 

@@ -29,7 +29,7 @@ constraints:
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `cloud` | `"aws"` | AWS only in v1 |
+| `cloud` | `"aws"` / `"azure"` / `"gcp"` / `"k8s"` / `"multi_cloud"` | AWS families emit Terraform. Azure, GCP, and K8s families are graph-only. |
 | `scenario_type` | string | Dispatches to a generator (for example `ci_cd_iam_chain`) |
 | `environment` | string | for example `staging` |
 | `difficulty` | string | for example `medium` |
