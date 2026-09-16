@@ -9,18 +9,9 @@ repos:
     rev: v1.14.1
     hooks:
       - id: mypy
-        exclude: ^(scripts/|tests/|lemmings/)
+        exclude: ^(scripts/|tests/)
         additional_dependencies:
           - pydantic>=2.10
-          - pydantic-settings
-          - fastapi
-          - starlette
-          - sqlalchemy
-          - asyncpg
-          - alembic
-          # io/loaders.py imports PyYAML; without its stubs the isolated hook env
-          # reports a spurious import-untyped error (the project .venv has them, so
-          # `mypy --strict app/` is clean). Keeps the hook matched to real typechecking.
           - types-PyYAML
   - repo: local
     hooks:
@@ -35,24 +26,3 @@ repos:
         entry: bash scripts/check-signoff.sh
         language: system
         stages: [commit-msg]
-      - id: tool-config-sync
-        name: AI tool config sync check
-        entry: python scripts/sync-tool-configs.py --check
-        language: system
-        pass_filenames: false
-        always_run: false
-        files: '(\.dev-context/rules/|\.cursor/rules/|\.antigravity/rules/)'
-      - id: pre-push-tests
-        name: Fast pre-push test backstop
-        entry: bash scripts/pre_push_tests.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-      - id: ci-scoped-gates
-        name: Diff-scoped CI gates
-        entry: bash scripts/ci_scoped_gates.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]

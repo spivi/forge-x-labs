@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # commit-msg hook: require the mandated Signed-off-by trailer on every commit.
 #
-# Enforces the project sign-off policy (.dev-context/rules/git.md, Commit Sign-off):
-# every commit MUST carry a `Signed-off-by: <name> <email>` trailer. Use `git commit -s`
-# with `git config user.name`/`user.email` set to that identity.
+# Require a Signed-off-by trailer. Use `git commit -s`.
 #
-# Required signer email resolution (first non-empty wins):
-#   1. $SIGNOFF_EMAIL                     (env override)
-#   2. SIGNOFF_EMAIL in project.conf      (set by setup.sh from git config)
-#   3. `git config user.email`            (fall back to the committer's own identity)
-# Matching on the email (case-insensitive) keys off the stable identity component.
+# Required signer email (first non-empty wins):
+#   1. $SIGNOFF_EMAIL
+#   2. `git config user.email`
 #
 # Arg $1 is the path to the commit message file (provided by Git's commit-msg hook).
 set -euo pipefail
@@ -32,7 +28,7 @@ escaped_email="$(printf '%s' "$required_email" | sed 's/[.[\*^$()+?{|]/\\&/g')"
 if ! grep -qiE '^Signed-off-by: .+ <.+@.+>' "$msg_file"; then
   echo "ERROR: commit message is missing a 'Signed-off-by' trailer." >&2
   echo "       Re-commit with sign-off, e.g.: git commit -s" >&2
-  echo "       Policy: .dev-context/rules/git.md (Commit Sign-off)." >&2
+  echo "       Policy: every commit needs a Signed-off-by trailer." >&2
   exit 1
 fi
 
@@ -40,7 +36,7 @@ fi
 if [ -n "$required_email" ] && ! grep -qiE "^Signed-off-by: .+ <${escaped_email}>" "$msg_file"; then
   echo "ERROR: 'Signed-off-by' trailer does not match the mandated signer." >&2
   echo "       Required: Signed-off-by: <name> <${required_email}>" >&2
-  echo "       Set SIGNOFF_EMAIL in .dev-context/project.conf or fix your git identity." >&2
+  echo "       Set SIGNOFF_EMAIL or git config user.email to match." >&2
   exit 1
 fi
 

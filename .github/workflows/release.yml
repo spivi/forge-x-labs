@@ -76,7 +76,7 @@ jobs:
             MINOR=$(echo "$VERSION" | cut -d. -f2)
             MINOR=$((MINOR + 1))
             NEXT="v${MAJOR}.${MINOR}.0"
-            REASON="project completion — minor bump"
+            REASON="project completion, minor bump"
           fi
 
           # Handle tag collision
@@ -177,18 +177,3 @@ jobs:
             echo "https://github.com/${{ github.repository }}/releases"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Log KPIs
-        if: steps.commits.outputs.skip != 'true'
-        run: |
-          NEXT="${{ steps.version.outputs.next }}"
-          DATE=$(date -u +%Y-%m-%d)
-          FEAT="${{ steps.commits.outputs.feat_count }}"
-          FIX="${{ steps.commits.outputs.fix_count }}"
-
-          echo "${NEXT},${DATE},${FEAT},${FIX},true,true,0" >> .dev-context/kpis/release-log.csv
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .dev-context/kpis/release-log.csv
-          git diff --cached --quiet || git commit -m "chore: update release KPI log for ${NEXT}"
-          git push || echo "Could not push KPI log (non-fatal)"

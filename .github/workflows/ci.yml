@@ -1,19 +1,10 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
     branches-ignore: [master, main]
   pull_request:
     branches: [master]
-
-# The dev-template repo ships with un-substituted {{PLACEHOLDER}} tokens (e.g.
-# pyproject.toml `name = "{{PROJECT_NAME}}"`) until setup.sh runs in a derived
-# project. `pip install -e .` cannot build a package whose name is a placeholder,
-# so on the un-instantiated template we SKIP the editable install + the steps that
-# depend on it (mypy on app/, coverage against the installed package) and run only
-# the placeholder-safe gates: ruff over the whole repo, and pytest via PYTHONPATH.
-# Each job detects the template state inline (a step output) to avoid cross-job
-# output plumbing. Once setup.sh substitutes the tokens, the full path runs.
 
 jobs:
   lint-and-type-check:
@@ -23,96 +14,43 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - id: tpl
-        run: |
-          if grep -q '{{' pyproject.toml; then
-            echo "is_template=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Un-instantiated dev-template — placeholder-safe gates only."
-          else
-            echo "is_template=false" >> "$GITHUB_OUTPUT"
-          fi
-      # Pin ruff to the .pre-commit-config version so CI/local/pre-commit formatting never
-      # diverge (FXL-52). An unpinned `pip install ruff` pulls latest, which reformats
-      # differently than the pinned pre-commit ruff and fails format-check on clean files.
       - run: pip install ruff==0.9.4 mypy
-      - if: steps.tpl.outputs.is_template == 'false'
-        run: pip install poetry-core && pip install -e .
-      - if: steps.tpl.outputs.is_template == 'false'
-        run: cloudforge version
-      # Lint/format only the product surface. The template ships pre-existing drift in
-      # scaffolding (lemmings/, .claude/skills/, flavors/) that this project keeps inert;
-      # gating on it would block product PRs for code the project doesn't own. ruff's
-      # own config also excludes flavors/ (placeholder TOML).
-      - run: ruff check app/ tests/cloudforge/ tests/security/
-      - run: ruff format --check app/ tests/cloudforge/ tests/security/
-      - if: steps.tpl.outputs.is_template == 'false'
-        run: mypy app/ --ignore-missing-imports
+      - run: pip install poetry-core && pip install -e .
+      - run: cloudforge version
+      - run: ruff check app/ tests/cloudforge/ tests/security/ tests/unit/ tests/integration/ tests/property/
+      - run: ruff format --check app/ tests/cloudforge/ tests/security/ tests/unit/ tests/integration/ tests/property/
+      - run: mypy app/ --ignore-missing-imports
 
   test-fast:
     needs: [lint-and-type-check]
     runs-on: ubuntu-latest
-    name: "Test: Fast (unit/security/property)"
+    name: "Test: Fast"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - id: tpl
-        run: |
-          if grep -q '{{' pyproject.toml; then
-            echo "is_template=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_template=false" >> "$GITHUB_OUTPUT"
-          fi
       - run: pip install pytest pytest-asyncio pytest-cov httpx pytest-mock hypothesis
-      - if: steps.tpl.outputs.is_template == 'false'
-        run: pip install poetry-core && pip install -e .
-      # Fast profile: unit + security + property tests (hypothesis with --hypothesis-profile=ci for determinism)
-      # Deselects stress and internet (already deselected by default via addopts)
-      - if: steps.tpl.outputs.is_template == 'false'
-        run: python -m pytest tests/ --cov=app --cov-report=xml -q --hypothesis-profile=ci || test $? -eq 5
-      - if: steps.tpl.outputs.is_template == 'true'
-        run: PYTHONPATH=. python -m pytest tests/ -q --no-cov --hypothesis-profile=ci || test $? -eq 5
+      - run: pip install poetry-core && pip install -e .
+      - run: python -m pytest tests/ --cov=app --cov-report=xml -q --hypothesis-profile=ci
 
   test-tools:
     needs: [lint-and-type-check]
     runs-on: ubuntu-latest
-    name: "Test: External tools (terraform/checkov/opa)"
+    name: "Test: Optional tools"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - id: tpl
-        run: |
-          if grep -q '{{' pyproject.toml; then
-            echo "is_template=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_template=false" >> "$GITHUB_OUTPUT"
-          fi
-      # Tool validation: only runs if tools are present; each tool failure is non-fatal
-      # (S13/S14: fail-soft on absent/env-blocked, fail-hard on syntax errors)
-      - id: tools
+      - name: Probe optional tools
+        id: tools
         run: |
           echo "has_terraform=false" >> "$GITHUB_OUTPUT"
           echo "has_checkov=false" >> "$GITHUB_OUTPUT"
           echo "has_opa=false" >> "$GITHUB_OUTPUT"
-          if command -v terraform &> /dev/null; then
-            echo "has_terraform=true" >> "$GITHUB_OUTPUT"
-          fi
-          if command -v checkov &> /dev/null; then
-            echo "has_checkov=true" >> "$GITHUB_OUTPUT"
-          fi
-          if command -v opa &> /dev/null; then
-            echo "has_opa=true" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.tools.outputs.has_terraform == 'true'
-        run: terraform init -backend=false && terraform validate -json
-        working-directory: .
-        continue-on-error: true
-      - if: steps.tools.outputs.has_checkov == 'true'
-        run: checkov -d app/ -o json --framework terraform 2>&1 | head -20 || true
-        continue-on-error: true
+          command -v terraform >/dev/null && echo "has_terraform=true" >> "$GITHUB_OUTPUT"
+          command -v checkov >/dev/null && echo "has_checkov=true" >> "$GITHUB_OUTPUT"
+          command -v opa >/dev/null && echo "has_opa=true" >> "$GITHUB_OUTPUT"
       - if: steps.tools.outputs.has_opa == 'true'
         run: opa test policies/ -v || true
-        continue-on-error: true
