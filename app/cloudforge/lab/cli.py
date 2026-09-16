@@ -11,6 +11,7 @@ from rich.console import Console
 
 from app.cloudforge.errors import CloudforgeError
 from app.cloudforge.io.loaders import load_json, load_yaml
+from app.cloudforge.lab.cohort import CohortRequest, grade_cohort, load_names, write_cohort
 from app.cloudforge.lab.grade import grade_submission
 from app.cloudforge.lab.pack import LabRequest, write_lab
 from app.cloudforge.lab.paths import LabPaths
@@ -22,9 +23,11 @@ _CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OS
 
 
 def register_lab_commands(app: typer.Typer) -> None:
-    """Attach ``lab`` and ``grade`` to the root Typer app."""
+    """Attach lab/grade/cohort commands to the root Typer app."""
     app.command("lab")(lab)
     app.command("grade")(grade)
+    app.command("lab-cohort")(lab_cohort)
+    app.command("grade-cohort")(grade_cohort_cmd)
 
 
 def lab(
@@ -58,6 +61,36 @@ def grade(
         f"findings hit {len(result.finding_hits)} miss {len(result.finding_misses)}  "
         f"extras {len(result.extras)}"
     )
+
+
+def lab_cohort(
+    scenario: Annotated[Path, typer.Argument(help="Scenario YAML.")],
+    out: Annotated[Path, typer.Option("--out", help="Cohort directory.")],
+    students: Annotated[Path, typer.Option("--students", help="One name per line.")],
+    engine: Annotated[str, typer.Option("--engine")] = "composer",
+) -> None:
+    """Write one lab per student name; stamp roster.json."""
+    try:
+        spec = ScenarioSpec.model_validate(load_yaml(scenario))
+        names = load_names(students)
+        write_cohort(CohortRequest(spec=spec, names=names, engine=engine), out)
+    except _CLI_ERRORS as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]cohort[/green] {out}")
+
+
+def grade_cohort_cmd(
+    cohort_dir: Annotated[Path, typer.Argument(help="Directory written by lab-cohort.")],
+    submissions: Annotated[Path, typer.Option("--submissions", help="<name>.yaml guesses dir.")],
+) -> None:
+    """Grade every roster student who has a submission file; write results.md."""
+    try:
+        results = grade_cohort(cohort_dir, submissions)
+    except _CLI_ERRORS as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]results[/green] {results}")
 
 
 def _grade_lab(lab_dir: Path, submission_path: Path) -> GradeResult:
