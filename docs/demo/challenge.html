@@ -486,7 +486,7 @@
 <header>
   <div class="brand">
     <span class="logo-badge">cloudforge</span>
-    <h1><span id="title-slot"><!-- SCENARIO_TITLE_PLACEHOLDER --></span></h1>
+    <h1><span id="title-slot">Challenge · ec2_imds_credential_exfil</span></h1>
     <span style="color:var(--ink-faint); font-size:12px;">| Interactive Challenge Workbench</span>
   </div>
   <div class="header-actions">
@@ -517,7 +517,7 @@
           <span>Mission Objective</span>
         </div>
         <div style="font-size:12px; line-height:1.5; color:var(--ink-soft); background:var(--bg-card); padding:10px 12px; border-radius:6px; border-left: 3px solid var(--ember);">
-          <span id="brief-slot"><!-- BRIEF_PROMPT_PLACEHOLDER --></span>
+          <span id="brief-slot">A public-facing web server is accessible from the internet. Can an attacker leverage server-side requests to steal credentials and access internal data?</span>
         </div>
       </div>
 
@@ -580,13 +580,53 @@ findings: []</div>
 <div class="compat-table-wrap">
   <table>
     <tr><th>id</th><th>type</th><th>name</th></tr>
-    <!-- RAW_ROWS_PLACEHOLDER -->
+    <tr><td><code>core0/acct-main</code></td><td>Account</td><td>prod-account</td></tr>
+    <tr><td><code>core0/ec2-web-frontend</code></td><td>EC2Instance</td><td>WebFrontendServer</td></tr>
+    <tr><td><code>core0/role-web-app</code></td><td>IAMRole</td><td>WebAppInstanceRole</td></tr>
+    <tr><td><code>core0/pol-app-data</code></td><td>IAMPolicy</td><td>WebAppCustomerDataPolicy</td></tr>
+    <tr><td><code>core0/s3-customer-pii</code></td><td>S3Bucket</td><td>customer-pii-records-000000000000</td></tr>
+    <tr><td><code>core0/data-customer-pii</code></td><td>DataSet</td><td>CustomerIdentityAndPII</td></tr>
+    <tr><td><code>decoy0/role-decoy</code></td><td>IAMRole</td><td>DecoyRole</td></tr>
+    <tr><td><code>decoy0/pol-decoy-broad</code></td><td>IAMPolicy</td><td>DecoyBroadPolicy</td></tr>
+    <tr><td><code>fp0/s3-public-denied</code></td><td>S3Bucket</td><td>public-looking-denied</td></tr>
+    <tr><td><code>ctrl0/s3-controlled</code></td><td>S3Bucket</td><td>controlled-bucket</td></tr>
+    <tr><td><code>ctrl0/trail-control</code></td><td>LogTrail</td><td>control-trail</td></tr>
+    <tr><td><code>ctrl1/s3-controlled</code></td><td>S3Bucket</td><td>controlled-bucket</td></tr>
+    <tr><td><code>ctrl1/trail-control</code></td><td>LogTrail</td><td>control-trail</td></tr>
+    <tr><td><code>ctrl2/s3-controlled</code></td><td>S3Bucket</td><td>controlled-bucket</td></tr>
+    <tr><td><code>ctrl2/trail-control</code></td><td>LogTrail</td><td>control-trail</td></tr>
+    <tr><td><code>noise0/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise1/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise2/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise3/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise4/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise5/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise6/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise7/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise8/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise9/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise10/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise11/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise12/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise13/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise14/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise15/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise16/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>noise17/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
   </table>
-  <pre id="raw-edges-pre"><!-- RAW_EDGES_PLACEHOLDER --></pre>
+  <pre id="raw-edges-pre">core0/acct-main --exposed_to_internet--&gt; core0/ec2-web-frontend
+core0/ec2-web-frontend --assumes--&gt; core0/role-web-app
+core0/role-web-app --attached_policy--&gt; core0/pol-app-data
+core0/role-web-app --can_read--&gt; core0/s3-customer-pii
+core0/s3-customer-pii --stores_sensitive_data--&gt; core0/data-customer-pii
+decoy0/role-decoy --attached_policy--&gt; decoy0/pol-decoy-broad
+ctrl0/s3-controlled --logs_to--&gt; ctrl0/trail-control
+ctrl1/s3-controlled --logs_to--&gt; ctrl1/trail-control
+ctrl2/s3-controlled --logs_to--&gt; ctrl2/trail-control</pre>
 </div>
 
 <script id="estate-json-data" type="application/json">
-<!-- ESTATE_JSON_PLACEHOLDER -->
+{"nodes": [{"id": "core0/acct-main", "type": "Account", "name": "prod-account", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "core0/ec2-web-frontend", "type": "EC2Instance", "name": "WebFrontendServer", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {"imds_version": "v1"}}, {"id": "core0/role-web-app", "type": "IAMRole", "name": "WebAppInstanceRole", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "core0/pol-app-data", "type": "IAMPolicy", "name": "WebAppCustomerDataPolicy", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {"actions": ["s3:Get*", "s3:List*"]}}, {"id": "core0/s3-customer-pii", "type": "S3Bucket", "name": "customer-pii-records-000000000000", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "core0/data-customer-pii", "type": "DataSet", "name": "CustomerIdentityAndPII", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "decoy0/role-decoy", "type": "IAMRole", "name": "DecoyRole", "tags": {"env": "staging", "owner": "platform-team", "app": "report-pipeline"}, "attributes": {}}, {"id": "decoy0/pol-decoy-broad", "type": "IAMPolicy", "name": "DecoyBroadPolicy", "tags": {"env": "staging", "owner": "platform-team", "app": "report-pipeline"}, "attributes": {"actions": ["s3:GetObject", "s3:ListBucket"], "resource": "arn:aws:s3:::decoy-scratch-bucket/*"}}, {"id": "fp0/s3-public-denied", "type": "S3Bucket", "name": "public-looking-denied", "tags": {"env": "stage", "owner": "infra-team", "app": "data-exporter"}, "attributes": {"public_access": "enabled", "compensating_control": "true"}}, {"id": "ctrl0/s3-controlled", "type": "S3Bucket", "name": "controlled-bucket", "tags": {"env": "staging", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl0/trail-control", "type": "LogTrail", "name": "control-trail", "tags": {"env": "staging", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl1/s3-controlled", "type": "S3Bucket", "name": "controlled-bucket", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl1/trail-control", "type": "LogTrail", "name": "control-trail", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl2/s3-controlled", "type": "S3Bucket", "name": "controlled-bucket", "tags": {"env": "staging", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "ctrl2/trail-control", "type": "LogTrail", "name": "control-trail", "tags": {"env": "staging", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise0/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "stage", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise1/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "sandbox", "owner": "infra-team", "app": "etl-runner"}, "attributes": {}}, {"id": "noise2/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "stage", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise3/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "infra-team", "app": "etl-runner"}, "attributes": {}}, {"id": "noise4/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise5/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "stage", "owner": "sre-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise6/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise7/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "sre-team", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise8/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise9/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "test", "owner": "platform-team", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise10/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "sandbox", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise11/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise12/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise13/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise14/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "test", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise15/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise16/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise17/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "sandbox", "owner": "infra-team", "app": "data-exporter"}, "attributes": {}}], "edges": [{"from": "core0/acct-main", "to": "core0/ec2-web-frontend", "type": "exposed_to_internet"}, {"from": "core0/ec2-web-frontend", "to": "core0/role-web-app", "type": "assumes"}, {"from": "core0/role-web-app", "to": "core0/pol-app-data", "type": "attached_policy"}, {"from": "core0/role-web-app", "to": "core0/s3-customer-pii", "type": "can_read"}, {"from": "core0/s3-customer-pii", "to": "core0/data-customer-pii", "type": "stores_sensitive_data"}, {"from": "decoy0/role-decoy", "to": "decoy0/pol-decoy-broad", "type": "attached_policy"}, {"from": "ctrl0/s3-controlled", "to": "ctrl0/trail-control", "type": "logs_to"}, {"from": "ctrl1/s3-controlled", "to": "ctrl1/trail-control", "type": "logs_to"}, {"from": "ctrl2/s3-controlled", "to": "ctrl2/trail-control", "type": "logs_to"}]}
 </script>
 <script>
 let ESTATE_DATA = null;
