@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0
+## 1.1.0 (2026-09-17)
 
 Three graph-only labs outside AWS Terraform:
 
