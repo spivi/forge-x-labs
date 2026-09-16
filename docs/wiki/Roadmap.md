@@ -28,7 +28,9 @@ class ScenarioGenerator(Protocol):
 The pipeline, validators, and report are engine-agnostic — they only ever read the graph
 and its ground truth. This keeps future engines **additive**.
 
-## Future engines (documented, not built)
+## Future engines (not in v1)
+
+Documented, not built. Do not start these until trainers ask after v1.
 
 - `LLMGenerator` — propose graphs from natural-language scenario briefs.
 - `ModalBatchGenerator` / `DiffusionGraphGenerator` — see

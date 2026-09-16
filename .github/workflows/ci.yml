@@ -37,6 +37,8 @@ jobs:
       - run: pip install ruff==0.9.4 mypy
       - if: steps.tpl.outputs.is_template == 'false'
         run: pip install poetry-core && pip install -e .
+      - if: steps.tpl.outputs.is_template == 'false'
+        run: cloudforge version
       # Lint/format only the product surface. The template ships pre-existing drift in
       # scaffolding (lemmings/, .claude/skills/, flavors/) that this project keeps inert;
       # gating on it would block product PRs for code the project doesn't own. ruff's

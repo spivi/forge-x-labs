@@ -18,18 +18,27 @@ customer-export-data`.
 `s3_logging_missing` (medium), `security_group_overexposed` (medium),
 `public_looking_bucket_with_compensating_control` (benign false-positive).
 
+### `public_data_exposure`
+
+A prod data-lake estate. A public-read S3 bucket holds customer PII with no
+compensating control. Distinct from the IAM *chain*: the data is one bucket
+policy away from the internet.
+
+## Landing in v1 (open PRs)
+
+- `cross_account_trust` — PR #149. Dummy account `999999999999` trusted into a
+  role that can read sensitive data.
+- `kms_key_overbroad` — PR #151. KMS key policy grants `kms:Decrypt` to `*`.
+- `public_ebs_snapshot` — PR #151. Unencrypted snapshot with create-volume
+  permission `group = all`.
+
 ## Adding a family
 
-1. Author node/edge/finding/path data (see `generate/ci_cd_iam_chain.py` as the model).
-2. Register a builder in `_BUILDERS` keyed by the new `scenario_type`.
-3. Add an example `examples/<type>.yaml`.
-4. The pipeline, validators, and report need **no changes** — they read the graph.
+1. Author a core fragment under `generate/fragments/` and a template projection.
+2. Register the builder in `template_generator.py` and `composer.py` `_CORE_KINDS`.
+3. Add `examples/<type>.yaml`.
+4. Join the composer integrity net (seeds `{0,1,2,17,99}`, zero FAIL).
 
 Keep every family **self-consistent**: the ground truth must reference only nodes/edges
 present in the graph, and every broad grant must have a documenting finding, or the risk
 engine will `FAIL`.
-
-## Planned families (not yet built)
-
-Cross-account trust chains, over-permissive KMS key policies, public RDS/EBS snapshots,
-missing-logging estates. Tracked in the [Roadmap](Roadmap).
