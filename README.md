@@ -15,9 +15,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo/cloudforge-vs-cloudgoat.gif" alt="Cloudforge vs CloudGoat demo" width="760">
+  <img src="docs/assets/workbench.png" alt="cloudforge student workbench for a Kubernetes IRSA lab" width="760">
   <br>
-  <em><a href="docs/demo/cloudforge-vs-cloudgoat.mp4">Watch the MP4 demo</a></em>
+  <em>A student pack from cloudforge roundtable. The instructor key is not in this tree.</em>
 </p>
 
 ---
