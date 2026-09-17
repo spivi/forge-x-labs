@@ -44,17 +44,17 @@ SLIDES = [
             <h2>The Pain of Traditional Cloud Labs (CloudGoat & TerraGoat)</h2>
             <div class="grid-3">
                 <div class="card card-stop">
-                    <div class="card-icon">💳</div>
+                    <div class="card-icon"></div>
                     <h3>Live Cloud Prerequisite</h3>
                     <p>Requires real AWS accounts, administrative IAM keys, and credit cards. Risky orphan resources (NAT gateways, RDS, ALBs) accumulate unexpected billing.</p>
                 </div>
                 <div class="card card-stop">
-                    <div class="card-icon">📋</div>
+                    <div class="card-icon"></div>
                     <h3>Zero Student Variation</h3>
                     <p>Static HCL templates give every participant identical ARNs, resource names, and attack paths. Answers and flags are copied across cohorts instantly.</p>
                 </div>
                 <div class="card card-stop">
-                    <div class="card-icon">⏳</div>
+                    <div class="card-icon"></div>
                     <h3>High Friction & Manual Grading</h3>
                     <p>15-minute <code>terraform apply</code> and fragile <code>destroy</code> steps. Instructors must manually review accounts or collect screenshots to grade.</p>
                 </div>
@@ -72,17 +72,17 @@ SLIDES = [
             <h2>The Cloudforge Breakthrough: Local, Unique, Auto-Graded</h2>
             <div class="grid-3">
                 <div class="card card-ember">
-                    <div class="card-icon">🛡️</div>
+                    <div class="card-icon"></div>
                     <h3>100% Local-First ($0.00)</h3>
                     <p>Deterministic graph engine and static analysis. Evaluated locally via OPA and Checkov. <code>terraform apply</code> is blocked by contract. Zero cloud accounts needed.</p>
                 </div>
                 <div class="card card-ember">
-                    <div class="card-icon">🎲</div>
+                    <div class="card-icon"></div>
                     <h3>Combinatoric Seed Uniqueness</h3>
                     <p><code>--seed &lt;N&gt;</code> generates distinct namespaces, decoys, intermediate IAM hops, and varying noise. No two students can copy ARNs or attack paths.</p>
                 </div>
                 <div class="card card-ember">
-                    <div class="card-icon">⚡</div>
+                    <div class="card-icon"></div>
                     <h3>Sub-Second Auto-Grading</h3>
                     <p>Stripped student estate versus instructor key. Instant precision/recall grading via <code>cloudforge grade</code>.</p>
                 </div>
@@ -141,11 +141,11 @@ SLIDES = [
                     <h3>Discovered Attack Path (Seed 17)</h3>
                     <div class="flow-chart">
                         <div class="flow-node highlight">Internet Ingress (0.0.0.0/0)</div>
-                        <div class="flow-arrow">⬇️</div>
+                        <div class="flow-arrow">-></div>
                         <div class="flow-node alert">EC2 Instance (IMDSv1 enabled)</div>
-                        <div class="flow-arrow">⬇️ SSRF Metadata Exfiltration</div>
+                        <div class="flow-arrow">-> SSRF Metadata Exfiltration</div>
                         <div class="flow-node">IAM Role: WebAppInstanceRole</div>
-                        <div class="flow-arrow">⬇️ s3:Get* / s3:List*</div>
+                        <div class="flow-arrow">-> s3:Get* / s3:List*</div>
                         <div class="flow-node danger">S3: customer-pii-records-000000000000</div>
                     </div>
                 </div>
