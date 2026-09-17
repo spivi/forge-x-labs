@@ -47,7 +47,7 @@ benchmark_results.json
 data/raw/*
 !data/raw/.gitkeep
 
-# Internal agent tooling and harness. Kept on disk for local work; not published.
+# Local-only trees, not part of the package.
 .dev-context/
 .claude/
 .cursor/
@@ -62,7 +62,7 @@ STATUS.md
 setup.sh
 .env.example
 
-# Agent/harness scripts. Product scripts below stay tracked via the negations.
+# Extra scripts stay local. These ones are part of the package:
 scripts/*
 !scripts/check-signoff.sh
 !scripts/no-master-commit.sh
