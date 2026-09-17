@@ -26,6 +26,7 @@ from app.cloudforge.generate.composer_kinds import (
 )
 from app.cloudforge.generate.fragments.base import get_fragment
 from app.cloudforge.io.loaders import load_yaml
+from app.cloudforge.models.graph import NodeType
 from app.cloudforge.models.scenario import ScenarioSpec
 
 
@@ -133,7 +134,8 @@ def test_easy_difficulty_yields_fewer_extras_than_hard() -> None:
 
     ``decoy.iam_role_dead_end`` mints 2 nodes per instance (role + policy),
     ``false_positive.public_denied_bucket`` mints 1, ``compensating_control.explicit_deny``
-    mints 2 -- so a decoy count of 1 vs 3 shows up as 2 vs 6 nodes, not 1 vs 3.
+    mints 3 (bucket + trail + the data set it guards) -- so a decoy count of 1 vs 3
+    shows up as 2 vs 6 nodes, not 1 vs 3.
     """
     for seed in (1, 7, 17):
         easy = _origin_counts(_spec(scale_profile="small", difficulty="easy"), seed)
@@ -143,7 +145,7 @@ def test_easy_difficulty_yields_fewer_extras_than_hard() -> None:
         assert easy.get("compensating_control", 0) == 0
         assert hard.get("decoy", 0) == 6  # 3 instances
         assert hard.get("false_positive", 0) == 2  # 2 instances
-        assert hard.get("compensating_control", 0) in (2, 4)  # 1..2 instances
+        assert hard.get("compensating_control", 0) in (3, 6)  # 1..2 instances
         assert easy.get("decoy", 0) < hard.get("decoy", 0)
         assert easy.get("false_positive", 0) < hard.get("false_positive", 0)
 
@@ -336,12 +338,13 @@ def test_aws_plan_never_draws_a_vendor_kind() -> None:
 
 @pytest.mark.parametrize("cloud", ["azure", "gcp", "k8s"])
 def test_vendor_estates_mint_only_their_vendor_types_outside_the_core(cloud: str) -> None:
-    """Every non-core node an Azure or GCP estate carries is that vendor's own type;
-    a Kubernetes estate may add AWS types, since its path federates into AWS."""
+    """Every non-core node an Azure or GCP estate carries is that vendor's own type
+    or a data set one of them holds; a Kubernetes estate may add AWS types, since
+    its path federates into AWS."""
     for seed in (0, 17):
         g = GraphComposer(_vendor_spec(cloud, scale_profile="small"), seed=seed).generate().graph
         for n in g.nodes:
-            if n.origin == "core":
+            if n.origin == "core" or n.type is NodeType.DATASET:
                 continue
             value = n.type.value
             if cloud == "azure":
@@ -386,18 +389,25 @@ def test_vendor_estates_are_deterministic_per_spec_and_seed(cloud: str) -> None:
         assert a.ground_truth.model_dump() == b.ground_truth.model_dump()
 
 
+@pytest.mark.parametrize("cloud", ["aws", "azure", "gcp", "k8s"])
 @pytest.mark.parametrize("profile", ["tiny", "small"])
-def test_multi_node_noise_never_overshoots_the_profile_band(profile: str) -> None:
-    """The k8s pool has a two-node noise kind (namespace + pod); the fill must count
-    its real size instead of assuming one node per kind."""
+def test_multi_node_kinds_never_overshoot_the_profile_band(profile: str, cloud: str) -> None:
+    """Noise kinds may mint two nodes (a namespace with its pod, a bucket with its
+    data set) and a control mints three; both the fill and the extras must count a
+    kind's real size instead of assuming one or two nodes per kind."""
     lo, hi = {"tiny": (10, 20), "small": (25, 50)}[profile]
     for seed in range(25):
-        g = GraphComposer(_vendor_spec("k8s", scale_profile=profile), seed=seed).generate().graph
-        assert lo <= len(g.nodes) <= hi, (profile, seed, len(g.nodes))
+        spec = (
+            _spec(scale_profile=profile)
+            if cloud == "aws"
+            else _vendor_spec(cloud, scale_profile=profile)
+        )
+        g = GraphComposer(spec, seed=seed).generate().graph
+        assert lo <= len(g.nodes) <= hi, (cloud, profile, seed, len(g.nodes))
 
 
 def test_picking_from_a_one_kind_pool_spends_no_rng_draw() -> None:
-    """Keeps every AWS estate byte-identical to what 1.3.1 drew for the same seed."""
+    """A single-kind role (every role in the AWS pool) keeps the plan's draw order."""
     rng = Random(3)
     state = rng.getstate()
     assert _pick(rng, ("only",)) == "only"

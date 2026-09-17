@@ -48,6 +48,12 @@ on top of the whole AWS pool, because that family's path federates into AWS
 IAM. `variation_axes` (`decoy` / `fp` / `ctrl`) and `difficulty` count
 instances per role, whatever vendor kind fills the slot.
 
+Every pool also mints data sets, so the sink is never the only `DataSet` on
+the board: noise data sets are held by a container, bucket or pod and carry a
+classification drawn from `public` / `internal` / `confidential` /
+`restricted`; every compensating control guards a `restricted` data set that
+no identity can reach; every core sink carries its true `restricted` label.
+
 ### `ci_cd_iam_chain` (detail)
 
 **Critical path:** `github-actions-oidc -> DeployRole -> RuntimeRole ->

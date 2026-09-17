@@ -126,14 +126,22 @@ PUBLIC_LOOKING_BUCKETS = (
 )
 
 LOGGED_BUCKETS = (
-    # (stem, bucket name, trail name): a bucket wired to its own access-log trail
-    ("app-config", "app-config-store", "trail-app-config"),
-    ("ops-runbooks", "ops-runbooks", "trail-ops-runbooks"),
-    ("billing-exports", "billing-exports-archive", "trail-billing-exports"),
-    ("audit-evidence", "audit-evidence", "trail-audit-evidence"),
-    ("ml-features", "ml-feature-store", "trail-ml-features"),
-    ("partner-uploads", "partner-uploads", "trail-partner-uploads"),
+    # (stem, bucket name, trail name, data set): a bucket wired to its own
+    # access-log trail and the data it holds behind that control
+    ("app-config", "app-config-store", "trail-app-config", "app-config-values"),
+    ("ops-runbooks", "ops-runbooks", "trail-ops-runbooks", "runbook-library"),
+    ("billing-exports", "billing-exports-archive", "trail-billing-exports", "billing-statements"),
+    ("audit-evidence", "audit-evidence", "trail-audit-evidence", "audit-evidence-files"),
+    ("ml-features", "ml-feature-store", "trail-ml-features", "feature-vectors"),
+    ("partner-uploads", "partner-uploads", "trail-partner-uploads", "partner-upload-files"),
 )
+
+# Every data set carries one of these, drawn with the fragment rng, so the core
+# sink is neither the only labeled data set nor the only one at its level. A
+# compensating control always guards a ``restricted`` set: that is what makes it
+# worth a control, and it keeps "find the restricted one" from being the answer.
+CLASSIFICATIONS = ("public", "internal", "confidential", "restricted")
+SINK_CLASSIFICATION = "restricted"
 
 # --- Azure non-core vocabulary -------------------------------------------------
 # Same rule as above: nothing says what the fragment is for. Storage account names
@@ -202,11 +210,21 @@ AZURE_PUBLIC_LOOKING_CONTAINERS = (
 )
 
 AZURE_LOCKED_VAULTS = (
-    "kv-billing-keys",
-    "kv-signing-keys",
-    "kv-db-creds",
-    "kv-partner-certs",
-    "kv-backup-keys",
+    # (vault, container the vault's key opens, storage account, data set)
+    ("kv-billing-keys", "cnt-billing-statements", "stbilling", "billing-statements"),
+    ("kv-signing-keys", "cnt-release-signing", "stsigning", "release-signatures"),
+    ("kv-db-creds", "cnt-db-backups", "stdbbackups", "db-backup-sets"),
+    ("kv-partner-certs", "cnt-partner-contracts", "stpartner", "partner-contracts"),
+    ("kv-backup-keys", "cnt-backup-vault", "stbackupvault", "backup-archives"),
+)
+
+AZURE_DATA_CONTAINERS = (
+    # (container, storage account, data set): a container and the data it holds
+    ("cnt-analytics-cache", "stanalytics", "analytics-cache"),
+    ("cnt-reporting-store", "streporting", "reporting-store"),
+    ("cnt-telemetry-sink", "sttelemetry", "telemetry-sink"),
+    ("cnt-ops-metrics", "stopsmetrics", "operational-metrics"),
+    ("cnt-media-cache", "stmedia", "media-cache"),
 )
 
 # --- GCP non-core vocabulary ---------------------------------------------------
@@ -273,11 +291,21 @@ GCP_PUBLIC_LOOKING_BUCKETS = (
 )
 
 GCP_LOCKED_BUCKETS = (
-    "bkt-billing-exports",
-    "bkt-audit-evidence",
-    "bkt-ml-features",
-    "bkt-partner-uploads",
-    "bkt-ops-runbooks",
+    # (bucket, data set it holds behind public access prevention)
+    ("bkt-billing-exports", "billing-statements"),
+    ("bkt-audit-evidence", "audit-evidence-files"),
+    ("bkt-ml-features", "feature-vectors"),
+    ("bkt-partner-uploads", "partner-upload-files"),
+    ("bkt-ops-runbooks", "runbook-library"),
+)
+
+GCP_DATA_BUCKETS = (
+    # (bucket, data set): a bucket and the data it holds
+    ("bkt-analytics-cache", "analytics-cache"),
+    ("bkt-reporting-store", "reporting-store"),
+    ("bkt-telemetry-sink", "telemetry-sink"),
+    ("bkt-ops-metrics", "operational-metrics"),
+    ("bkt-media-cache", "media-cache"),
 )
 
 # --- Kubernetes non-core vocabulary --------------------------------------------
@@ -312,6 +340,15 @@ K8S_CLUSTERS = (
         "https://oidc.eks.us-west-2.amazonaws.com/id/EXAMPLE3C4D5E6F7A8B9C0D1",
     ),
     ("eks-batch-cluster", "https://oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLE4D5E6F7A8B9C0D1E2"),
+)
+
+K8S_DATA_PODS = (
+    # (pod, data set): a stateful pod in the workloads namespace and what it holds
+    ("postgres-primary", "orders-db"),
+    ("redis-cache", "session-cache"),
+    ("minio-gateway", "build-cache"),
+    ("elastic-data", "search-index"),
+    ("kafka-broker", "event-log"),
 )
 
 K8S_BARE_NAMESPACES = (

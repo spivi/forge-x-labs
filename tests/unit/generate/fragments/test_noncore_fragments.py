@@ -13,9 +13,10 @@ import app.cloudforge.generate.fragments.noncore_gcp  # noqa: F401
 import app.cloudforge.generate.fragments.noncore_k8s  # noqa: F401
 from app.cloudforge import constants
 from app.cloudforge.generate.composer_kinds import AZURE_KINDS, GCP_KINDS, K8S_KINDS, SHORT
+from app.cloudforge.generate.fragments._vocab import CLASSIFICATIONS, SINK_CLASSIFICATION
 from app.cloudforge.generate.fragments.base import get_fragment
 from app.cloudforge.models.findings import FindingFamily
-from app.cloudforge.models.graph import NodeType
+from app.cloudforge.models.graph import EdgeType, NodeType
 
 
 def test_decoy_has_no_ground_truth_path():
@@ -101,21 +102,23 @@ def _vendor_prefix(kind: str) -> str:
 
 @pytest.mark.parametrize("kind", AZURE_KINDS + GCP_KINDS)
 def test_azure_and_gcp_fragments_mint_only_their_vendor_types(kind: str) -> None:
+    """Vendor types only, plus the generic data set a container or bucket holds."""
     prefix = _vendor_prefix(kind)
     for seed in range(6):
         b = get_fragment(kind).build("x0", Random(seed), {})
         assert b.nodes
         for n in b.nodes:
-            assert n.type.value.startswith(prefix), (kind, n.type)
+            assert n.type.value.startswith(prefix) or n.type is NodeType.DATASET, (kind, n.type)
 
 
 @pytest.mark.parametrize("kind", K8S_KINDS)
 def test_k8s_fragments_mint_k8s_types_plus_the_iam_role_they_federate_to(kind: str) -> None:
+    allowed = (NodeType.IAM_ROLE, NodeType.DATASET)
     for seed in range(6):
         b = get_fragment(kind).build("x0", Random(seed), {})
         assert b.nodes
         for n in b.nodes:
-            assert n.type.value.startswith("K8s") or n.type is NodeType.IAM_ROLE, (kind, n.type)
+            assert n.type.value.startswith("K8s") or n.type in allowed, (kind, n.type)
 
 
 @pytest.mark.parametrize("kind", _VENDOR_KINDS)
@@ -191,7 +194,43 @@ def test_gcp_false_positive_bucket_has_uniform_access_and_no_all_users() -> None
 def test_vendor_compensating_controls_have_no_finding(kind: str) -> None:
     b = get_fragment(kind).build("cc0", Random(0), {})
     assert b.findings == [] and b.paths == []
-    assert len(b.nodes) == 1
+
+
+@pytest.mark.parametrize("kind", [k for k in _NONCORE_KINDS if SHORT[k] == "ctrl"])
+def test_every_compensating_control_guards_a_restricted_data_set_nobody_reaches(
+    kind: str,
+) -> None:
+    """The control's data set is the sink's shape (restricted, held behind a
+    stores_sensitive_data edge) with no identity able to walk to it."""
+    for seed in range(6):
+        b = get_fragment(kind).build("cc0", Random(seed), {})
+        data = [n for n in b.nodes if n.type is NodeType.DATASET]
+        assert len(data) == 1, kind
+        assert data[0].attributes["classification"] == SINK_CLASSIFICATION
+        holders = [e for e in b.edges if e.to == data[0].id]
+        assert len(holders) == 1 and holders[0].type is EdgeType.STORES_SENSITIVE_DATA
+        assert holders[0].security.risk == "none"
+        identity_types = (
+            NodeType.IAM_ROLE,
+            NodeType.CICD_IDENTITY,
+            NodeType.AZURE_MANAGED_IDENTITY,
+            NodeType.GCP_SERVICE_ACCOUNT,
+            NodeType.K8S_SERVICE_ACCOUNT,
+        )
+        assert not [n for n in b.nodes if n.type in identity_types], kind
+
+
+@pytest.mark.parametrize("kind", [k for k in _NONCORE_KINDS if "data_set" in k])
+def test_data_set_noise_draws_its_classification_from_the_spread(kind: str) -> None:
+    seen = set()
+    for seed in range(40):
+        b = get_fragment(kind).build("n0", Random(seed), {})
+        data = [n for n in b.nodes if n.type is NodeType.DATASET]
+        assert len(data) == 1
+        level = data[0].attributes["classification"]
+        assert level in CLASSIFICATIONS
+        seen.add(level)
+    assert seen == set(CLASSIFICATIONS), (kind, seen)
 
 
 def test_azure_compensating_control_blocks_public_reach() -> None:

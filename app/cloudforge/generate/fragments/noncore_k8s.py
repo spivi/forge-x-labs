@@ -19,10 +19,18 @@ from __future__ import annotations
 from random import Random
 from typing import Any
 
-from app.cloudforge.generate.fragments._noncore import bundle, draw_tags, edge, node
+from app.cloudforge.generate.fragments._noncore import (
+    bundle,
+    data_set,
+    draw_classification,
+    draw_tags,
+    edge,
+    node,
+)
 from app.cloudforge.generate.fragments._vocab import (
     K8S_BARE_NAMESPACES,
     K8S_CLUSTERS,
+    K8S_DATA_PODS,
     K8S_DECOY_BINDINGS,
     K8S_NAMESPACE_PODS,
     K8S_PLAIN_SERVICE_ACCOUNTS,
@@ -53,6 +61,25 @@ class K8sNamespacePod:
             service_account="default",
         )
         return bundle([namespace, pod], [edge(pod, namespace, EdgeType.IN_NAMESPACE)])
+
+
+@register("benign_noise.k8s_pod_data_set")
+class K8sPodDataSet:
+    """A stateful pod in the workloads namespace and the data set it holds."""
+
+    def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        tags = draw_tags(rng)
+        pod_name, data_name = rng.choice(K8S_DATA_PODS)
+        pod = node(
+            ns,
+            pod_name,
+            NodeType.K8S_POD,
+            tags,
+            namespace="workloads",
+            service_account="default",
+        )
+        data = data_set(ns, data_name, tags, draw_classification(rng))
+        return bundle([pod, data], [edge(pod, data, EdgeType.STORES_SENSITIVE_DATA)])
 
 
 @register("benign_noise.k8s_service_account")

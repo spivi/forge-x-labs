@@ -133,11 +133,14 @@ class GraphComposer:
 
     def _add_extras(self, draft: _Draft, kinds: tuple[str, ...], count: int, rng: Random) -> None:
         """Append up to ``count`` instances drawn from ``kinds`` while the plan stays
-        under the profile's ``max_nodes`` ceiling (reserving one slot for scale fill)."""
+        under the profile's ``max_nodes`` ceiling (reserving one slot for scale fill).
+        Counts the drawn kind's real size: a control mints three nodes."""
         for _ in range(count):
-            if self._planned_node_count(draft) >= self._profile.max_nodes - 1:
+            kind = _pick(rng, kinds)
+            planned = self._planned_node_count(draft) + _fragment_size(kind)
+            if planned > self._profile.max_nodes - 1:
                 return
-            draft.append((_pick(rng, kinds), {}))
+            draft.append((kind, {}))
 
     def _fill_to_scale(self, draft: _Draft, rng: Random) -> _Draft:
         """Pad with noise kinds until the seeded target is met. A noise kind may
@@ -222,9 +225,8 @@ def _fragment_size(kind: str, params: dict[str, Any] | None = None) -> int:
 
 
 def _pick(rng: Random, kinds: tuple[str, ...]) -> str:
-    """One kind from a pool. A one-kind pool spends no rng draw, so every estate
-    drawn from the AWS pool (one kind per extra role) is byte-identical to what
-    1.3.1 produced for the same ``(spec, seed)``."""
+    """One kind from a pool. A one-kind pool spends no rng draw, so a pool with a
+    single kind per extra role (the AWS pool) keeps the plan's draw order."""
     if len(kinds) == 1:
         return kinds[0]
     return rng.choice(kinds)

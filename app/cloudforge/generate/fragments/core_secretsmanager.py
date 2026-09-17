@@ -84,6 +84,7 @@ def _nodes(ns: str) -> list[GraphNode]:
             NodeType.DATASET,
             "ProductionDatabaseMasterCredentials",
             "critical",
+            classification="restricted",
         ),
     ]
 

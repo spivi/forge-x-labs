@@ -18,6 +18,7 @@ from typing import Any
 from app.cloudforge.generate.fragments._vocab import (
     APP_VALUES,
     BUCKET_NAMES,
+    CLASSIFICATIONS,
     DATA_NAMES,
     ECR_NAMES,
     ENV_VALUES,
@@ -135,16 +136,20 @@ class BenignNoiseEcrRepo:
 
 @register("benign_noise.data_set")
 class BenignNoiseDataSet:
+    """A data set at any classification level: the label alone says nothing
+    about whether a path reaches it."""
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name = rng.choice(DATA_NAMES)
+        tags = _tags(rng)
         return _bundle(
             GraphNode(
                 id=f"{ns}/{_slug('data', name)}",
                 type=NodeType.DATASET,
                 name=name,
-                tags=_tags(rng),
+                tags=tags,
                 security=NodeSecurity(criticality="low"),
-                attributes={"classification": "internal"},
+                attributes={"classification": rng.choice(CLASSIFICATIONS)},
             )
         )
 

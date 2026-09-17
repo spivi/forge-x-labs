@@ -8,13 +8,25 @@
   identities, app services and resource groups; `gcp` gets buckets, service
   accounts, projects, folders and workload identity pools; `k8s` gets
   namespaces, pods, service accounts and a second cluster on top of the AWS
-  pool, since that family federates into AWS IAM. AWS estates are unchanged,
-  byte for byte, for the same `(spec, seed)`. Before this an Azure or GCP lab
-  was padded with ECR repositories, SQS queues and an IAM decoy role.
+  pool, since that family federates into AWS IAM. Before this an Azure or GCP
+  lab was padded with ECR repositories, SQS queues and an IAM decoy role.
   `variation_axes` and `difficulty` count instances per role, whatever the
   vendor. The Azure and GCP emitters render the control attributes the new
   fragments carry (key vault network ACL and private access, storage account
   public-blob flag, bucket uniform access and public access prevention).
+- The sink is no longer the only labeled data set. An Azure or GCP estate
+  held exactly one `DataSet`, the sink, classified `restricted`; an AWS
+  estate's noise data sets were all `internal` while the sink carried no
+  classification at all, so the odd data-set card was the answer. Now every
+  pool has a noise kind whose container, bucket or pod holds a data set,
+  every data set carries a classification drawn from `public` / `internal` /
+  `confidential` / `restricted` with the fragment rng, the twelve AWS core
+  sinks carry their true `restricted` label, and every compensating control
+  guards a `restricted` data set that no identity in the estate can reach.
+  The composer's extras guard now counts a kind's real node count, as the
+  fill already did. AWS estates change for the same `(spec, seed)` as a
+  result (the 1.3.1 byte-identity noted in an earlier draft of this entry
+  no longer holds); the id, edge and path contracts are unchanged.
 - `cloudforge roundtable`: the `identity_federation` track has AWS as its
   fourth dialect (`ci_cd_iam_chain`, a GitHub Actions OIDC identity federating
   into an IAM role), so a four-name roster gets one estate per vendor and the

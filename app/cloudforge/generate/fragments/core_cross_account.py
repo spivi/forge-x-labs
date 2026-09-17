@@ -105,7 +105,14 @@ def _nodes(ns: str) -> list[GraphNode]:
             compensating_control="true",
         ),
         _node(ns, "app-partner-exchange", NodeType.APPLICATION, "partner-exchange", "medium"),
-        _node(ns, "data-partner", NodeType.DATASET, "partner-records", "critical"),
+        _node(
+            ns,
+            "data-partner",
+            NodeType.DATASET,
+            "partner-records",
+            "critical",
+            classification="restricted",
+        ),
         _node(ns, "trail-main", NodeType.LOG_TRAIL, "main-trail", "medium"),
     ]
 

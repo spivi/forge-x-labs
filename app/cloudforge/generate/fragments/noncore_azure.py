@@ -19,16 +19,25 @@ from __future__ import annotations
 from random import Random
 from typing import Any
 
-from app.cloudforge.generate.fragments._noncore import bundle, draw_tags, edge, node
+from app.cloudforge.generate.fragments._noncore import (
+    bundle,
+    data_set,
+    draw_classification,
+    draw_tags,
+    edge,
+    node,
+)
 from app.cloudforge.generate.fragments._vocab import (
     AZURE_APP_NAMES,
     AZURE_CONFIG_VAULTS,
+    AZURE_DATA_CONTAINERS,
     AZURE_DECOY_IDENTITIES,
     AZURE_IDENTITY_NAMES,
     AZURE_LOCKED_VAULTS,
     AZURE_LOG_CONTAINERS,
     AZURE_PUBLIC_LOOKING_CONTAINERS,
     AZURE_RESOURCE_GROUPS,
+    SINK_CLASSIFICATION,
 )
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import ExpectedFinding, FindingFamily
@@ -56,6 +65,25 @@ class AzureLogContainer:
                 )
             ]
         )
+
+
+@register("benign_noise.azure_container_data_set")
+class AzureContainerDataSet:
+    """A storage container and the data set it holds, at any classification."""
+
+    def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        tags = draw_tags(rng)
+        container_name, account, data_name = rng.choice(AZURE_DATA_CONTAINERS)
+        container = node(
+            ns,
+            container_name,
+            NodeType.AZURE_STORAGE_CONTAINER,
+            tags,
+            storage_account=account,
+            access_type="private",
+        )
+        data = data_set(ns, data_name, tags, draw_classification(rng))
+        return bundle([container, data], [edge(container, data, EdgeType.STORES_SENSITIVE_DATA)])
 
 
 @register("benign_noise.azure_config_vault")
@@ -204,24 +232,41 @@ class AzurePrivateContainer:
 
 @register("compensating_control.azure_vault_network_rule")
 class AzureVaultNetworkRule:
-    """A key vault reachable only through its private endpoint: the network rule
-    denies public access, so whatever appears to reach it cannot."""
+    """A key vault reachable only through its private endpoint, holding the key
+    to a container of restricted data. No identity in the estate reaches the
+    vault and its network rule denies public access, so the restricted data set
+    behind it is the core sink's shape with nobody able to walk to it."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        name = rng.choice(AZURE_LOCKED_VAULTS)
-        return bundle(
-            [
-                node(
-                    ns,
-                    name,
-                    NodeType.AZURE_KEY_VAULT,
-                    draw_tags(rng),
-                    sku="premium",
-                    purge_protection="true",
-                    resource_group_name=_RESOURCE_GROUP,
-                    public_network_access="Disabled",
-                    network_default_action="Deny",
-                    private_endpoint="true",
-                )
-            ]
+        tags = draw_tags(rng)
+        vault_name, container_name, account, data_name = rng.choice(AZURE_LOCKED_VAULTS)
+        vault = node(
+            ns,
+            vault_name,
+            NodeType.AZURE_KEY_VAULT,
+            tags,
+            "medium",
+            sku="premium",
+            purge_protection="true",
+            resource_group_name=_RESOURCE_GROUP,
+            public_network_access="Disabled",
+            network_default_action="Deny",
+            private_endpoint="true",
+            secret_names=["storage-account-key"],
         )
+        container = node(
+            ns,
+            container_name,
+            NodeType.AZURE_STORAGE_CONTAINER,
+            tags,
+            "medium",
+            storage_account=account,
+            access_type="private",
+            allow_blob_public_access="false",
+        )
+        data = data_set(ns, data_name, tags, SINK_CLASSIFICATION, "medium")
+        edges = [
+            edge(vault, container, EdgeType.CAN_READ, "none"),
+            edge(container, data, EdgeType.STORES_SENSITIVE_DATA, "none"),
+        ]
+        return bundle([vault, container, data], edges)

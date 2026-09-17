@@ -90,6 +90,7 @@ def _nodes(ns: str) -> list[GraphNode]:
             NodeType.DATASET,
             "CustomerIdentityAndPII",
             "critical",
+            classification="restricted",
         ),
     ]
 

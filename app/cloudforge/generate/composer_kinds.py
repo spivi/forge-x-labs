@@ -61,6 +61,7 @@ AWS_KINDS: tuple[str, ...] = AWS_NOISE_KINDS + AWS_EXTRA_KINDS
 
 AZURE_KINDS: tuple[str, ...] = (
     "benign_noise.azure_log_container",
+    "benign_noise.azure_container_data_set",
     "benign_noise.azure_config_vault",
     "benign_noise.azure_managed_identity",
     "benign_noise.azure_app_service",
@@ -72,6 +73,7 @@ AZURE_KINDS: tuple[str, ...] = (
 
 GCP_KINDS: tuple[str, ...] = (
     "benign_noise.gcp_artifact_bucket",
+    "benign_noise.gcp_bucket_data_set",
     "benign_noise.gcp_service_account",
     "benign_noise.gcp_project",
     "benign_noise.gcp_folder",
@@ -83,6 +85,7 @@ GCP_KINDS: tuple[str, ...] = (
 
 K8S_KINDS: tuple[str, ...] = (
     "benign_noise.k8s_namespace_pod",
+    "benign_noise.k8s_pod_data_set",
     "benign_noise.k8s_service_account",
     "benign_noise.k8s_cluster",
     "benign_noise.k8s_namespace",
@@ -115,6 +118,7 @@ SHORT: dict[str, str] = {
     "benign_noise.data_set": "noise",
     "benign_noise.log_trail": "noise",
     "benign_noise.azure_log_container": "noise",
+    "benign_noise.azure_container_data_set": "noise",
     "benign_noise.azure_config_vault": "noise",
     "benign_noise.azure_managed_identity": "noise",
     "benign_noise.azure_app_service": "noise",
@@ -123,6 +127,7 @@ SHORT: dict[str, str] = {
     "false_positive.azure_private_container": "fp",
     "compensating_control.azure_vault_network_rule": "ctrl",
     "benign_noise.gcp_artifact_bucket": "noise",
+    "benign_noise.gcp_bucket_data_set": "noise",
     "benign_noise.gcp_service_account": "noise",
     "benign_noise.gcp_project": "noise",
     "benign_noise.gcp_folder": "noise",
@@ -131,6 +136,7 @@ SHORT: dict[str, str] = {
     "false_positive.gcp_uniform_access_bucket": "fp",
     "compensating_control.gcp_public_access_prevention": "ctrl",
     "benign_noise.k8s_namespace_pod": "noise",
+    "benign_noise.k8s_pod_data_set": "noise",
     "benign_noise.k8s_service_account": "noise",
     "benign_noise.k8s_cluster": "noise",
     "benign_noise.k8s_namespace": "noise",

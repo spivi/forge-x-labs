@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from random import Random
 
-from app.cloudforge.generate.fragments._vocab import APP_VALUES, ENV_VALUES, OWNER_VALUES
+from app.cloudforge.generate.fragments._vocab import (
+    APP_VALUES,
+    CLASSIFICATIONS,
+    ENV_VALUES,
+    OWNER_VALUES,
+)
 from app.cloudforge.generate.fragments.base import FragmentBundle
 from app.cloudforge.models.findings import ExpectedFinding, GroundTruthPath
 from app.cloudforge.models.graph import (
@@ -54,6 +59,18 @@ def node(
 
 def edge(src: GraphNode, dst: GraphNode, etype: EdgeType, risk: EdgeRisk = "low") -> GraphEdge:
     return GraphEdge(from_=src.id, to=dst.id, type=etype, security=EdgeSecurity(risk=risk))
+
+
+def data_set(
+    ns: str, name: str, tags: NodeTags, classification: str, crit: Criticality = "low"
+) -> GraphNode:
+    """A data set at ``classification``; draw it with ``draw_classification`` unless
+    the fragment's story fixes it (a compensating control guards restricted data)."""
+    return node(ns, name, NodeType.DATASET, tags, crit, classification=classification)
+
+
+def draw_classification(rng: Random) -> str:
+    return rng.choice(CLASSIFICATIONS)
 
 
 def bundle(

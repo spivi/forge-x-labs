@@ -19,16 +19,25 @@ from __future__ import annotations
 from random import Random
 from typing import Any
 
-from app.cloudforge.generate.fragments._noncore import bundle, draw_tags, edge, node
+from app.cloudforge.generate.fragments._noncore import (
+    bundle,
+    data_set,
+    draw_classification,
+    draw_tags,
+    edge,
+    node,
+)
 from app.cloudforge.generate.fragments._vocab import (
     GCP_ARTIFACT_BUCKETS,
     GCP_CI_SERVICE_ACCOUNTS,
+    GCP_DATA_BUCKETS,
     GCP_DECOY_BINDINGS,
     GCP_FOLDERS,
     GCP_LOCKED_BUCKETS,
     GCP_PARTNER_POOLS,
     GCP_PROJECTS,
     GCP_PUBLIC_LOOKING_BUCKETS,
+    SINK_CLASSIFICATION,
 )
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import ExpectedFinding, FindingFamily
@@ -58,6 +67,18 @@ class GcpArtifactBucket:
                 )
             ]
         )
+
+
+@register("benign_noise.gcp_bucket_data_set")
+class GcpBucketDataSet:
+    """A bucket and the data set it holds, at any classification."""
+
+    def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        tags = draw_tags(rng)
+        bucket_name, data_name = rng.choice(GCP_DATA_BUCKETS)
+        bucket = node(ns, bucket_name, NodeType.GCP_STORAGE_BUCKET, tags, storage_class="STANDARD")
+        data = data_set(ns, data_name, tags, draw_classification(rng))
+        return bundle([bucket, data], [edge(bucket, data, EdgeType.STORES_SENSITIVE_DATA)])
 
 
 @register("benign_noise.gcp_service_account")
@@ -170,20 +191,22 @@ class GcpUniformAccessBucket:
 
 @register("compensating_control.gcp_public_access_prevention")
 class GcpPublicAccessPrevention:
-    """A bucket with public access prevention enforced: no binding can open it."""
+    """A bucket with public access prevention enforced, holding restricted data.
+    No binding can open it and no identity in the estate reaches it, so the
+    restricted data set behind it is the core sink's shape with no way in."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        name = rng.choice(GCP_LOCKED_BUCKETS)
-        return bundle(
-            [
-                node(
-                    ns,
-                    name,
-                    NodeType.GCP_STORAGE_BUCKET,
-                    draw_tags(rng),
-                    storage_class="STANDARD",
-                    uniform_bucket_level_access="true",
-                    public_access_prevention="enforced",
-                )
-            ]
+        tags = draw_tags(rng)
+        bucket_name, data_name = rng.choice(GCP_LOCKED_BUCKETS)
+        bucket = node(
+            ns,
+            bucket_name,
+            NodeType.GCP_STORAGE_BUCKET,
+            tags,
+            "medium",
+            storage_class="STANDARD",
+            uniform_bucket_level_access="true",
+            public_access_prevention="enforced",
         )
+        data = data_set(ns, data_name, tags, SINK_CLASSIFICATION, "medium")
+        return bundle([bucket, data], [edge(bucket, data, EdgeType.STORES_SENSITIVE_DATA, "none")])
