@@ -57,6 +57,18 @@ _PROMPTS: dict[str, str] = {
         "An event queue handles transaction messages. Can unauthorized external "
         "parties read or inject messages?"
     ),
+    "k8s_pod_irsa_exfil": (
+        "A pod in this cluster can talk to cloud IAM. Can that workload identity "
+        "reach sensitive data, and is the hop obvious from the estate?"
+    ),
+    "azure_imds_keyvault_harvest": (
+        "An App Service has a managed identity. Can it reach secrets or customer "
+        "data that a human operator would not expect it to hold?"
+    ),
+    "gcp_workload_identity_federation": (
+        "An external CI identity federates into this project. Can it impersonate "
+        "a service account and read restricted storage?"
+    ),
 }
 
 _DEFAULT_PROMPT = (

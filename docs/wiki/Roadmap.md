@@ -1,5 +1,10 @@
 # Roadmap
 
+## v1.3 (shipped)
+
+- Identity-federation roundtable across Kubernetes, Azure, and GCP.
+- Those families emit never-applied Terraform.
+
 ## v1.0 (shipped)
 
 - 12 AWS scenario families.
