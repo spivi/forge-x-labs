@@ -54,6 +54,15 @@ classification drawn from `public` / `internal` / `confidential` /
 `restricted`; every compensating control guards a `restricted` data set that
 no identity can reach; every core sink carries its true `restricted` label.
 
+Nothing a path node carries is rare among its peers: pool nodes draw `env`
+with `prod` as the common value and the core's owner and app weighted in, the
+composer plans at least two off-path nodes of every path node type the pool
+can mint, and after assembly it copies each path node's tag values and benign
+attributes onto seeded off-path peers (`generate/composer_blend.py`). The
+modeled-risk attributes and per-resource identifiers are the only values that
+may exist on a path node alone; `tests/cloudforge/lab/test_path_tells.py`
+prints that allowlist and holds every example to the rule.
+
 ### `ci_cd_iam_chain` (detail)
 
 **Critical path:** `github-actions-oidc -> DeployRole -> RuntimeRole ->

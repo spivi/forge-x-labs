@@ -17,13 +17,8 @@ from __future__ import annotations
 from random import Random
 from typing import Any
 
-from app.cloudforge.generate.fragments._vocab import (
-    APP_VALUES,
-    ENV_VALUES,
-    LOGGED_BUCKETS,
-    OWNER_VALUES,
-    SINK_CLASSIFICATION,
-)
+from app.cloudforge.generate.fragments._noncore import draw_tags
+from app.cloudforge.generate.fragments._vocab import LOGGED_BUCKETS, SINK_CLASSIFICATION
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.graph import (
     EdgeSecurity,
@@ -31,7 +26,6 @@ from app.cloudforge.models.graph import (
     GraphEdge,
     GraphNode,
     NodeSecurity,
-    NodeTags,
     NodeType,
 )
 
@@ -39,9 +33,7 @@ from app.cloudforge.models.graph import (
 @register("compensating_control.explicit_deny")
 class CompensatingControlExplicitDeny:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = NodeTags(
-            env=rng.choice(ENV_VALUES), owner=rng.choice(OWNER_VALUES), app=rng.choice(APP_VALUES)
-        )
+        tags = draw_tags(rng, params)
         stem, bucket_name, trail_name, data_name = rng.choice(LOGGED_BUCKETS)
         bucket_id = f"{ns}/s3-{stem}"
         trail_id = f"{ns}/trail-{stem}"

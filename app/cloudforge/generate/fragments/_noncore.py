@@ -10,10 +10,12 @@ fragment rng, like ``benign_noise.py`` does for the AWS pool.
 from __future__ import annotations
 
 from random import Random
+from typing import Any
 
 from app.cloudforge.generate.fragments._vocab import (
     APP_VALUES,
     CLASSIFICATIONS,
+    CORE_TAG_WEIGHT,
     ENV_VALUES,
     OWNER_VALUES,
 )
@@ -32,10 +34,14 @@ from app.cloudforge.models.graph import (
 )
 
 
-def draw_tags(rng: Random) -> NodeTags:
-    return NodeTags(
-        env=rng.choice(ENV_VALUES), owner=rng.choice(OWNER_VALUES), app=rng.choice(APP_VALUES)
-    )
+def draw_tags(rng: Random, params: dict[str, Any] | None = None) -> NodeTags:
+    """Tags for a pool node: env from the shared distribution (prod common), owner
+    and app from the vocabulary with the core's own values weighted in, when the
+    composer passed them as ``params["core_tags"]``."""
+    core = (params or {}).get("core_tags") or {}
+    owners = OWNER_VALUES + (core["owner"],) * CORE_TAG_WEIGHT if "owner" in core else OWNER_VALUES
+    apps = APP_VALUES + (core["app"],) * CORE_TAG_WEIGHT if "app" in core else APP_VALUES
+    return NodeTags(env=rng.choice(ENV_VALUES), owner=rng.choice(owners), app=rng.choice(apps))
 
 
 def node(

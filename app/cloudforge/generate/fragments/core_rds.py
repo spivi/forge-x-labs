@@ -80,7 +80,7 @@ def _nodes(ns: str) -> list[GraphNode]:
             ns,
             "data-customer-financials",
             NodeType.DATASET,
-            "CustomerFinancialTransactions",
+            "customer-financial-transactions",
             "critical",
             classification="restricted",
         ),

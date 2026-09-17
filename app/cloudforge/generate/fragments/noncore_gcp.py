@@ -62,7 +62,7 @@ class GcpArtifactBucket:
                     ns,
                     name,
                     NodeType.GCP_STORAGE_BUCKET,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     storage_class="STANDARD",
                 )
             ]
@@ -74,7 +74,7 @@ class GcpBucketDataSet:
     """A bucket and the data set it holds, at any classification."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         bucket_name, data_name = rng.choice(GCP_DATA_BUCKETS)
         bucket = node(ns, bucket_name, NodeType.GCP_STORAGE_BUCKET, tags, storage_class="STANDARD")
         data = data_set(ns, data_name, tags, draw_classification(rng))
@@ -87,9 +87,8 @@ class GcpCiServiceAccount:
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name = rng.choice(GCP_CI_SERVICE_ACCOUNTS)
-        return bundle(
-            [node(ns, name, NodeType.GCP_SERVICE_ACCOUNT, draw_tags(rng), email=_sa_email(name))]
-        )
+        tags = draw_tags(rng, params)
+        return bundle([node(ns, name, NodeType.GCP_SERVICE_ACCOUNT, tags, email=_sa_email(name))])
 
 
 @register("benign_noise.gcp_project")
@@ -98,7 +97,8 @@ class GcpSecondProject:
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name, project_id = rng.choice(GCP_PROJECTS)
-        project = node(ns, name, NodeType.GCP_PROJECT, draw_tags(rng), project_id=project_id)
+        tags = draw_tags(rng, params)
+        project = node(ns, name, NodeType.GCP_PROJECT, tags, project_id=project_id)
         return bundle([project])
 
 
@@ -108,7 +108,8 @@ class GcpFolderNoise:
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name = rng.choice(GCP_FOLDERS)
-        return bundle([node(ns, name, NodeType.GCP_FOLDER, draw_tags(rng), display_name=name)])
+        tags = draw_tags(rng, params)
+        return bundle([node(ns, name, NodeType.GCP_FOLDER, tags, display_name=name)])
 
 
 @register("benign_noise.gcp_workload_identity_pool")
@@ -123,7 +124,7 @@ class GcpPartnerPool:
                     ns,
                     name,
                     NodeType.GCP_WORKLOAD_IDENTITY_POOL,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     issuer_uri=issuer,
                     attribute_condition="assertion.repository_owner == 'partner-org'",
                 )
@@ -137,7 +138,7 @@ class GcpViewerDeadEnd:
     nothing sensitive: the shape of the core path, no sink."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         sa_name, bucket_name = rng.choice(GCP_DECOY_BINDINGS)
         account = node(
             ns,
@@ -169,7 +170,7 @@ class GcpUniformAccessBucket:
             ns,
             name,
             NodeType.GCP_STORAGE_BUCKET,
-            draw_tags(rng),
+            draw_tags(rng, params),
             storage_class="STANDARD",
             uniform_bucket_level_access="true",
             all_users_binding="false",
@@ -196,7 +197,7 @@ class GcpPublicAccessPrevention:
     restricted data set behind it is the core sink's shape with no way in."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         bucket_name, data_name = rng.choice(GCP_LOCKED_BUCKETS)
         bucket = node(
             ns,

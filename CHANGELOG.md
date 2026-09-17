@@ -27,6 +27,23 @@
   fill already did. AWS estates change for the same `(spec, seed)` as a
   result (the 1.3.1 byte-identity noted in an earlier draft of this entry
   no longer holds); the id, edge and path contracts are unchanged.
+- Nothing a path node carries is rare among its type peers any more. Core
+  fragments stamp one fixed tag set (`env=prod`, one owner, one app) while
+  padding drew only non-prod values, so filtering on a tag returned the path;
+  the path identity was the only `SystemAssigned` one, the path vault the
+  only one without purge protection; eight core data sets were CamelCase
+  while every pool data set is kebab-case. Now pool nodes draw `env` from a
+  distribution where `prod` is the common value and draw the core's own
+  owner and app three times as often as any other; the composer plans at
+  least two off-path nodes of every path node type its pool can mint, then
+  copies each path node's tag values and benign configuration onto seeded
+  off-path peers until two of them carry it (`composer_blend.py`). The
+  modeled-risk attributes (`imds_version`, `acl`, IAM grants, ...) and
+  per-resource identifiers are never copied; that allowlist is printed by
+  `tests/cloudforge/lab/test_path_tells.py`. Data set names are kebab-case
+  everywhere (`customer-banking-records`, `payroll-financial-records`);
+  roles and policies stay CamelCase. Easy difficulty plans one compensating
+  control so its guarded restricted data set exists at every difficulty.
 - `cloudforge roundtable`: the `identity_federation` track has AWS as its
   fourth dialect (`ci_cd_iam_chain`, a GitHub Actions OIDC identity federating
   into an IAM role), so a four-name roster gets one estate per vendor and the

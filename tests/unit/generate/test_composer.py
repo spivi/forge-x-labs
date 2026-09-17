@@ -135,14 +135,15 @@ def test_easy_difficulty_yields_fewer_extras_than_hard() -> None:
     ``decoy.iam_role_dead_end`` mints 2 nodes per instance (role + policy),
     ``false_positive.public_denied_bucket`` mints 1, ``compensating_control.explicit_deny``
     mints 3 (bucket + trail + the data set it guards) -- so a decoy count of 1 vs 3
-    shows up as 2 vs 6 nodes, not 1 vs 3.
+    shows up as 2 vs 6 nodes, not 1 vs 3. Easy always plans one control so the
+    restricted data set it guards exists at every difficulty.
     """
     for seed in (1, 7, 17):
         easy = _origin_counts(_spec(scale_profile="small", difficulty="easy"), seed)
         hard = _origin_counts(_spec(scale_profile="small", difficulty="hard"), seed)
         assert easy.get("decoy", 0) == 2  # 1 instance
         assert easy.get("false_positive", 0) == 0
-        assert easy.get("compensating_control", 0) == 0
+        assert easy.get("compensating_control", 0) == 3  # 1 instance, always
         assert hard.get("decoy", 0) == 6  # 3 instances
         assert hard.get("false_positive", 0) == 2  # 2 instances
         assert hard.get("compensating_control", 0) in (3, 6)  # 1..2 instances
@@ -372,7 +373,7 @@ def test_vendor_origin_counts_respond_to_difficulty(cloud: str) -> None:
         easy = _origin_counts(_vendor_spec(cloud, scale_profile="small", difficulty="easy"), seed)
         hard = _origin_counts(_vendor_spec(cloud, scale_profile="small", difficulty="hard"), seed)
         assert easy.get("false_positive", 0) == 0
-        assert easy.get("compensating_control", 0) == 0
+        assert easy.get("compensating_control", 0) > 0
         assert 0 < easy.get("decoy", 0) < hard.get("decoy", 0), (cloud, seed)
         assert hard.get("false_positive", 0) > 0, (cloud, seed)
         assert hard.get("compensating_control", 0) > 0, (cloud, seed)

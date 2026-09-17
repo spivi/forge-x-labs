@@ -73,7 +73,7 @@ def _nodes(ns: str) -> list[GraphNode]:
             ns,
             "data-proprietary-source",
             NodeType.DATASET,
-            "ProprietaryPaymentGatewayCode",
+            "proprietary-payment-gateway-code",
             "critical",
             classification="restricted",
         ),

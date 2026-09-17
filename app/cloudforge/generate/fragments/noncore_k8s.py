@@ -47,7 +47,7 @@ class K8sNamespacePod:
     """A namespace with one pod in it."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         namespace_name, pod_name = rng.choice(K8S_NAMESPACE_PODS)
         namespace = node(
             ns, namespace_name, NodeType.K8S_NAMESPACE, tags, namespace=namespace_name
@@ -68,7 +68,7 @@ class K8sPodDataSet:
     """A stateful pod in the workloads namespace and the data set it holds."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         pod_name, data_name = rng.choice(K8S_DATA_PODS)
         pod = node(
             ns,
@@ -94,7 +94,7 @@ class K8sPlainServiceAccount:
                     ns,
                     name,
                     NodeType.K8S_SERVICE_ACCOUNT,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     namespace="workloads",
                     automount_token="false",
                 )
@@ -108,7 +108,8 @@ class K8sSecondCluster:
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name, issuer = rng.choice(K8S_CLUSTERS)
-        return bundle([node(ns, name, NodeType.K8S_CLUSTER, draw_tags(rng), oidc_issuer=issuer)])
+        tags = draw_tags(rng, params)
+        return bundle([node(ns, name, NodeType.K8S_CLUSTER, tags, oidc_issuer=issuer)])
 
 
 @register("benign_noise.k8s_namespace")
@@ -117,7 +118,8 @@ class K8sBareNamespace:
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name = rng.choice(K8S_BARE_NAMESPACES)
-        return bundle([node(ns, name, NodeType.K8S_NAMESPACE, draw_tags(rng), namespace=name)])
+        tags = draw_tags(rng, params)
+        return bundle([node(ns, name, NodeType.K8S_NAMESPACE, tags, namespace=name)])
 
 
 @register("decoy.k8s_irsa_dead_end")
@@ -126,7 +128,7 @@ class K8sIrsaDeadEnd:
     IRSA hop of the core path, leading to a role that reads nothing."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         sa_name, role_name, actions = rng.choice(K8S_DECOY_BINDINGS)
         role_arn = f"arn:aws:iam::{_ACCOUNT_ID}:role/{role_name}"
         account = node(

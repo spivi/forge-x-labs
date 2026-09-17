@@ -114,9 +114,9 @@ def _nodes(ns: str) -> list[GraphNode]:
         ),
         _node(
             ns,
-            "CustomerBankingRecords",
+            "customer-banking-records",
             NodeType.DATASET,
-            "CustomerBankingRecords",
+            "customer-banking-records",
             "critical",
             classification="restricted",
         ),
@@ -138,7 +138,7 @@ def _edges(ns: str) -> list[GraphEdge]:
         _edge(
             ns,
             "corporate-vault-data",
-            "CustomerBankingRecords",
+            "customer-banking-records",
             EdgeType.STORES_SENSITIVE_DATA,
             "critical",
         ),
@@ -173,7 +173,7 @@ def _critical(ns: str) -> GroundTruthPath:
             _nid(ns, "app-service-account"),
             _nid(ns, "EksWorkloadRole"),
             _nid(ns, "corporate-vault-data"),
-            _nid(ns, "CustomerBankingRecords"),
+            _nid(ns, "customer-banking-records"),
         ],
         edges=[
             _ek(ns, "backend-api-pod", EdgeType.BINDS_SERVICE_ACCOUNT, "app-service-account"),
@@ -183,11 +183,11 @@ def _critical(ns: str) -> GroundTruthPath:
                 ns,
                 "corporate-vault-data",
                 EdgeType.STORES_SENSITIVE_DATA,
-                "CustomerBankingRecords",
+                "customer-banking-records",
             ),
         ],
         explanation=(
             "Pod backend-api-pod projects token federating to EksWorkloadRole to read "
-            "CustomerBankingRecords from corporate-vault-data"
+            "customer-banking-records from corporate-vault-data"
         ),
     )

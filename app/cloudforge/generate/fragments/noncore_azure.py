@@ -59,7 +59,7 @@ class AzureLogContainer:
                     ns,
                     name,
                     NodeType.AZURE_STORAGE_CONTAINER,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     storage_account=account,
                     access_type="private",
                 )
@@ -72,7 +72,7 @@ class AzureContainerDataSet:
     """A storage container and the data set it holds, at any classification."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         container_name, account, data_name = rng.choice(AZURE_DATA_CONTAINERS)
         container = node(
             ns,
@@ -98,7 +98,7 @@ class AzureConfigVault:
                     ns,
                     name,
                     NodeType.AZURE_KEY_VAULT,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     sku="standard",
                     purge_protection="true",
                     resource_group_name=_RESOURCE_GROUP,
@@ -119,7 +119,7 @@ class AzureMonitoringIdentity:
                     ns,
                     name,
                     NodeType.AZURE_MANAGED_IDENTITY,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     identity_type="UserAssigned",
                     role_definition="Monitoring Reader",
                     resource_group_name=_RESOURCE_GROUP,
@@ -140,7 +140,7 @@ class AzureInternalApp:
                     ns,
                     name,
                     NodeType.AZURE_APP_SERVICE,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     identity_type="SystemAssigned",
                     https_only="true",
                 )
@@ -160,7 +160,7 @@ class AzureResourceGroupNoise:
                     ns,
                     name,
                     NodeType.AZURE_RESOURCE_GROUP,
-                    draw_tags(rng),
+                    draw_tags(rng, params),
                     location=_LOCATION,
                     role_definition="Reader",
                     role_scope="resource_group",
@@ -175,7 +175,7 @@ class AzureIdentityDeadEnd:
     container that holds nothing sensitive: the shape of the core path, no sink."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         identity_name, container_name, account = rng.choice(AZURE_DECOY_IDENTITIES)
         identity = node(
             ns,
@@ -210,7 +210,7 @@ class AzurePrivateContainer:
             ns,
             container_name,
             NodeType.AZURE_STORAGE_CONTAINER,
-            draw_tags(rng),
+            draw_tags(rng, params),
             storage_account=account,
             access_type="private",
             allow_blob_public_access="false",
@@ -238,7 +238,7 @@ class AzureVaultNetworkRule:
     behind it is the core sink's shape with nobody able to walk to it."""
 
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = draw_tags(rng)
+        tags = draw_tags(rng, params)
         vault_name, container_name, account, data_name = rng.choice(AZURE_LOCKED_VAULTS)
         vault = node(
             ns,

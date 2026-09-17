@@ -73,7 +73,7 @@ def _nodes(ns: str) -> list[GraphNode]:
             ns,
             "data-order-events",
             NodeType.DATASET,
-            "OrderTransactionPayloads",
+            "order-transaction-payloads",
             "critical",
             classification="restricted",
         ),

@@ -7,7 +7,24 @@ real secret or an unexpected value into a generated scenario.
 
 from __future__ import annotations
 
-ENV_VALUES = ("staging", "stage", "preprod", "test", "sandbox", "internal")
+# The env draw every pool node makes. ``prod`` is repeated so it is the common
+# value, as it is on every core fragment's nodes: filtering on ``env: prod`` must
+# not return the path.
+ENV_VALUES = (
+    "prod",
+    "prod",
+    "prod",
+    "prod",
+    "staging",
+    "stage",
+    "preprod",
+    "test",
+    "sandbox",
+    "internal",
+)
+# How many times the core's own owner and app are repeated in a pool node's draw
+# next to ``OWNER_VALUES`` / ``APP_VALUES``, so padding regularly shares them.
+CORE_TAG_WEIGHT = 3
 OWNER_VALUES = (
     "platform-team",
     "infra-team",
