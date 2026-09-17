@@ -27,7 +27,7 @@ _PATH_INTEGRITY_LABELS = frozenset(
 )
 
 _VALIDATION_FAILED_BANNER = (
-    "> ⚠ **THIS SCENARIO FAILED VALIDATION**: the risk paths and findings below "
+    "> **THIS SCENARIO FAILED VALIDATION**: the risk paths and findings below "
     "may be inaccurate. Do not treat them as a confirmed ground truth until the "
     "failing checks are resolved."
 )
@@ -56,7 +56,7 @@ def build_validation(report: ValidationReport | None) -> str:
     if report.has_failure:
         lines.extend([_VALIDATION_FAILED_BANNER, ""])
     else:
-        lines.extend(["> ✅ All validation checks passed (no failures).", ""])
+        lines.extend(["> All validation checks passed (no failures).", ""])
     for outcome in report.outcomes:
         detail = f": {outcome.detail}" if outcome.detail else ""
         lines.append(f"- **[{outcome.status.value}]** {outcome.label}{detail}")
@@ -124,13 +124,13 @@ def build_critical_path(bundle: ScenarioBundle, *, integrity_failed: bool = Fals
     lines = [header, ""]
     if integrity_failed:
         lines.append(
-            "> ⚠ **UNVERIFIED**: validation could not confirm these paths are "
+            "> **UNVERIFIED**: validation could not confirm these paths are "
             "connected in the graph. The chain(s) below may be inaccurate."
         )
         lines.append("")
     for path in bundle.ground_truth.paths:
         chain = " → ".join(path.nodes)
-        status = " - ⚠ NOT VERIFIED" if integrity_failed else ""
+        status = " - NOT VERIFIED" if integrity_failed else ""
         lines.append(f"### `{path.id}` ({path.severity}){status}\n\n{chain}\n\n{path.explanation}")
     return "\n\n".join(lines)
 
