@@ -1,4 +1,4 @@
-"""cloudforge learning-corpus pipeline (FXL-E2).
+"""cloudforge learning-corpus pipeline.
 
 A local-first ETL library that fetches, ingests, normalizes, validates, dedups,
 scores, and exports cloud-risk **patterns** from an approved source registry. This
@@ -10,7 +10,7 @@ a validated, deduped, quality-scored, provenance-complete set of normalized
 ``RiskPattern`` objects whose ``graph_fragment`` reuses the product's own
 ``ScenarioGraph`` vocabulary.
 
-See ``docs/plans/2026-07-05-FXL-E2-learning-corpus-design.md`` for the full plan.
+See ``docs/plans/2026-07-05-learning-corpus-design.md`` for the full plan.
 """
 
 from __future__ import annotations

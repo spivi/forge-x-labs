@@ -1,4 +1,4 @@
-"""FXL-STRESS-7 (#109): adversarial registry stress (S8/S9).
+"""Adversarial registry stress (#109, S8/S9).
 
 Actively tries to smuggle unsafe/restricted/unprovenanced sources through
 ``registry.load_registry`` and the fetcher's registry gate. Every case here is either:
@@ -305,9 +305,9 @@ sources:
     assert not (tmp_path / "raw" / entry.id).exists()
 
 
-# --- path traversal in the local `path` field (FXL-109: FIXED, now a regression) -------
+# --- path traversal in the local `path` field (fixed, now a regression) -------
 #
-# The registry is the trusted allow-list, but before FXL-109 a malicious/corrupted entry
+# The registry is the trusted allow-list, but previously a malicious/corrupted entry
 # with `path: ../../../etc/passwd` (or an absolute path) parsed cleanly and
 # `_ingest.resolve_raw_path` handed it straight to an adapter -- ingestion-time arbitrary
 # file read outside the data roots. The fix is a two-layer containment guard:
@@ -396,7 +396,7 @@ def test_path_traversal_via_bypassed_validator_is_blocked_by_resolve_raw_path(
     BYPASSED validator (``model_construct`` skips the after-validators -- the same threat
     model the corpus checks call out) is STILL blocked at resolve time by
     ``_ingest._resolve_local_path``'s ``is_relative_to`` containment check, raising
-    ``PathTraversalError``. This is the regression for the original FXL-109 finding: the
+    ``PathTraversalError``. This is the regression for the original path-traversal finding: the
     resolved path can no longer escape the project root.
     """
     from app.cloudforge.learn._ingest import PathTraversalError, resolve_raw_path

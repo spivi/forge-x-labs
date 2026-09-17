@@ -94,7 +94,7 @@ def test_critical_sink_connectivity_pass(example_spec: ScenarioSpec) -> None:
 
 
 def _split_graph() -> ScenarioGraph:
-    """A critical edge on one component and a data sink on another (FXL-79)."""
+    """A critical edge on one component and a data sink on another."""
     return ScenarioGraph(
         nodes=[
             GraphNode(
@@ -155,7 +155,7 @@ def test_critical_sink_connectivity_unreachable_declared_target_fails(
     example_spec: ScenarioSpec,
 ) -> None:
     """A path that declares the data set on the other component as its target
-    is rejected: no critical edge reaches what the path says is reached (FXL-79)."""
+    is rejected: no critical edge reaches what the path says is reached."""
     path = GroundTruthPath(
         id="path-critical-01",
         severity="critical",
@@ -196,7 +196,7 @@ def test_critical_sink_connectivity_without_paths_still_needs_a_reachable_data_s
     example_spec: ScenarioSpec,
 ) -> None:
     """No declared paths: the original sink-edge rule still applies and the split
-    graph is rejected (FXL-79)."""
+    graph is rejected."""
     bundle = ScenarioBundle(
         graph=_split_graph(),
         findings=ExpectedFindings(findings=[]),

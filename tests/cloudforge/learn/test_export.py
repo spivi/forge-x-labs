@@ -1,7 +1,7 @@
-"""``export.py`` tests (FXL-71): the training-export gate + writer (design §9.6).
+"""``export.py`` tests: the training-export gate + writer (design §9.6).
 
 Hand-built truth-table tests exercise ``is_exportable``/``export_training`` in
-isolation (each design §9.6 exclusion reason, ``--include-restricted``, FXL-D007's
+isolation (each design §9.6 exclusion reason, ``--include-restricted``, the
 ``mappings_only`` admission); a real end-to-end test loads the actual 14-seed catalog
 through the real registry -> adapter -> normalizer -> validator -> scorer pipeline and
 asserts the HONEST exported count (12/14 — the two absence-of-logging seeds are below
@@ -131,7 +131,7 @@ class TestIsExportableGate:
         assert reason == "not_training_eligible"
 
     def test_mappings_only_reuse_status_is_exported_fxl_d007(self) -> None:
-        # FXL-D007: CSA CCM control-ID mappings ARE training-eligible.
+        # CSA CCM control-ID mappings ARE training-eligible.
         pattern = _eligible_pattern(
             reuse_status=ReuseStatus.MAPPINGS_ONLY,
             allowed_for_training=True,
@@ -409,7 +409,7 @@ class TestRealSeedCatalogExport:
 
         result = export_training(patterns)
 
-        # The two excluded seeds are training_eligible (FXL-96/#98 seeds are all
+        # The two excluded seeds are training_eligible (#98 seeds are all
         # full_reuse/valid) — they are excluded ONLY for quality, never eligibility.
         assert result.manifest.excluded_breakdown.below_quality_bar == 2
         assert result.manifest.excluded_breakdown.not_training_eligible == 0

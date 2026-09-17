@@ -1,4 +1,4 @@
-"""Corpus-scale stage of the FXL-112 stress benchmark (issue #112).
+"""Corpus-scale stage of the stress benchmark (issue #112).
 
 Synthesizes ``RiskPattern`` corpora (``stress_benchmark_corpus_factory``) at 100 /
 1,000 / 10,000 / 100,000 and measures dedup, quality-scoring, and export time + peak

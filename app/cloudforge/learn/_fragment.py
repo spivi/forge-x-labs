@@ -44,7 +44,7 @@ def expected_findings_from_raw_payload(raw: RawPatternRecord) -> list[ExpectedFi
     Both the ``cloudforge_scenario`` and ``rule_catalog_yaml`` adapters store an
     ``ExpectedFindings`` dump as a JSON string under
     ``raw_payload["expected_findings"]``. Absent/blank means the source declared
-    none — the normalizer NEVER fabricates findings (FXL-96 review).
+    none — the normalizer NEVER fabricates findings (review).
     """
     findings_json = raw.raw_payload.get("expected_findings")
     if not isinstance(findings_json, str) or not findings_json:
@@ -56,7 +56,7 @@ def _minimal_fragment(resource_types: list[str]) -> ScenarioGraph:
     """Build an honest minimal fragment: one generic node per (deduped, sorted) type.
 
     No relationships can be inferred from a bare resource-type list without inventing
-    cloud semantics the seed never declared (FXL-96 review), so no edges are emitted —
+    cloud semantics the seed never declared (review), so no edges are emitted —
     an edge-less fragment is a valid ``ScenarioGraph`` (nothing to resolve). Real
     per-seed fragments are hand-authored in the seed YAML and reused via the embedded
     path above (ticket #98).

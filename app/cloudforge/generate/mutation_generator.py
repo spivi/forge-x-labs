@@ -1,4 +1,4 @@
-"""Seeded, deterministic mutation engine (FXL-14).
+"""Seeded, deterministic mutation engine.
 
 ``MutationGenerator`` produces cosmetic + benign-additive variants of a base
 ``ScenarioBundle`` so a scanner benchmark gets *diversity* without any change to the

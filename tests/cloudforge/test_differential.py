@@ -1,4 +1,4 @@
-"""Differential cross-artifact consistency tests (FXL-STRESS-8, #110).
+"""Differential cross-artifact consistency tests (#110).
 
 "Differential" here means: generate one scenario, then assert that two
 INDEPENDENTLY-derived artifacts (graph vs report, findings vs Terraform, scanner

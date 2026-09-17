@@ -1,4 +1,4 @@
-"""FXL-STRESS-5 (#115): scanner-score robustness over real-shaped checkov fixtures.
+"""Scanner-score robustness over real-shaped checkov fixtures (#115).
 
 Clause S12 — scanner scoring must be stable across malformed, partial, empty, and
 unexpected scanner output: never crash, never hide a missed/unexpected finding.

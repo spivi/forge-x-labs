@@ -1,4 +1,4 @@
-"""Brief must not leak the answer key (FXL-D010)."""
+"""Brief must not leak the answer key."""
 
 from __future__ import annotations
 

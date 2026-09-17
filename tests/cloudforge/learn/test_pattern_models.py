@@ -74,7 +74,7 @@ def test_raw_pattern_record_round_trips() -> None:
     assert RawPatternRecord.model_validate(record.model_dump()) == record
 
 
-# --- training_eligible truth table (design §6, FXL-D007) ---------------------
+# --- training_eligible truth table (design §6) ---------------------
 
 
 def test_training_eligible_valid_defensive_full_reuse_is_true() -> None:
@@ -88,7 +88,7 @@ def test_training_eligible_valid_defensive_full_reuse_is_true() -> None:
 
 
 def test_training_eligible_mappings_only_allowed_is_true() -> None:
-    # FXL-D007: CCM control-ID mappings are training-eligible.
+    # CCM control-ID mappings are training-eligible.
     pattern = build_pattern(
         reuse_status=ReuseStatus.MAPPINGS_ONLY,
         allowed_for_training=True,

@@ -1,4 +1,4 @@
-"""Shared timing/memory measurement helpers for the FXL-112 stress benchmark.
+"""Shared timing/memory measurement helpers for the stress benchmark.
 
 Pure measurement plumbing — no product behavior. ``measure`` wraps a zero-arg
 callable with a wall-clock timer and ``tracemalloc`` peak-memory sample so every

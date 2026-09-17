@@ -5,7 +5,7 @@ A ``RiskPattern`` is compatible with the product's existing graph model: its
 existing ``ExpectedFinding`` / ``Severity`` types. Every pattern carries exactly one
 ``PatternProvenance`` — **no provenance, no corpus** (design §7).
 
-``training_eligible`` is DERIVED, not free-form (design §6, honoring FXL-D007): a
+``training_eligible`` is DERIVED, not free-form (design §6): a
 pattern is eligible iff it is valid, safely classified, its provenance allows training,
 and its ``reuse_status`` is not restricted/metadata_only/unknown. ``mappings_only``
 (CCM control-ID mappings) IS allowed.
@@ -128,7 +128,7 @@ class RiskPattern(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def training_eligible(self) -> bool:
-        """Derived eligibility (design §6, FXL-D007).
+        """Derived eligibility (design §6).
 
         Eligible iff validated AND safely classified AND provenance allows training AND
         the reuse_status is not restricted/metadata_only/unknown. ``mappings_only`` and

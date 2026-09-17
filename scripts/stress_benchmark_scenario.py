@@ -1,7 +1,7 @@
-"""Scenario-scale stage of the FXL-112 stress benchmark (issue #112).
+"""Scenario-scale stage of the stress benchmark (issue #112).
 
 Generates N scenarios via seeded mutation of a real base bundle (same approach as
-the FXL-N3 mutation stress suite), writes each to a single reused on-disk scenario
+the mutation stress suite), writes each to a single reused on-disk scenario
 directory (bounded — never more than one scenario tree on disk at a time), runs the
 stdlib-only ``run_local_validations`` (per the ticket note: NOT the full
 CLI-validate, which shells out to terraform/checkov/opa — STRESS-4/S15 learning),
@@ -41,7 +41,8 @@ def _load_base() -> tuple[ScenarioSpec, ScenarioBundle]:
 
 
 def _generate_n(base: ScenarioBundle, spec: ScenarioSpec, n: int) -> list[ScenarioBundle]:
-    """Mutate ``n`` seeded variants of ``base`` (mirrors FXL-N3's approach to volume)."""
+    """Mutate ``n`` seeded variants of ``base`` (mirrors the mutation stress suite's
+    approach to volume)."""
     max_resources = spec.constraints.max_resources
     return [MutationGenerator(base, seed, max_resources).generate() for seed in range(n)]
 

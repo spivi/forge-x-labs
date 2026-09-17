@@ -1,4 +1,4 @@
-"""Real ``opa eval`` tests for the family-agnostic critical-chain policy (FXL-54).
+"""Real ``opa eval`` tests for the family-agnostic critical-chain policy.
 
 The OPA policy (``policies/scenario.rego``) is a coarse, *family-agnostic* sanity
 gate: it must PASS every family the tool generates while still DENYing a genuinely

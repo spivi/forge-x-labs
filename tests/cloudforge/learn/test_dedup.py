@@ -1,4 +1,4 @@
-"""``dedup()`` tests (FXL-68): deterministic corpus dedup (design §9.3).
+"""``dedup()`` tests: deterministic corpus dedup (design §9.3).
 
 Builds ``RiskPattern``s via the shared ``build_pattern`` helper (conftest) and
 ``model_copy`` to vary the dedup-key fields, mirroring how the normalizer's real

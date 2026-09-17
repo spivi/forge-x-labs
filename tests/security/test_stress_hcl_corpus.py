@@ -1,7 +1,7 @@
-"""FXL-108 (FXL-STRESS-3): file-based adversarial HCL/resource-id corpus.
+"""File-based adversarial HCL/resource-id corpus.
 
-Extends the FXL-35/FXL-39 regression suite (``test_hcl_injection_corpus.py`` /
-``test_identifier_sanitization_corpus.py``) with the STRESS-3 deliverable: a
+Extends the regression suite (``test_hcl_injection_corpus.py`` /
+``test_identifier_sanitization_corpus.py``) with a
 hostile corpus that lives in ``tests/security/corpus/*.txt`` (audit-friendly, not
 hardcoded Python), applied to every untrusted graph-field string sink, plus a
 tool-backed (real ``terraform validate``) acceptance pass and explicit assertions

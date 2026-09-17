@@ -1,4 +1,4 @@
-"""``summarize.py`` tests (FXL-73): pure formatting of a ``CorpusSummary``."""
+"""``summarize.py`` tests: pure formatting of a ``CorpusSummary``."""
 
 from __future__ import annotations
 

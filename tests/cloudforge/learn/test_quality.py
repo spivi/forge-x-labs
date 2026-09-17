@@ -1,4 +1,4 @@
-"""``quality.py`` tests (FXL-69): deterministic rubric-based quality/realism scoring.
+"""``quality.py`` tests: deterministic rubric-based quality/realism scoring.
 
 Builds ``RiskPattern``s via the shared ``build_pattern`` helper (conftest) plus
 ``model_copy`` to vary individual dimensions, and normalizes the real 14-entry seed

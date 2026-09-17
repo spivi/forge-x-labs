@@ -1,7 +1,7 @@
-"""Adversarial graph-field corpus — the single source of hostile values (FXL-N2).
+"""Adversarial graph-field corpus — the single source of hostile values.
 
-A dedicated regression corpus that locks in the emitter hardening from FXL-35 (HCL
-``${}`` / ``%{}`` interpolation neutralization in :func:`hcl_str`) and FXL-39
+A dedicated regression corpus that locks in the emitter hardening (HCL
+``${}`` / ``%{}`` interpolation neutralization in :func:`hcl_str`) and
 (resource-LABEL ``node.id`` sanitization in :func:`resource_name`). Every value here
 is applied to every untrusted string sink by the corpus test modules; the contract is
 that each value is EITHER rendered inert (safe under real ``terraform validate``) OR
@@ -31,7 +31,7 @@ class HostileValue:
 # The corpus. Each entry is a hostile value an untrusted graph field might carry.
 # Grouped by the attack class it exercises; kept flat so every test iterates it whole.
 HOSTILE_VALUES: tuple[HostileValue, ...] = (
-    # --- HCL interpolation / template directive openers (FXL-35 regression-lock) ---
+    # --- HCL interpolation / template directive openers (regression-lock) ---
     HostileValue("interp_local_ref", "${local.fake_account_id}"),
     HostileValue("interp_data_ref", "${data.nonexistent.thing.value}"),
     HostileValue("template_if", "%{ if true }evil%{ endif }"),

@@ -1,4 +1,4 @@
-"""Tests for the ``public_data_exposure`` scenario family (FXL-26).
+"""Tests for the ``public_data_exposure`` scenario family.
 
 Mirrors the ci_cd_iam_chain coverage: generation works, the critical direct-exposure
 path exists, forbidden-permission rejection still holds, and the report renders with

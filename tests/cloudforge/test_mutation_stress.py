@@ -1,6 +1,6 @@
-"""Mutation stress suite (FXL-N3) — statistical, not anecdotal, risk preservation.
+"""Mutation stress suite — statistical, not anecdotal, risk preservation.
 
-Strengthens gap #12 of the 12-point validated definition (FXL-D003): proves the
+Strengthens gap #12 of the 12-point validated definition: proves the
 seeded ``MutationGenerator`` preserves the intended risk across MANY seeds, not just
 a handful. Every test here is marked ``stress`` and is DESELECTED from the default
 ``pytest`` run (``addopts = -m 'not stress'``). Run explicitly with::

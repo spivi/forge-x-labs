@@ -58,7 +58,7 @@ def test_generated_tree_has_expected_files(tmp_path: Path) -> None:
 def test_generate_on_colliding_graph_exits_with_clean_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A label collision must surface as a clean CLI error, not a raw traceback (FXL-N4).
+    """A label collision must surface as a clean CLI error, not a raw traceback.
 
     The emitter runs inside ``write_all``; patch the generator to hand ``generate`` a
     bundle whose graph has two distinct ids (``a-b``/``a_b``) that sanitize to the same

@@ -1,4 +1,4 @@
-"""Leak tests for the student-facing graph strip (FXL-D010 / FXL-144)."""
+"""Leak tests for the student-facing graph strip."""
 
 from __future__ import annotations
 

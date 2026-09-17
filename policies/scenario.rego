@@ -48,7 +48,7 @@ deny contains msg if {
 }
 
 # --- a coherent critical risk path must exist (family-agnostic) --------------
-# FXL-54: this used to hardcode the ci_cd_iam_chain edge types (`assumes`,
+# This used to hardcode the ci_cd_iam_chain edge types (`assumes`,
 # `can_pass_role`, `can_read`) as a *universal* requirement, wrongly denying every
 # other family (e.g. `public_data_exposure`, whose critical path is
 # `exposed_to_internet -> stores_sensitive_data`, no IAM role chain).
@@ -83,7 +83,7 @@ deny contains msg if {
 	msg := "no 'stores_sensitive_data' edge — critical risk has no sensitive-data sink"
 }
 
-# --- no real secrets in node attributes (FXL-STRESS-6, mirrors constraints.no_real_secrets) --
+# --- no real secrets in node attributes (mirrors constraints.no_real_secrets) --
 # Coarse, family-agnostic scan over every node's `attributes` (the only freeform payload
 # on a graph node — IAM actions, CIDRs, bucket names, arns, ...). `attributes` is a plain
 # `{key: value}` map (value is `string | list[string]`), never an inline `key=value`

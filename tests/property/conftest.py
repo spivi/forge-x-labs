@@ -1,6 +1,6 @@
 """Marks every test collected under ``tests/property/`` with ``@pytest.mark.property``.
 
-Keeps the marker centralized (FXL-STRESS-11 registers the marker; this ticket only
+Keeps the marker centralized (registered once here; this module only
 consumes it) instead of decorating every single test function by hand.
 """
 

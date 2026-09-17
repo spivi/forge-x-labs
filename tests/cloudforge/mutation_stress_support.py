@@ -1,4 +1,4 @@
-"""Support helpers for the mutation stress suite (FXL-N3).
+"""Support helpers for the mutation stress suite.
 
 Pure, importable helpers so the stress test itself stays declarative:
 
@@ -110,7 +110,7 @@ def run_seed(base: ScenarioBundle, spec: ScenarioSpec, seed: int) -> SeedResult:
 
 @dataclass
 class MutationStressSummary:
-    """Aggregate written to ``mutation_summary.json`` (the FXL-N3 deliverable)."""
+    """Aggregate written to ``mutation_summary.json``."""
 
     seeds_run: int = 0
     validated_variants: int = 0

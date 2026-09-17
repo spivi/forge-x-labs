@@ -1,4 +1,4 @@
-"""Container registry and messaging services HCL blocks (FXL-154)."""
+"""Container registry and messaging services HCL blocks."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""KMS key and EBS snapshot HCL blocks (FXL-150). Own module: resource_blocks is full."""
+"""KMS key and EBS snapshot HCL blocks. Own module: resource_blocks is full."""
 
 from __future__ import annotations
 

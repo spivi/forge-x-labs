@@ -1,5 +1,5 @@
-"""CLI-level mutation determinism + risk-preservation stress runner (FXL-STRESS-4,
-issue #114).
+"""CLI-level mutation determinism + risk-preservation stress runner
+(issue #114).
 
 Contract clauses under test (``docs/testing/stress-contract.md``):
   * S10 — same input AND seed produce byte-identical output. Checked by invoking
@@ -13,8 +13,8 @@ Contract clauses under test (``docs/testing/stress-contract.md``):
     never claim success for a scenario that FAILed validation, so reading the
     report's verdict is the S15-honoring way to assert S11 here).
 
-This complements (does not replace) the existing FXL-N3 suite
-(``test_mutation_stress.py``): FXL-N3 is single-family, in-memory, 100 seeds,
+This complements (does not replace) the existing mutation stress suite
+(``test_mutation_stress.py``): that suite is single-family, in-memory, 100 seeds,
 graph-risk-engine-only. This module is BOTH families, drives the actual CLI
 end-to-end (generate x2/validate/report on disk), and covers the full 0..999
 seed range behind ``-m stress`` per the ticket's acceptance criteria.

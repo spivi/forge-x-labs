@@ -30,7 +30,7 @@ def neutralize_hcl_openers(value: str) -> str:
     escape (``$${`` / ``%%{``). ``$``/``%`` are JSON-safe, so a later ``json.dumps`` keeps
     them. Shared core of :func:`hcl_str` AND the guard for untrusted scalars entering
     ``jsonencode``-wrapped policy documents, whose bytes are inert as JSON but LIVE HCL
-    once wrapped (FXL-N2).
+    once wrapped.
     """
     return value.replace("${", "$${").replace("%{", "%%{")
 
@@ -41,9 +41,9 @@ def hcl_str(value: str) -> str:
     Layers: (1) :func:`neutralize_hcl_openers` defuses live ``${``/``%{``; (2)
     ``json.dumps`` quotes and escapes ``"`` / ``\\`` / control chars so a hostile value
     cannot break out. Values entering ``jsonencode``-wrapped policy documents do NOT
-    pass here and are neutralized at their own sinks (FXL-N2).
+    pass here and are neutralized at their own sinks.
 
-    ``ensure_ascii=False`` (FXL-N2): the default escapes astral-plane chars (e.g. an
+    ``ensure_ascii=False``: the default escapes astral-plane chars (e.g. an
     emoji) as a UTF-16 surrogate pair (``\\ud83d\\ude00``) that HCL cannot decode,
     breaking ``terraform validate``. Raw UTF-8 (the ``.tf`` files are UTF-8) is valid HCL.
     """
@@ -114,7 +114,7 @@ def policy_block(node: GraphNode) -> str:
     """A standalone IAM policy from the node's declared actions + resource arn."""
     ref = resource_name(node)
     # ``ensure_ascii=False``: astral chars stay raw UTF-8, not HCL-undecodable surrogate
-    # ``\\uXXXX`` pairs, inside this ``jsonencode`` string; scalars pre-neutralized (FXL-N2).
+    # ``\\uXXXX`` pairs, inside this ``jsonencode`` string; scalars pre-neutralized.
     document = json.dumps(
         {
             "Version": "2012-10-17",
@@ -149,7 +149,7 @@ def bucket_block(node: GraphNode) -> str:
 def _bucket_policy_block(node: GraphNode) -> str:
     ref = resource_name(node)
     # ``_bucket_name`` carries untrusted ``node.name`` into this LIVE ``jsonencode`` HCL
-    # string: neutralize openers + emit raw UTF-8 (not surrogate escapes) — FXL-N2.
+    # string: neutralize openers + emit raw UTF-8 (not surrogate escapes).
     arn = neutralize_hcl_openers(f"arn:aws:s3:::{_bucket_name(node)}/public/*")
     document = json.dumps(
         {

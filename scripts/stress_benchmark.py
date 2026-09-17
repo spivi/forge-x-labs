@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""FXL-112 / FXL-STRESS-10 — scenario + corpus scale benchmark (measure, don't optimize).
+"""Scenario + corpus scale benchmark (measure, don't optimize).
 
 Opt-in only: run directly with the venv interpreter, NEVER imported by the fast
 suite. Two modes:
@@ -116,7 +116,7 @@ def _build_report(
 ) -> dict[str, object]:
     all_results = scenario_results + corpus_results
     return {
-        "ticket": "FXL-112 / FXL-STRESS-10",
+        "ticket": "scenario + corpus scale benchmark",
         "purpose": "measure scaling, not optimize",
         "python_version": platform.python_version(),
         "platform": platform.platform(),

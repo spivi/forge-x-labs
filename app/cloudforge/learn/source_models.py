@@ -6,7 +6,7 @@ Each entry's fields are stamped into ``PatternProvenance`` on the patterns it pr
 
 Governance (per design §4, applied by ``registry.load_registry``): ``license: unknown``
 and ``reuse_status`` in {restricted, metadata_only} force ``allowed_for_training=false``;
-``mappings_only`` stays as-declared (FXL-D007 — CCM control-ID mappings are eligible).
+``mappings_only`` stays as-declared (CCM control-ID mappings are eligible).
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ class SourceType(StrEnum):
 
 
 class ReuseStatus(StrEnum):
-    """How a source's material may be reused (design §3/§4, FXL-D007).
+    """How a source's material may be reused (design §3/§4).
 
     ``mappings_only`` is training-eligible for control-ID mappings only (never control
     body text); ``restricted``/``metadata_only``/``unknown`` are NOT training-eligible.

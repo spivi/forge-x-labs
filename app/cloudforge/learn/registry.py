@@ -8,7 +8,7 @@ declared:
 1. ``license: unknown`` -> force ``allowed_for_training = false``.
 2. ``reuse_status: restricted`` -> force ``allowed_for_training = false`` (export drops it).
 3. ``reuse_status: metadata_only`` -> force ``allowed_for_training = false``.
-4. ``reuse_status: mappings_only`` -> leave as-declared (FXL-D007: CCM control-ID
+4. ``reuse_status: mappings_only`` -> leave as-declared (CCM control-ID
    mappings may be training-eligible).
 
 Anything else (``full_reuse`` / ``attribution``) keeps its declared flag. A malformed

@@ -1,6 +1,6 @@
-"""Opt-in wrapper for the FXL-112 / FXL-STRESS-10 scale benchmark.
+"""Opt-in wrapper for the scale benchmark.
 
-Marked ``stress`` + ``slow`` (mirrors ``test_mutation_stress.py``, FXL-N3): deselected
+Marked ``stress`` + ``slow`` (mirrors ``test_mutation_stress.py``): deselected
 from the default ``pytest`` run and the pre-push backstop; opt in with
 ``pytest -m stress``. This is a MEASUREMENT wrapper, not a perf gate — the ticket is
 explicit that this suite measures scaling to catch accidental O(N^2), it does not

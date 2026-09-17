@@ -1,4 +1,4 @@
-"""FXL-STRESS-7 (#109): adversarial malicious-pattern-content stress (S8/S9).
+"""Adversarial malicious-pattern-content stress (#109, S8/S9).
 
 Actively tries to smuggle unsafe/restricted/unprovenanced pattern content through the
 real pipeline: ``PatternNormalizer.normalize`` -> ``validate.validate_fragment`` ->
@@ -282,7 +282,7 @@ def test_unknown_cloud_provider_string_is_rejected_by_pydantic() -> None:
 
 def test_unknown_weakness_family_string_declared_in_raw_payload_falls_back_safely() -> None:
     """A source can declare an arbitrary ``weakness_family`` string in ``raw_payload``
-    (design/FXL-96 feature). An adversarial/garbage value must not crash the normalizer
+    (design feature). An adversarial/garbage value must not crash the normalizer
     and must not silently smuggle an out-of-vocabulary value onto ``RiskPattern`` (which
     is typed to the real ``WeaknessFamily`` enum) -- ``resolve_weakness_family`` must
     fall back to a real enum member, never pass the raw string through unchecked.

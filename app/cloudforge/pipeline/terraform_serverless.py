@@ -1,4 +1,4 @@
-"""Lambda function and serverless HCL blocks (FXL-154)."""
+"""Lambda function and serverless HCL blocks."""
 
 from __future__ import annotations
 

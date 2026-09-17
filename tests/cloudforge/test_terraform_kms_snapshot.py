@@ -1,4 +1,4 @@
-"""KMS key + EBS snapshot emission (FXL-150)."""
+"""KMS key + EBS snapshot emission."""
 
 from __future__ import annotations
 

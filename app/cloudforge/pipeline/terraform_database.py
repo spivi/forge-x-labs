@@ -1,4 +1,4 @@
-"""Database and secrets HCL blocks (FXL-154)."""
+"""Database and secrets HCL blocks."""
 
 from __future__ import annotations
 

@@ -33,7 +33,7 @@ console = Console()
 # errors, a hand-edited-but-well-formed artifact can fail Pydantic schema validation
 # (``ValidationError``, not a ``CloudforgeError``) and an unwritable output/cache
 # directory raises ``OSError`` — both must become a clean ``error:`` + exit 1, never a
-# raw traceback (FXL-N4 / stress-contract S1/S15).
+# raw traceback (stress-contract S1/S15).
 _CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OSError)
 
 

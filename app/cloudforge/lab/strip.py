@@ -1,4 +1,4 @@
-"""Strip answer-key fields from a scenario graph for the student pack (FXL-D010)."""
+"""Strip answer-key fields from a scenario graph for the student pack."""
 
 from __future__ import annotations
 

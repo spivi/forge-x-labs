@@ -1,4 +1,4 @@
-"""Pure, seeded transforms used by ``MutationGenerator`` (FXL-14).
+"""Pure, seeded transforms used by ``MutationGenerator``.
 
 Every function here is deterministic given the explicit ``random.Random`` instance
 it receives — no global RNG, no wall-clock, no PID. Mutations are cosmetic

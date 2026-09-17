@@ -314,5 +314,5 @@
       "stage": "scenario_report"
     }
   ],
-  "ticket": "FXL-112 / FXL-STRESS-10"
+  "ticket": "scenario + corpus scale benchmark"
 }

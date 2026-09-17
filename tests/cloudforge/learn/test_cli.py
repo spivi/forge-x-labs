@@ -1,4 +1,4 @@
-"""``cloudforge learn`` CLI tests (FXL-73, design §10).
+"""``cloudforge learn`` CLI tests (design §10).
 
 Uses Typer's ``CliRunner`` throughout. ``fetch-sources`` is exercised with a MOCKED
 fetch function (patched onto ``fetch.fetch_all_sources``'s injection point) — no

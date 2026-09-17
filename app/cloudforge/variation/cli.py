@@ -7,7 +7,7 @@ for one scenario), and ``minimize-failure`` (shrink a captured failure). Every c
 thin — it loads input, calls exactly one ``variation/`` entry point, and prints with
 ``rich`` — mirroring the top-level ``generate``/``validate``/``report`` commands and the
 ``learn`` group. Handlers are wrapped in ``_CLI_ERRORS`` so bad input surfaces as a clean
-``error:`` + exit 1, never a raw traceback (FXL-N4 / stress-contract S1/S15).
+``error:`` + exit 1, never a raw traceback (stress-contract S1/S15).
 """
 
 from __future__ import annotations

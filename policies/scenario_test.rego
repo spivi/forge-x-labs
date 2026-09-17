@@ -1,4 +1,4 @@
-# Native `opa test` unit tests for policies/scenario.rego (FXL-STRESS-6).
+# Native `opa test` unit tests for policies/scenario.rego.
 #
 # Run: opa test policies/ -v
 # Coverage: opa test policies/ --coverage --format=json
@@ -180,7 +180,7 @@ test_critical_edge_and_sink_present_no_path_denial if {
 	not any_contains(denials, "sensitive-data sink")
 }
 
-# --- no real secrets in attributes (FXL-STRESS-6 gap fix) -------------------------
+# --- no real secrets in attributes (gap fix) -------------------------
 
 test_aws_secret_access_key_value_denies if {
 	leaky := object.union(_valid_nodes[0], {"attributes": {"aws_secret_access_key": "wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY"}})

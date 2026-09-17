@@ -26,7 +26,7 @@ def test_load_real_registry_parses_without_error() -> None:
 
 
 def test_csa_ccm_is_mappings_only_and_training_eligible() -> None:
-    # FXL-D007: CSA CCM mappings_only stays training-eligible after governance.
+    # CSA CCM mappings_only stays training-eligible after governance.
     registry = load_registry(REAL_REGISTRY)
     csa = get_entry(registry, "csa-ccm")
     assert csa.reuse_status is ReuseStatus.MAPPINGS_ONLY

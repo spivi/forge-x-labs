@@ -1,4 +1,4 @@
-"""EC2 instance and compute HCL blocks (FXL-154)."""
+"""EC2 instance and compute HCL blocks."""
 
 from __future__ import annotations
 
