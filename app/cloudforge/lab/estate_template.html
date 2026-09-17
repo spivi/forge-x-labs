@@ -1603,7 +1603,7 @@ function setupEventListeners() {
       resultBox.className = `score-result ${isPass ? 'pass' : 'fail'}`;
       resultBox.innerHTML = `
         <div style="font-size:14px; font-weight:800; margin-bottom:6px;">
-          ${isPass ? '✅ EVALUATION PASSED' : '⚠️ EVALUATION INCOMPLETE'} — ${scorePct}% SCORE
+          ${isPass ? '✅ EVALUATION PASSED' : '⚠️ EVALUATION INCOMPLETE'} - ${scorePct}% SCORE
         </div>
         <div><strong>Path Coverage:</strong> ${pathHits.length}/${pathHits.length + pathMisses.length} paths identified</div>
         <div><strong>Finding Hits:</strong> ${findingHits.length}/${expectedFamilies.size} (${findingHits.join(", ") || "none"})</div>

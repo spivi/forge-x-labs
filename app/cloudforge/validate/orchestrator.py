@@ -71,17 +71,17 @@ def _score_scanner(paths: ScenarioPaths) -> ValidationOutcome:
     written = scanner_score.write_scanner_score(paths)
     if written is None:
         reason = not_scored_reason(paths) or "no scanner output"
-        return ValidationOutcome(Status.WARN, "scanner score", f"not scored — {reason}")
+        return ValidationOutcome(Status.WARN, "scanner score", f"not scored: {reason}")
     score = scanner_score.score_scenario(paths)
     if score is None:
         reason = not_scored_reason(paths) or "no scanner output"
-        return ValidationOutcome(Status.WARN, "scanner score", f"not scored — {reason}")
+        return ValidationOutcome(Status.WARN, "scanner score", f"not scored: {reason}")
     detail = (
         f"{score.matched_findings}/{score.expected_findings} expected findings detected "
         f"(coverage {score.scanner_coverage_score})"
     )
     if score.warnings:
-        detail += f" — caveats: {'; '.join(score.warnings)}"
+        detail += f"; caveats: {'; '.join(score.warnings)}"
     return ValidationOutcome(Status.PASS, "scanner score", detail)
 
 

@@ -72,7 +72,6 @@ scripts/*
 !scripts/stress_benchmark_corpus_factory.py
 !scripts/stress_benchmark_scenario.py
 !scripts/stress_benchmark_util.py
-!scripts/validate-pipeline.sh
 
 tests/hooks/
 tests/harness/
@@ -82,6 +81,9 @@ docs/plans/
 docs/project-management/
 docs/superpowers/
 docs/wiki/Template-Feedback.md
+docs/wiki/Future-Diffusion-Training.md
+docs/wiki/Modal-and-Diffusion-Future-Integration.md
+docs/cloudforge-capabilities.html
 
 .agents/
 skills-lock.json

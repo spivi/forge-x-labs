@@ -1,9 +1,7 @@
 # cloudforge seed rule catalog - hand-authored defensive cloud-risk patterns.
 #
-# Ticket: FXL-72 (design §8 "Seed rule catalog"). This is the Tier-4 local rule
-# catalog referenced by `data/source_registry.yaml` (`local-rule-catalog`, path
-# `data/rule_catalog/seed_patterns.yaml`) and parsed by the `rule_catalog_yaml`
-# adapter (app/cloudforge/learn/adapters/rule_catalog_yaml.py, ticket #63).
+# Local rule catalog referenced by `data/source_registry.yaml`
+# (`local-rule-catalog`) and parsed by the `rule_catalog_yaml` adapter.
 #
 # Every entry below is:
 #   - hand-authored and fully owned by this repo (license: CC0-1.0, reuse_status:

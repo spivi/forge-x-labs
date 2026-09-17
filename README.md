@@ -12,7 +12,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
-  <img src="https://img.shields.io/badge/AWS-Never--Applied-FF9900?logo=amazon-aws&logoColor=white" alt="AWS Never-Applied">
+  <img src="https://img.shields.io/badge/Cloud-Never--Applied-success" alt="Cloud Never-Applied">
   <img src="https://img.shields.io/badge/Cost-$0_Cloud_Spend-success" alt="$0 Cloud Spend">
 </p>
 

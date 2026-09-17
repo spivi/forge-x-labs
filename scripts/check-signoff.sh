@@ -12,15 +12,7 @@ set -euo pipefail
 
 msg_file="${1:?commit-msg hook expects the commit message file path as argument}"
 
-_conf_value() {
-    local conf
-    conf="$(git rev-parse --show-toplevel 2>/dev/null)/.dev-context/project.conf"
-    [ -f "$conf" ] || return 0
-    sed -n "s/^$1=//p" "$conf" 2>/dev/null | head -n1 | sed 's/[[:space:]]*#.*$//; s/^"//; s/"$//'
-}
-
-required_email="${SIGNOFF_EMAIL:-$(_conf_value SIGNOFF_EMAIL)}"
-required_email="${required_email:-$(git config user.email 2>/dev/null || true)}"
+required_email="${SIGNOFF_EMAIL:-$(git config user.email 2>/dev/null || true)}"
 
 # Escape regex metacharacters in the email (notably the dots) before matching.
 escaped_email="$(printf '%s' "$required_email" | sed 's/[.[\*^$()+?{|]/\\&/g')"

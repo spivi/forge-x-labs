@@ -1,4 +1,4 @@
-# Adversarial tag-value corpus (FXL-108 / FXL-STRESS-3).
+# Adversarial tag-value corpus.
 #
 # Applies to NodeTags.env / .owner / .app, which flow to locals.common_tags in
 # main.tf via a plain hcl_str() sink (terraform_blocks.build_main_tf).

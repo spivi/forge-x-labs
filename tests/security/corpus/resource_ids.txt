@@ -1,8 +1,8 @@
-# Adversarial node.id / resource-LABEL corpus (FXL-108 / FXL-STRESS-3).
+# Adversarial node.id / resource-LABEL corpus.
 #
-# node.id reaches a bare Terraform identifier position — resource "type" "<label>" —
+# node.id reaches a bare Terraform identifier position (resource "type" "<label>")
 # via resource_name() (identifiers.py), never a quoted string, so this corpus targets
-# the label-breakout / identifier-collision surface (FXL-39/D006), distinct from the
+# the label-breakout / identifier-collision surface, distinct from the
 # string-literal corpus in hcl_strings.txt.
 #
 # Format: one Python string-literal per line (ast.literal_eval). Blank lines and

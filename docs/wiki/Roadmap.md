@@ -38,7 +38,6 @@ truth. New engines stay additive.
 Documented, not built. Do not start these until trainers ask.
 
 - `LLMGenerator`: propose graphs from natural-language briefs.
-- Modal / diffusion graph generators. See
-  [Modal and Diffusion](Modal-and-Diffusion-Future-Integration.md).
+- Modal / diffusion graph generators.
 
 Local validators remain the source of truth for any of those.

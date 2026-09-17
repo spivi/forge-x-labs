@@ -1,7 +1,7 @@
-# Fixture: a SMALL local rule catalog for adapter unit tests (FXL-63).
+# Fixture: a small local rule catalog for adapter unit tests.
 #
-# This is NOT the real seed catalog (that's ticket #14's >=12-entry data). It exists only
-# to exercise the rule_catalog_yaml adapter: an AWS + a GCP entry, spanning a couple of
+# This is not the real seed catalog. It exists only to exercise the
+# rule_catalog_yaml adapter: an AWS + a GCP entry, spanning a couple of
 # domains, one entry with a compensating control to exercise optional-field mapping.
 
 entries:

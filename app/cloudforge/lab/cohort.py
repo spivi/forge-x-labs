@@ -72,7 +72,7 @@ def _result_row(cohort_dir: Path, submissions_dir: Path, item: dict[str, object]
     seed = item.get("seed", "")
     guess_path = submissions_dir / f"{name}.yaml"
     if not guess_path.is_file():
-        return f"| {name} | {seed} | — | — | — | no submission |"
+        return f"| {name} | {seed} | - | - | - | no submission |"
     key = load_json(LabPaths.from_dir(cohort_dir / name).grade_key)
     result = grade_submission(key, LabSubmission.model_validate(load_yaml(guess_path)))
     return (
