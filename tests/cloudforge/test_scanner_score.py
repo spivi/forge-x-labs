@@ -174,7 +174,7 @@ def test_render_is_fail_soft_on_structurally_broken_checkov(
     # corrupted scanner run looks identical to one that never happened). The
     # report must name checkov.json specifically instead of the generic phrase.
     assert "## Scanner Score" in report
-    assert "not scored — no scanner output." not in report
+    assert "not scored: no scanner output." not in report
     assert "checkov.json" in report
 
 
@@ -189,7 +189,7 @@ def test_no_checkov_json_at_all_keeps_generic_not_scored_message(
     # The TRUE "never ran" case keeps the original generic message — distinct
     # from the structurally-broken-but-present case asserted above.
     assert "## Scanner Score" in report
-    assert "not scored — no scanner output." in report
+    assert "not scored: no scanner output." in report
 
 
 @pytest.mark.parametrize("payload", _STRUCTURALLY_BROKEN_PAYLOADS)

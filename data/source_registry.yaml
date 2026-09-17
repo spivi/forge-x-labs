@@ -28,9 +28,9 @@
 #                                     training-eligible; never copy the source's control body text
 #   5. unsafe-operational content -> rejected at classification (never enters the corpus)
 #
-# LICENSE DECISION (FXL-D007, DECISIONS.md): CSA CCM = mappings_only / training-eligible
-# (control-ID mappings only, never control text). CIS Benchmarks = metadata_only /
-# not-training-eligible until reuse rights are confirmed.
+# CSA CCM is mappings_only / training-eligible (control-ID mappings only, never
+# control text). CIS Benchmarks are metadata_only / not training-eligible until
+# reuse rights are confirmed.
 
 sources:
   # ── Tier 1: scanner rule corpora (metadata-only) ──────────────────────────────
@@ -86,11 +86,12 @@ sources:
     enabled: false
     license: "CSA CCM - machine-readable (JSON/YAML/OSCAL); mappings reusable, text not"
     reuse_status: mappings_only   # control-ID mappings reusable; control TEXT is not
-    allowed_for_training: true     # per FXL-D007: CCM control-ID MAPPINGS are training-eligible
+    allowed_for_training: true     # CCM control-ID mappings only; never control text
     notes: >-
-      FXL-D007: CSA publishes CCM machine-readably (JSON/YAML/OSCAL). Only our-id -> CCM
-      control-ID MAPPINGS are training-eligible. Copying CCM control TEXT into the corpus or
-      export is NOT permitted. Adapters must emit control_mappings only, never control body text.
+      CSA publishes CCM machine-readably (JSON/YAML/OSCAL). Only our-id -> CCM
+      control-ID mappings are training-eligible. Copying CCM control text into the
+      corpus or export is not permitted. Adapters must emit control_mappings only,
+      never control body text.
 
   - id: cis-benchmarks
     name: "CIS Benchmarks (cloud) - metadata only"

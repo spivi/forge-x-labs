@@ -82,7 +82,7 @@ def render_brief(spec: ScenarioSpec, graph: ScenarioGraph) -> str:
     estate = strip_graph(graph)
     profile = spec.company_profile
     lines = [
-        f"# Lab — `{spec.scenario_type}`",
+        f"# Lab: `{spec.scenario_type}`",
         "",
         f"{profile.type} / {profile.size} / `{profile.app_name}` · {spec.environment}",
         "",
@@ -94,7 +94,7 @@ def render_brief(spec: ScenarioSpec, graph: ScenarioGraph) -> str:
         "",
     ]
     for node in estate["nodes"]:
-        lines.append(f"- `{node['id']}` — **{node['type']}** {node['name']}")
+        lines.append(f"- `{node['id']}`: **{node['type']}** {node['name']}")
     lines.extend(["", "## Relationships", ""])
     for edge in estate["edges"]:
         lines.append(f"- `{edge['from']}` --{edge['type']}--> `{edge['to']}`")

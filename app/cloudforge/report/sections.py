@@ -27,7 +27,7 @@ _PATH_INTEGRITY_LABELS = frozenset(
 )
 
 _VALIDATION_FAILED_BANNER = (
-    "> ⚠ **THIS SCENARIO FAILED VALIDATION** — the risk paths and findings below "
+    "> ⚠ **THIS SCENARIO FAILED VALIDATION**: the risk paths and findings below "
     "may be inaccurate. Do not treat them as a confirmed ground truth until the "
     "failing checks are resolved."
 )
@@ -58,7 +58,7 @@ def build_validation(report: ValidationReport | None) -> str:
     else:
         lines.extend(["> ✅ All validation checks passed (no failures).", ""])
     for outcome in report.outcomes:
-        detail = f" — {outcome.detail}" if outcome.detail else ""
+        detail = f": {outcome.detail}" if outcome.detail else ""
         lines.append(f"- **[{outcome.status.value}]** {outcome.label}{detail}")
     return "\n".join(lines)
 
@@ -78,7 +78,7 @@ def path_integrity_failed(report: ValidationReport | None) -> bool:
 
 
 def build_title(spec: ScenarioSpec) -> str:
-    return f"# Scenario Report — `{spec.scenario_type}`"
+    return f"# Scenario Report: `{spec.scenario_type}`"
 
 
 def build_summary(spec: ScenarioSpec) -> str:
@@ -88,7 +88,7 @@ def build_summary(spec: ScenarioSpec) -> str:
         f"- **Cloud:** {spec.cloud}\n"
         f"- **Type:** {spec.scenario_type}\n"
         f"- **Environment:** {spec.environment} ({spec.difficulty})\n"
-        f"- **Company:** {profile.type}, {profile.size} — app `{profile.app_name}`\n"
+        f"- **Company:** {profile.type}, {profile.size}, app `{profile.app_name}`\n"
         f"- **Resource budget:** max {spec.constraints.max_resources}"
     )
 
@@ -97,7 +97,7 @@ def build_resources(bundle: ScenarioBundle) -> str:
     lines = ["## Generated Resources", ""]
     for node in bundle.graph.nodes:
         lines.append(
-            f"- `{node.id}` — **{node.type.value}** {node.name} ({node.security.criticality})"
+            f"- `{node.id}`: **{node.type.value}** {node.name} ({node.security.criticality})"
         )
     return "\n".join(lines)
 
@@ -108,7 +108,7 @@ def build_findings(bundle: ScenarioBundle) -> str:
         resources = ", ".join(finding.resource_ids)
         lines.append(
             f"- **[{finding.severity}]** `{finding.family.value}` "
-            f"({resources}) — visibility: {finding.expected_scanner_visibility}"
+            f"({resources}), visibility: {finding.expected_scanner_visibility}"
         )
     return "\n".join(lines)
 
@@ -124,13 +124,13 @@ def build_critical_path(bundle: ScenarioBundle, *, integrity_failed: bool = Fals
     lines = [header, ""]
     if integrity_failed:
         lines.append(
-            "> ⚠ **UNVERIFIED** — validation could not confirm these paths are "
+            "> ⚠ **UNVERIFIED**: validation could not confirm these paths are "
             "connected in the graph. The chain(s) below may be inaccurate."
         )
         lines.append("")
     for path in bundle.ground_truth.paths:
         chain = " → ".join(path.nodes)
-        status = " — ⚠ NOT VERIFIED" if integrity_failed else ""
+        status = " - ⚠ NOT VERIFIED" if integrity_failed else ""
         lines.append(f"### `{path.id}` ({path.severity}){status}\n\n{chain}\n\n{path.explanation}")
     return "\n\n".join(lines)
 
@@ -164,7 +164,7 @@ def build_scanner_score(score: ScannerScore | None, not_scored_reason: str | Non
     """
     if score is None:
         reason = not_scored_reason or "no scanner output"
-        return f"## Scanner Score\n\nnot scored — {reason}."
+        return f"## Scanner Score\n\nnot scored: {reason}."
     coverage_pct = f"{score.scanner_coverage_score * 100:.0f}%"
     lines = [
         "## Scanner Score",

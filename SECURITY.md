@@ -1,6 +1,6 @@
 # Security policy
 
-`cloudforge` **intentionally generates misconfigured AWS Terraform**. That is
+`cloudforge` **intentionally generates misconfigured cloud Terraform**. That is
 the product. Do not file issues titled "this Terraform is insecure."
 
 ## What is not a vulnerability

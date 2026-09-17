@@ -40,7 +40,7 @@ def test_report_scanner_score_not_scored_when_absent(generated_scenario: Path) -
     report = ReportRenderer(generated_scenario).render()
 
     assert "## Scanner Score" in report
-    assert "not scored — no scanner output." in report
+    assert "not scored: no scanner output." in report
 
 
 def test_report_scanner_score_summary_when_present(generated_scenario: Path) -> None:

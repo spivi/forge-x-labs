@@ -3,7 +3,7 @@
 A **scenario family** is a named `scenario_type` with a registered builder
 in the template generator and the composer.
 
-## Shipped in v1.0
+## Shipped in v1.0 (AWS)
 
 | `scenario_type` | Teaching point |
 |---|---|
@@ -19,14 +19,20 @@ in the template generator and the composer.
 | `public_rds_instance` | Internet-facing RDS with `0.0.0.0/0` ingress. |
 | `ecr_repository_public_read` | Public container registry leaking deploy tokens. |
 | `sqs_queue_overbroad_policy` | Wildcard SQS policy. |
-| `k8s_pod_irsa_exfil` | Pod binds an IRSA token, federates to an IAM role, reads a sensitive bucket. Graph-only. |
-| `azure_imds_keyvault_harvest` | App Service managed identity reads Key Vault. Graph-only. |
-| `gcp_workload_identity_federation` | Workload Identity Pool federates to a service account that reads GCS. Graph-only. |
+
+## Multi-cloud (v1.3)
+
+| `scenario_type` | Teaching point |
+|---|---|
+| `k8s_pod_irsa_exfil` | Pod binds an IRSA token, federates to an IAM role, reads a sensitive bucket. |
+| `azure_imds_keyvault_harvest` | App Service managed identity reads Key Vault. |
+| `gcp_workload_identity_federation` | Workload Identity Pool federates to a service account that reads GCS. |
 
 Examples live in `examples/<type>.yaml`.
 
-The K8s, Azure, and GCP families emit matching Terraform (`k8s.tf`, `azure.tf`,
-`gcp.tf`) plus any AWS resources on the path. Still never applied.
+The last three families emit matching Terraform (`k8s.tf`, `azure.tf`,
+`gcp.tf`) plus any AWS resources on the path. Still never applied. AWS-only
+labs do not pull those providers.
 
 ### `ci_cd_iam_chain` (detail)
 

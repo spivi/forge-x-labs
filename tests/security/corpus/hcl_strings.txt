@@ -1,7 +1,7 @@
-# Adversarial HCL-string-sink corpus (FXL-108 / FXL-STRESS-3).
+# Adversarial HCL-string-sink corpus.
 #
 # One Python string-literal per line (parsed with ast.literal_eval by
-# tests/security/corpus_loader.py). This format — not raw newline-delimited text —
+# tests/security/corpus_loader.py). This format, not raw newline-delimited text,
 # is required because several payloads MUST contain literal newlines, tabs, or a
 # NUL byte, which a bare-line-per-value .txt cannot represent unambiguously.
 #

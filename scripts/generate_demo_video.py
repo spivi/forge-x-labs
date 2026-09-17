@@ -74,7 +74,7 @@ SLIDES = [
                 <div class="card card-ember">
                     <div class="card-icon">🛡️</div>
                     <h3>100% Local-First ($0.00)</h3>
-                    <p>Deterministic graph engine and static analysis. Evaluated locally via OPA & Checkov. <code>terraform apply</code> is blocked by contract (FXL-D001). Zero AWS accounts needed.</p>
+                    <p>Deterministic graph engine and static analysis. Evaluated locally via OPA and Checkov. <code>terraform apply</code> is blocked by contract. Zero cloud accounts needed.</p>
                 </div>
                 <div class="card card-ember">
                     <div class="card-icon">🎲</div>
@@ -84,7 +84,7 @@ SLIDES = [
                 <div class="card card-ember">
                     <div class="card-icon">⚡</div>
                     <h3>Sub-Second Auto-Grading</h3>
-                    <p>Clean architectural split (FXL-D010): stripped student estate vs. cryptographic instructor key. Instant precision/recall grading via <code>cloudforge grade</code>.</p>
+                    <p>Stripped student estate versus instructor key. Instant precision/recall grading via <code>cloudforge grade</code>.</p>
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@ SLIDES = [
             <div class="badge pass">WORKFLOW STEP 1</div>
             <h2>Generating a Deterministic, Stripped Student Lab</h2>
             <div class="terminal-window">
-                <div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="term-title">terminal — bash</span></div>
+                <div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="term-title">terminal - bash</span></div>
                 <div class="term-body">
                     <div class="cmd-line"><span class="prompt">$</span> cloudforge lab examples/ec2_imds_credential_exfil.yaml --seed 17 --out lab_alice/</div>
                     <div class="cmd-out pass-text">lab student=lab_alice/student instructor=lab_alice/instructor</div>
@@ -107,7 +107,7 @@ SLIDES = [
             </div>
             <div class="split-cards">
                 <div class="card">
-                    <h4 class="pass-text">student/ (Stripped Pack — FXL-D010)</h4>
+                    <h4 class="pass-text">student/ (stripped pack)</h4>
                     <ul>
                         <li><code>brief.md</code>: Scenario investigation narrative (zero answer leaks)</li>
                         <li><code>estate.html</code>: Standalone interactive topology visualizer</li>
@@ -176,7 +176,7 @@ findings:
             <div class="badge pass">WORKFLOW STEP 3</div>
             <h2>Instant Automated Grading in &lt; 50 Milliseconds</h2>
             <div class="terminal-window">
-                <div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="term-title">terminal — instructor grade</span></div>
+                <div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="term-title">terminal - instructor grade</span></div>
                 <div class="term-body">
                     <div class="cmd-line"><span class="prompt">$</span> cloudforge grade lab_alice/ --submission student_submission.yaml</div>
                     <div class="cmd-out pass-text">paths hit 1 miss 0  findings hit 2 miss 1  extras 0</div>
@@ -208,7 +208,7 @@ findings:
             <div class="badge ember">WORKFLOW STEP 4</div>
             <h2>Team Cohort Orchestration (Scale to 30+ Analysts)</h2>
             <div class="terminal-window">
-                <div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="term-title">terminal — cohort automation</span></div>
+                <div class="term-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="term-title">terminal - cohort automation</span></div>
                 <div class="term-body">
                     <div class="cmd-line"><span class="prompt">$</span> cloudforge lab-cohort examples/ci_cd_iam_chain.yaml --roster team.txt --out cohort_spring/</div>
                     <div class="cmd-out pass-text">wrote 12 student packs across 12 distinct seeds to cohort_spring/</div>
@@ -250,7 +250,7 @@ findings:
                     <tr><td>Setup & Teardown Time</td><td class="cell-stop">15 min apply / 10 min destroy</td><td class="cell-stop">10 min apply / 10 min destroy</td><td class="cell-pass">&lt; 100 ms (Instant)</td></tr>
                     <tr><td>Automated Path Grading</td><td class="cell-stop">None (Manual)</td><td class="cell-stop">None (Manual)</td><td class="cell-pass">Built-in (cloudforge grade)</td></tr>
                     <tr><td>Cohort / Class Management</td><td class="cell-stop">Manual scripting</td><td class="cell-stop">None</td><td class="cell-pass">Built-in (lab-cohort)</td></tr>
-                    <tr><td>Answer Key Separation</td><td class="cell-stop">None</td><td class="cell-stop">None</td><td class="cell-pass">Strict Seam (FXL-D010)</td></tr>
+                    <tr><td>Answer Key Separation</td><td class="cell-stop">None</td><td class="cell-stop">None</td><td class="cell-pass">Strict seam</td></tr>
                     <tr><td>Scenario Catalog (v1)</td><td>~10 scenarios</td><td>~8 scenarios</td><td class="cell-pass">12 Validated Families</td></tr>
                 </tbody>
             </table>

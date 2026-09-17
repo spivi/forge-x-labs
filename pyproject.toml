@@ -44,8 +44,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 99
 target-version = "py312"
-# Local-only trees that stay on disk via .gitignore.
-extend-exclude = ["flavors/", "lemmings/", ".claude/", ".dev-context/"]
+extend-exclude = ["flavors/", "lemmings/"]
 
 [tool.ruff.lint]
 # TCH/TC intentionally omitted: this codebase resolves type annotations at runtime

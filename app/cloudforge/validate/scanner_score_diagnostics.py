@@ -4,7 +4,7 @@
 (a) the scanner genuinely never ran (no ``checkov.json`` on disk), and (b)
 ``checkov.json`` exists but could not be used — invalid JSON, wrong top-level
 shape, or the scenario's own ``graph.json``/``expected_findings.json`` failed to
-load. A caller that reports both as the same generic "not scored — no scanner
+load. A caller that reports both as the same generic "not scored: no scanner
 output" message is masking a real problem: a corrupted scanner run looks
 identical to one that was never invoked. :func:`not_scored_reason` recovers the
 distinguishing detail (never raises) so the orchestrator and the report can

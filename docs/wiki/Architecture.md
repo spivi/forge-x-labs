@@ -52,7 +52,8 @@ examples/*.yaml
 - **validate**: reconstruct the bundle from disk and run fail-soft checks
   (see [Validation Pipeline](Validation-Pipeline.md)).
 - **report**: reload artifacts and write `report.md`.
-- **lab / grade**: split student vs instructor, score a guessed path.
+- **lab / grade / roundtable**: split student vs instructor, score a guessed
+  path, or write a three-cloud SOC tabletop pack.
 
 ## Design principles
 

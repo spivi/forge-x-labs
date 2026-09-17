@@ -4,7 +4,9 @@
 exports cloud-risk patterns from an allow-listed set of sources. It does **not**
 train a model.
 
-See [Future Diffusion Training](Future-Diffusion-Training.md) for the boundary.
+It does not produce embeddings, a tokenizer, a GNN, a diffusion model, or
+weights. `learn export-training` writes a versioned JSON/JSONL bundle plus a
+coverage manifest.
 
 ## Pipeline
 

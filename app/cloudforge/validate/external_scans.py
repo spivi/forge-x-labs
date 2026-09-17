@@ -11,7 +11,7 @@ from app.cloudforge.io.paths import ScenarioPaths
 from app.cloudforge.validate import tool_probe
 from app.cloudforge.validate.results import Status, ValidationOutcome
 
-_MISSING_DETAIL = "not found — skipping"
+_MISSING_DETAIL = "not found, skipping"
 
 
 def run_terraform(paths: ScenarioPaths) -> ValidationOutcome:
