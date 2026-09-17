@@ -216,9 +216,10 @@ not train a model. See [Learning Corpus](docs/wiki/Learning-Corpus.md).
 See [CONTRIBUTING.md](CONTRIBUTING.md). Product code lives in `app/cloudforge/`.
 
 ```bash
-ruff check --fix && ruff format
-mypy --strict app/
-PYTHONPATH=. .venv/bin/pytest tests/cloudforge tests/security -q --no-cov
+poetry run ruff check app tests scripts
+poetry run ruff format --check app tests scripts
+poetry run mypy --strict app/
+PYTHONPATH=. poetry run pytest tests/cloudforge tests/security tests/unit tests/integration tests/property -q --no-cov
 ```
 
 ## Docs

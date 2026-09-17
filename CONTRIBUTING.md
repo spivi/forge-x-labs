@@ -9,7 +9,7 @@ Python 3.12+ and Poetry:
 
 ```bash
 poetry env use 3.12
-poetry install
+poetry install --with dev
 PYTHONPATH=. .venv/bin/python -m app.cli version
 ```
 
@@ -18,9 +18,10 @@ If `.venv/bin/cloudforge` has a stale shebang, use `python -m app.cli`.
 ## Checks
 
 ```bash
-ruff check --fix && ruff format
-mypy --strict app/
-PYTHONPATH=. .venv/bin/pytest tests/cloudforge tests/security -q --no-cov
+poetry run ruff check app tests scripts
+poetry run ruff format --check app tests scripts
+poetry run mypy --strict app/
+PYTHONPATH=. poetry run pytest tests/cloudforge tests/security tests/unit tests/integration tests/property -q --no-cov
 ```
 
 Integration tests that call `validate` must force optional tools absent:
