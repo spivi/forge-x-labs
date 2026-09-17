@@ -101,6 +101,29 @@
   fourth dialect (`ci_cd_iam_chain`, a GitHub Actions OIDC identity federating
   into an IAM role), so a four-name roster gets one estate per vendor and the
   facilitator agenda speaks of four clouds.
+- A family is one fragment and one spec. Every core fragment now declares its
+  own `scenario_type`, `cloud`, `prompt`, `checklist` and `teaching_point`
+  (`generate/fragments/base.py`, `@register_core`), and the composer's
+  `scenario_type -> kind` map, the student brief prompt, and the workbench
+  checklist row all derive from that registry instead of duplicating it by
+  hand. `fragments/__init__.py` auto-imports every `core_*.py` module, so
+  `composer.py` no longer lists them. An unregistered `scenario_type` is now a
+  load-time `ScenarioSpec` error naming the known families, replacing the
+  silent fallback to `core.ci_cd_iam_chain`; `--engine template` now fails with
+  a clear message for a registered family with no template projection instead
+  of silently switching engines. Every existing example generates
+  byte-identical output at seeds 0 and 17 before and after.
+- `cloudforge new-family <scenario_type> --cloud aws|azure|gcp|k8s --title
+  "..."` scaffolds a new family: a real, importable three-node core fragment
+  and an example spec, refusing to overwrite either file. The generated
+  family passes the composer integrity net (schema + graph-risk checks) as
+  generated, at seeds 0 and 17.
+- `docs/wiki/Adding-a-Family.md`: a worked example that adds
+  `public_lambda_layer_read` end to end with the scaffold. The README's
+  scenario-family table is now rendered from the registry
+  (`scripts/render_family_table.py`) and held to it by a test, so it cannot
+  drift; `docs/wiki/Curriculum.md` (a first week, session by session) is
+  linked from the wiki home and the README's roundtable section.
 
 ## 1.3.1 (2026-09-17)
 

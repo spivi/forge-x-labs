@@ -16,7 +16,7 @@ from typing import Any
 
 from app.cloudforge.generate.fragments._core import Kit, Piece, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import AZURE_DEAD_ENDS, AZURE_HOP_IDENTITIES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -35,9 +35,18 @@ _SINK = "customer-financials"
 _HOP_VERB = "holds Managed Identity Operator over and obtains the token of"
 
 
-@register("core.azure_imds_keyvault_harvest")
+@register_core
 @register("core.azure_managed_identity")
 class AzureManagedIdentity:
+    scenario_type = "azure_imds_keyvault_harvest"
+    cloud = "azure"
+    prompt = (
+        "An App Service has a managed identity. Can it reach secrets or customer "
+        "data that a human operator would not expect it to hold?"
+    )
+    checklist = ("azure_imds_keyvault_harvest", "Azure: App Service Key Vault Harvest")
+    teaching_point = "App Service IMDS -> Key Vault"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

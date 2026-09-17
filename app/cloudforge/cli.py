@@ -18,6 +18,7 @@ from app.cloudforge.errors import CloudforgeError, UnknownEngineError
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.generate.composer import GraphComposer
 from app.cloudforge.generate.mutation_generator import MutationGenerator
+from app.cloudforge.generate.scaffold import ScaffoldError, new_family
 from app.cloudforge.generate.template_generator import TemplateGenerator
 from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.io.paths import ScenarioPaths
@@ -47,6 +48,7 @@ _STATUS_STYLE = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "red"
 # never a raw traceback (FXL-N4 / stress-contract S1/S15) — mirrors the fail-soft pattern
 # already used by ``report/renderer.py::_run_validation``.
 _CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OSError)
+_SCAFFOLD_ERRORS: tuple[type[Exception], ...] = (ScaffoldError, OSError)
 
 
 @app.command()
@@ -131,3 +133,30 @@ def report(
 def version() -> None:
     """Print the cloudforge version."""
     console.print(__version__)
+
+
+@app.command("new-family")
+def new_family_cmd(
+    scenario_type: Annotated[str, typer.Argument(help="The new family's scenario_type.")],
+    cloud: Annotated[str, typer.Option("--cloud", help="aws, azure, gcp, or k8s.")] = "aws",
+    title: Annotated[
+        str, typer.Option("--title", help="One-line teaching point for the family.")
+    ] = "",
+    root: Annotated[
+        Path, typer.Option("--root", help="Repo root to write into (default: cwd).")
+    ] = Path(),
+) -> None:
+    """Scaffold a new family: one core fragment module and one example spec."""
+    try:
+        fragment_path, example_path = new_family(scenario_type, cloud, title, root)
+    except _SCAFFOLD_ERRORS as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]wrote[/green] {fragment_path}")
+    console.print(f"[green]wrote[/green] {example_path}")
+    console.print(
+        "\nNext steps:\n"
+        f"  1. edit {fragment_path} with the family's real story\n"
+        f"  2. run: cloudforge lab {example_path} --seed 17\n"
+        "  3. run: PYTHONPATH=. pytest tests/cloudforge tests/unit tests/property -q"
+    )

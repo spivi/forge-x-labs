@@ -31,6 +31,12 @@ monkeypatch.setattr(tool_probe, "detect_tool", lambda name: False)
 
 Otherwise each test may download the AWS Terraform provider (~700MB).
 
+## Adding a family
+
+A family is one core fragment module and one example spec; see
+[Adding a Family](docs/wiki/Adding-a-Family.md) for a worked example using the
+`cloudforge new-family` scaffold.
+
 ## PRs
 
 - Branch from `master`. Do not commit to `master`.

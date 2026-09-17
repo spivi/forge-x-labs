@@ -16,7 +16,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import AWS_HOP_ROLES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -32,8 +32,17 @@ _BUCKET = "s3-customer-pii"
 _SINK = "data-customer-pii"
 
 
-@register("core.ec2_imds_credential_exfil")
+@register_core
 class Ec2ImdsCredentialExfil:
+    scenario_type = "ec2_imds_credential_exfil"
+    cloud = "aws"
+    prompt = (
+        "A public-facing web server is accessible from the internet. Can an attacker "
+        "leverage server-side requests to steal credentials and access internal data?"
+    )
+    checklist = ("ec2_imdsv1_enabled", "Compute: EC2 IMDSv1 Credential Exfiltration")
+    teaching_point = "SSRF / IMDSv1 hop to instance role creds"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

@@ -72,6 +72,7 @@ scripts/*
 !scripts/stress_benchmark_corpus_factory.py
 !scripts/stress_benchmark_scenario.py
 !scripts/stress_benchmark_util.py
+!scripts/render_family_table.py
 
 tests/hooks/
 tests/harness/

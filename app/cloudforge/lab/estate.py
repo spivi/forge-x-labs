@@ -7,72 +7,19 @@ from pathlib import Path
 from typing import Any
 
 from app.cloudforge import __version__
+from app.cloudforge.generate.fragments.base import core_meta, core_scenario_types
 
 _TEMPLATE_PATH = Path(__file__).parent / "estate_template.html"
 
-# The full finding catalog the workbench checklist offers, one entry per row the
-# template's own fallback list carries. ``cloud`` says which vendor's estate the
-# entry belongs to; render_estate_html filters this down to the vendors the
-# estate actually contains before embedding it, so an Azure lab does not list
-# EC2 or RDS findings it has no basis for.
-CANONICAL_FINDINGS: tuple[dict[str, str], ...] = (
-    {
-        "id": "iam_privesc_policy_version",
-        "label": "IAM: CreatePolicyVersion Escalation",
-        "cloud": "aws",
-    },
-    {
-        "id": "ec2_imdsv1_enabled",
-        "label": "Compute: EC2 IMDSv1 Credential Exfiltration",
-        "cloud": "aws",
-    },
-    {
-        "id": "lambda_function_url_unauthenticated",
-        "label": "Serverless: Lambda Public Unauthenticated Function URL",
-        "cloud": "aws",
-    },
-    {
-        "id": "secretsmanager_policy_overbroad",
-        "label": "Secrets: Secrets Manager Overbroad Resource Policy",
-        "cloud": "aws",
-    },
-    {
-        "id": "rds_instance_public",
-        "label": "Database: Publicly Accessible RDS Instance",
-        "cloud": "aws",
-    },
-    {
-        "id": "ecr_repository_public_read",
-        "label": "Containers: Public Read ECR Repository Policy",
-        "cloud": "aws",
-    },
-    {
-        "id": "sqs_queue_policy_overbroad",
-        "label": "Queues: SQS Queue Overbroad Access Policy",
-        "cloud": "aws",
-    },
-    {
-        "id": "kms_key_policy_overbroad",
-        "label": "Cryptography: KMS Key Wildcard Decrypt Policy",
-        "cloud": "aws",
-    },
-    {
-        "id": "ebs_snapshot_public",
-        "label": "Storage: Unencrypted Public EBS Snapshot",
-        "cloud": "aws",
-    },
-    {"id": "iam_passrole_risk", "label": "IAM: PassRole Escalation Chain", "cloud": "aws"},
-    {
-        "id": "iam_cross_account_trust",
-        "label": "IAM: External Cross-Account Trust",
-        "cloud": "aws",
-    },
+# Findings shared across families, or not owned by any single one (a chain's
+# supporting finding, not its critical one). These are not part of any core
+# fragment's declared surface, so they stay a hand-maintained list.
+_SHARED_FINDINGS: tuple[dict[str, str], ...] = (
     {
         "id": "iam_excessive_privilege",
         "label": "IAM: Overly Broad Permissions (s3:Get*/List*)",
         "cloud": "aws",
     },
-    {"id": "s3_public_exposure", "label": "Storage: Public S3 Bucket Read/Write", "cloud": "aws"},
     {
         "id": "s3_logging_missing",
         "label": "Governance: S3 Server Access Logging Missing",
@@ -88,18 +35,26 @@ CANONICAL_FINDINGS: tuple[dict[str, str], ...] = (
         "label": "Benign/Decoy: Public-Looking Bucket with Control",
         "cloud": "aws",
     },
-    {"id": "k8s_pod_irsa_exfil", "label": "Kubernetes: Pod IRSA Exfiltration", "cloud": "k8s"},
-    {
-        "id": "azure_imds_keyvault_harvest",
-        "label": "Azure: App Service Key Vault Harvest",
-        "cloud": "azure",
-    },
-    {
-        "id": "gcp_workload_identity_federation",
-        "label": "GCP: Workload Identity Federation Exfil",
-        "cloud": "gcp",
-    },
 )
+
+
+def _core_findings() -> tuple[dict[str, str], ...]:
+    """One row per registered core family, derived from its ``checklist`` and
+    ``cloud`` class attributes (``fragments/base.py``) instead of hand-copied here."""
+    rows = []
+    for scenario_type in core_scenario_types():
+        meta = core_meta(scenario_type)
+        finding_id, label = meta.checklist
+        rows.append({"id": finding_id, "label": label, "cloud": meta.cloud})
+    return tuple(rows)
+
+
+# The full finding catalog the workbench checklist offers, one entry per row the
+# template's own fallback list carries. ``cloud`` says which vendor's estate the
+# entry belongs to; render_estate_html filters this down to the vendors the
+# estate actually contains before embedding it, so an Azure lab does not list
+# EC2 or RDS findings it has no basis for.
+CANONICAL_FINDINGS: tuple[dict[str, str], ...] = _core_findings() + _SHARED_FINDINGS
 
 # Node types the ``aws`` fragment pool mints (app/cloudforge/generate/fragments/
 # {decoy,false_positive,compensating_control,benign_noise}.py). The Kubernetes

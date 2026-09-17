@@ -16,7 +16,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import AWS_HOP_ROLES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -32,8 +32,20 @@ _BUCKET = "s3-customer-orders"
 _SINK = "data-customer-orders"
 
 
-@register("core.lambda_public_function_url")
+@register_core
 class LambdaPublicFunctionUrl:
+    scenario_type = "lambda_public_function_url"
+    cloud = "aws"
+    prompt = (
+        "A serverless function URL has been configured. Is it protected by "
+        "authentication, and what backend data can it reach?"
+    )
+    checklist = (
+        "lambda_function_url_unauthenticated",
+        "Serverless: Lambda Public Unauthenticated Function URL",
+    )
+    teaching_point = "Unauthenticated Function URL (`NONE`)"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

@@ -18,7 +18,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import AWS_HOP_ROLES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -33,8 +33,19 @@ _ENTRY = "role-developer"
 _SINK = "role-app-operator"
 
 
-@register("core.iam_privesc_policy_version")
+@register_core
 class IamPrivescPolicyVersion:
+    scenario_type = "iam_privesc_policy_version"
+    cloud = "aws"
+    prompt = (
+        "An internal developer identity has been provisioned with limited scope. "
+        "Can it reach a role that administers the account, and how?"
+    )
+    checklist = ("iam_privesc_policy_version", "IAM: CreatePolicyVersion Escalation")
+    teaching_point = (
+        "`iam:CreatePolicyVersion` to an admin-capable role; its payroll read is a second path"
+    )
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

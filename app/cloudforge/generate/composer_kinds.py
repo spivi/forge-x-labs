@@ -15,25 +15,13 @@ cluster-side filler plus the whole AWS pool; ``multi_cloud`` gets every pool.
 
 from __future__ import annotations
 
+from app.cloudforge.generate.fragments.base import core_kind_for, core_scenario_types
 from app.cloudforge.models.graph import NodeOrigin
 
-CORE_KINDS: dict[str, str] = {
-    "ci_cd_iam_chain": "core.ci_cd_iam_chain",
-    "public_data_exposure": "core.public_data_exposure",
-    "cross_account_trust": "core.cross_account_trust",
-    "kms_key_overbroad": "core.kms_key_overbroad",
-    "public_ebs_snapshot": "core.public_ebs_snapshot",
-    "iam_privesc_policy_version": "core.iam_privesc_policy_version",
-    "ec2_imds_credential_exfil": "core.ec2_imds_credential_exfil",
-    "lambda_public_function_url": "core.lambda_public_function_url",
-    "secretsmanager_policy_overbroad": "core.secretsmanager_policy_overbroad",
-    "public_rds_instance": "core.public_rds_instance",
-    "ecr_repository_public_read": "core.ecr_repository_public_read",
-    "sqs_queue_overbroad_policy": "core.sqs_queue_overbroad_policy",
-    "k8s_pod_irsa_exfil": "core.k8s_pod_irsa_exfil",
-    "azure_imds_keyvault_harvest": "core.azure_imds_keyvault_harvest",
-    "gcp_workload_identity_federation": "core.gcp_workload_identity_federation",
-}
+# ``scenario_type`` -> fragment kind, derived from every ``@register_core``
+# fragment's own ``scenario_type`` (see ``fragments/base.py``). Adding a family
+# means adding its fragment module; this map never gets a hand-written entry.
+CORE_KINDS: dict[str, str] = {st: core_kind_for(st) for st in core_scenario_types()}
 
 # The roles the composer plans extras for, in plan order. Each is a ``SHORT`` value
 # and a ``variation_axes`` key; the count for a role is per role, whatever vendor

@@ -22,7 +22,7 @@ from app.cloudforge import constants
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_SECRETS
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -38,8 +38,20 @@ _SINK = "sec-db-creds"
 _ACTIONS = ["secretsmanager:GetSecretValue"]
 
 
-@register("core.secretsmanager_policy_overbroad")
+@register_core
 class SecretsManagerPolicyOverbroad:
+    scenario_type = "secretsmanager_policy_overbroad"
+    cloud = "aws"
+    prompt = (
+        "Production database credentials are stored in AWS Secrets Manager. "
+        "Can a principal outside this account read the secret itself?"
+    )
+    checklist = (
+        "secretsmanager_policy_overbroad",
+        "Secrets: Secrets Manager Overbroad Resource Policy",
+    )
+    teaching_point = "External `secretsmanager:GetSecretValue`; reaches the secret"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(), _lookalike)

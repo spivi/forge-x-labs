@@ -15,7 +15,7 @@ from typing import Any
 
 from app.cloudforge.generate.fragments._core import Kit, Piece, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import AWS_HOP_ROLES, K8S_DEAD_ENDS
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -35,9 +35,18 @@ _SINK = "customer-banking-records"
 _READ_ACTIONS = ["s3:GetObject", "s3:ListBucket"]
 
 
-@register("core.k8s_pod_irsa_exfil")
+@register_core
 @register("core.k8s_irsa")
 class K8sPodIrsaExfil:
+    scenario_type = "k8s_pod_irsa_exfil"
+    cloud = "k8s"
+    prompt = (
+        "A pod in this cluster can talk to cloud IAM. Can that workload identity "
+        "reach sensitive data, and is the hop obvious from the estate?"
+    )
+    checklist = ("k8s_pod_irsa_exfil", "Kubernetes: Pod IRSA Exfiltration")
+    teaching_point = "Pod IRSA token -> IAM role -> sensitive S3"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

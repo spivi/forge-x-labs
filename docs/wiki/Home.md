@@ -30,7 +30,9 @@ cloudforge report   out/scenario_001
 | [Graph Model](Graph-Model.md) | Node and edge types, invariants |
 | [Validation Pipeline](Validation-Pipeline.md) | Fail-soft checks, risk engine, exit policy |
 | [Labs](Labs.md) | Student/instructor pack, grade, cohort, roundtable |
-| [Scenario Families](Scenario-Families.md) | Shipped families and how to add one |
+| [Curriculum](Curriculum.md) | A first week, session by session |
+| [Scenario Families](Scenario-Families.md) | Shipped families |
+| [Adding a Family](Adding-a-Family.md) | Worked example: one fragment, one spec, the scaffold |
 | [Roadmap](Roadmap.md) | What shipped, what is next |
 | [Safety and Scope](Safety-and-Scope.md) | Local-only guarantees, forbidden permissions |
 | [Learning Corpus](Learning-Corpus.md) | Data pipeline (not a training loop) |
