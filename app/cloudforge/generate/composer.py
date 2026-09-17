@@ -9,6 +9,13 @@ namespaced ids, so the assembled graph, findings, and ground truth cannot
 disagree; a globally-duplicate id raises ``GraphIntegrityError`` before any
 projection. The only randomness is ``Random(seed)``, so the same ``(spec, seed)``
 yields byte-identical artifacts.
+
+Namespaces are role-free on purpose. Node ids are the join key between the student
+estate and every instructor artifact, so they are minted here exactly once, for
+both trees: each fragment gets ``n<NN>_<salt>`` where ``NN`` comes from a seeded
+permutation over the whole plan, and nothing about the token or its order says
+whether the fragment is the core path, a decoy, or filler. That provenance lives
+only in ``GraphNode.origin``, which the student strip never copies.
 """
 
 from __future__ import annotations
@@ -23,6 +30,7 @@ from app.cloudforge.generate.composer_kinds import (
     EXTRA_KINDS,
     NOISE_KINDS,
     SHORT,
+    origin_of,
 )
 from app.cloudforge.generate.fragments import (
     benign_noise,  # noqa: F401
@@ -57,6 +65,9 @@ from app.cloudforge.models.graph import GraphEdge, GraphNode, ScenarioGraph
 from app.cloudforge.models.scenario import ScenarioSpec
 
 _Plan = list[tuple[str, str, dict[str, Any]]]
+_Draft = list[tuple[str, dict[str, Any]]]
+# Placeholder namespace used only to count a fragment's nodes while planning.
+_COUNT_NS = "plan"
 
 
 class GraphComposer:
@@ -76,11 +87,10 @@ class GraphComposer:
         )
 
     def _plan(self, rng: Random) -> _Plan:
-        core = self._core_kind()
-        plan: _Plan = [(core, self._ns(core, 0), {"path_hops": rng.randint(3, 5)})]
+        draft: _Draft = [(self._core_kind(), {"path_hops": rng.randint(3, 5)})]
         for kind in EXTRA_KINDS:
-            self._add_extras(plan, kind, self._axis_count(kind, rng))
-        return self._fill_to_scale(plan, rng)
+            self._add_extras(draft, kind, self._axis_count(kind, rng))
+        return self._namespace(self._fill_to_scale(draft, rng))
 
     def _core_kind(self) -> str:
         return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
@@ -91,28 +101,39 @@ class GraphComposer:
             return max(0, int(override))
         return rng.randint(1, 3)
 
-    def _add_extras(self, plan: _Plan, kind: str, count: int) -> None:
+    def _add_extras(self, draft: _Draft, kind: str, count: int) -> None:
         """Append up to ``count`` instances of ``kind`` while the plan stays under
         the profile's ``max_nodes`` ceiling (reserving one slot for scale fill)."""
-        for i in range(count):
-            if self._planned_node_count(plan) >= self._profile.max_nodes - 1:
+        for _ in range(count):
+            if self._planned_node_count(draft) >= self._profile.max_nodes - 1:
                 return
-            plan.append((kind, self._ns(kind, i), {}))
+            draft.append((kind, {}))
 
-    def _fill_to_scale(self, plan: _Plan, rng: Random) -> _Plan:
+    def _fill_to_scale(self, draft: _Draft, rng: Random) -> _Draft:
         target = rng.randint(self._profile.min_nodes, self._profile.max_nodes)
-        planned = self._planned_node_count(plan)
-        index = 0
+        planned = self._planned_node_count(draft)
         while planned < target and planned < self._profile.max_nodes:
-            kind = rng.choice(NOISE_KINDS)
-            plan.append((kind, self._ns(kind, index), {}))
+            draft.append((rng.choice(NOISE_KINDS), {}))
             planned += 1
-            index += 1
-        return plan
+        return draft
 
-    def _planned_node_count(self, plan: _Plan) -> int:
+    def _planned_node_count(self, draft: _Draft) -> int:
         rng = Random(0)
-        return sum(len(get_fragment(k).build(ns, rng, p).nodes) for k, ns, p in plan)
+        return sum(len(get_fragment(k).build(_COUNT_NS, rng, p).nodes) for k, p in draft)
+
+    def _namespace(self, draft: _Draft) -> _Plan:
+        """Mint one role-free namespace per planned fragment.
+
+        Tokens are a seeded permutation of ``range(len(draft))`` drawn from its own
+        stream (like ``_salt``), so the core fragment lands on an arbitrary token and
+        neither the token nor its order encodes the fragment's role. Seed 0 has no
+        salt and still yields distinct namespaces.
+        """
+        tokens = list(range(len(draft)))
+        Random(self._seed + 211).shuffle(tokens)
+        salt = self._salt()
+        paired = zip(tokens, draft, strict=True)
+        return [(kind, _ns(token, salt), params) for token, (kind, params) in paired]
 
     def _assemble(self, plan: _Plan) -> FragmentBundle:
         rng = Random(self._seed)
@@ -123,14 +144,17 @@ class GraphComposer:
         salt = self._salt()
         for kind, ns, params in plan:
             part = get_fragment(kind).build(ns, rng, params)
-            if salt:
-                for node in part.nodes:
-                    node.name = f"{node.name}-{salt}"
+            for node in part.nodes:
+                node.origin = origin_of(kind)
             nodes.extend(part.nodes)
             edges.extend(part.edges)
             findings.extend(part.findings)
             paths.extend(part.paths)
         _assert_unique_ids(nodes)
+        _dedupe_names(nodes)
+        if salt:
+            for node in nodes:
+                node.name = f"{node.name}-{salt}"
         return FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=paths)
 
     def _salt(self) -> str:
@@ -138,10 +162,9 @@ class GraphComposer:
             return ""
         return f"{Random(self._seed + 101).randint(0x1000, 0xFFFF):04x}"
 
-    def _ns(self, kind: str, index: int) -> str:
-        prefix = SHORT.get(kind, "node")
-        salt = self._salt()
-        return f"{prefix}{index}_{salt}" if salt else f"{prefix}{index}"
+
+def _ns(token: int, salt: str) -> str:
+    return f"n{token:02d}_{salt}" if salt else f"n{token:02d}"
 
 
 def _assert_unique_ids(nodes: list[GraphNode]) -> None:
@@ -150,6 +173,24 @@ def _assert_unique_ids(nodes: list[GraphNode]) -> None:
         if node.id in seen:
             raise GraphIntegrityError(f"duplicate composed node id: {node.id}")
         seen.add(node.id)
+
+
+def _dedupe_names(nodes: list[GraphNode]) -> None:
+    """Make names unique per node type, in plan order, before the salt is appended.
+
+    Two fragments drawing the same vocabulary name (two IAM roles both called
+    ``LegacySupportRole``) would be impossible in a real account and would mark
+    both as generated filler. The first keeps its name; later ones get ``-2``,
+    ``-3``. Keyed by type so a bucket and the application named after it coexist.
+    """
+    seen: set[tuple[str, str]] = set()
+    for node in nodes:
+        base = node.name
+        suffix = 1
+        while (node.type.value, node.name) in seen:
+            suffix += 1
+            node.name = f"{base}-{suffix}"
+        seen.add((node.type.value, node.name))
 
 
 class ComposerGenerator:

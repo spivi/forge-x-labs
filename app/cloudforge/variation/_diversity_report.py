@@ -17,7 +17,8 @@ _MIN_SAMPLES_FOR_AXIS_CHECK = 2
 
 
 def has_decoys(bundle: ScenarioBundle) -> bool:
-    return any(n.id.split("/", 1)[0].startswith("decoy") for n in bundle.graph.nodes)
+    """Read ``GraphNode.origin``, never the id: ids are role-free by design."""
+    return any(n.origin == "decoy" for n in bundle.graph.nodes)
 
 
 def has_false_positives(bundle: ScenarioBundle) -> bool:
@@ -25,7 +26,7 @@ def has_false_positives(bundle: ScenarioBundle) -> bool:
 
 
 def has_compensating_controls(bundle: ScenarioBundle) -> bool:
-    return any(n.id.split("/", 1)[0].startswith("ctrl") for n in bundle.graph.nodes)
+    return any(n.origin == "compensating_control" for n in bundle.graph.nodes)
 
 
 def build_report(
