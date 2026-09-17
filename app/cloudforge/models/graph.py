@@ -85,6 +85,7 @@ class EdgeType(StrEnum):
     HAS_SECURITY_GROUP = "has_security_group"
     DEPLOYED_BY = "deployed_by"
     CAN_DECRYPT = "can_decrypt"
+    ENCRYPTED_WITH = "encrypted_with"
     CAN_INVOKE = "can_invoke"
     # Multi-Account & Multi-Cloud
     ORGANIZATIONAL_CHILD = "organizational_child"

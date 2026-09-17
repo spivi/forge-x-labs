@@ -7,7 +7,11 @@ import json
 from app.cloudforge import constants
 from app.cloudforge.models.graph import GraphNode
 from app.cloudforge.pipeline.identifiers import resource_name
-from app.cloudforge.pipeline.terraform_resource_blocks import hcl_str, neutralize_hcl_openers
+from app.cloudforge.pipeline.terraform_resource_blocks import (
+    hcl_str,
+    neutralize_hcl_openers,
+    with_condition,
+)
 
 _PUBLIC = "true"
 _STAR = "*"
@@ -22,12 +26,15 @@ def kms_key_block(node: GraphNode) -> str:
         {
             "Version": "2012-10-17",
             "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {"AWS": neutralize_hcl_openers(principal)},
-                    "Action": actions,
-                    "Resource": _STAR,
-                }
+                with_condition(
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"AWS": neutralize_hcl_openers(principal)},
+                        "Action": actions,
+                        "Resource": _STAR,
+                    },
+                    node,
+                )
             ],
         },
         ensure_ascii=False,
@@ -42,13 +49,15 @@ def kms_key_block(node: GraphNode) -> str:
 
 
 def snapshot_block(node: GraphNode) -> str:
-    """An unencrypted EBS snapshot; public ones get create-volume permission ``all``."""
+    """An EBS snapshot, encrypted as the graph says (unencrypted by default);
+    public ones get create-volume permission ``all``."""
     ref = resource_name(node)
     volume = _str_attr(node, "volume_id", constants.DUMMY_VOLUME_ID)
+    encrypted = "true" if _str_attr(node, "encrypted", "false") == "true" else "false"
     block = (
         f'resource "aws_ebs_snapshot" "{ref}" {{\n'
         f"  volume_id = {hcl_str(volume)}\n"
-        f"  encrypted = false\n"
+        f"  encrypted = {encrypted}\n"
         f"  tags      = local.common_tags\n"
         f"}}\n"
     )

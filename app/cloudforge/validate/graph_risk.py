@@ -3,6 +3,7 @@
 Proves a generated scenario is self-consistent and safe:
   * every ground-truth node/edge exists in the graph,
   * each critical path is an actual walk in the graph,
+  * a critical-risk edge reaches the declared target (the sink) of every path,
   * scenario constraints hold (resource budget, required counts),
   * no forbidden/destructive IAM permission appears (checked on the policy-node
     ``actions`` attributes — the graph is the source of truth),
@@ -17,7 +18,7 @@ from collections import deque
 from app.cloudforge import constants
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.generate.scale_profiles import SCALE_PROFILES
-from app.cloudforge.models.graph import EdgeType, GraphNode, NodeType
+from app.cloudforge.models.graph import EdgeType, GraphEdge, GraphNode, NodeType
 from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.validate.results import Status, ValidationOutcome
 
@@ -101,34 +102,45 @@ class GraphRiskEngine:
         return any(e.from_ == src and e.to == dst for e in self._bundle.graph.edges)
 
     def _check_critical_path_connectivity(self) -> ValidationOutcome:
-        """Family-agnostic check: critical-risk edge and stores_sensitive_data sink
-        must lie on a shared reachable path (not disconnected components).
-        Excludes the stores_sensitive_data sink edge itself from critical edges."""
+        """Family-agnostic check: a critical-risk edge must reach the declared
+        target of every ground-truth path (the sink the path says the attacker
+        reaches, whatever its type). A bundle whose paths declare no target (an
+        old pack, or a graph with no paths at all) falls back to the original
+        rule: some critical edge must reach some ``stores_sensitive_data`` sink.
+        The sink edge itself never counts as the critical edge."""
         critical_edges = [
             e
             for e in self._bundle.graph.edges
             if e.security.risk == "critical" and e.type != EdgeType.STORES_SENSITIVE_DATA
         ]
+        targets = [p.target for p in self._bundle.ground_truth.paths if p.target]
+        if targets:
+            return self._check_targets_reached(critical_edges, targets)
         sink_edges = [
             e for e in self._bundle.graph.edges if e.type == EdgeType.STORES_SENSITIVE_DATA
         ]
-
         if not critical_edges or not sink_edges:
             return ValidationOutcome(Status.PASS, "critical-sink connectivity")
-
-        # Check if any critical edge can reach any sink edge via graph traversal
-        for crit_edge in critical_edges:
-            start = crit_edge.to
-            for sink_edge in sink_edges:
-                sink_node = sink_edge.to
-                if self._can_reach(start, sink_node):
-                    return ValidationOutcome(Status.PASS, "critical-sink connectivity")
-
+        sinks = [e.to for e in sink_edges]
+        if any(self._can_reach(e.to, sink) for e in critical_edges for sink in sinks):
+            return ValidationOutcome(Status.PASS, "critical-sink connectivity")
         return ValidationOutcome(
             Status.FAIL,
             "critical-sink connectivity",
             "critical-risk edge cannot reach stores_sensitive_data sink",
         )
+
+    def _check_targets_reached(
+        self, critical_edges: list[GraphEdge], targets: list[str]
+    ) -> ValidationOutcome:
+        for target in targets:
+            if not any(self._can_reach(e.to, target) for e in critical_edges):
+                return ValidationOutcome(
+                    Status.FAIL,
+                    "critical-sink connectivity",
+                    f"no critical-risk edge reaches declared target {target}",
+                )
+        return ValidationOutcome(Status.PASS, "critical-sink connectivity")
 
     def _can_reach(self, src: str, dst: str) -> bool:
         """BFS to check if src can reach dst in the graph."""

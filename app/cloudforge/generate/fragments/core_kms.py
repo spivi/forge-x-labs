@@ -1,68 +1,84 @@
-"""``core.kms_key_overbroad`` — KMS key policy grants Decrypt to ``*``."""
+"""``core.kms_key_overbroad``: a KMS key policy grants Decrypt to ``*``.
+
+Story: SecretsReader can read the encrypted-exports bucket, and the customer-data-key
+that bucket is encrypted with lets any principal decrypt. What the attacker reaches
+is the key (``sink_kind`` ``key``): the decrypt capability over what the bucket
+holds. The path walks role -> bucket -> key, so the bucket is the resource the key
+unlocks, and the customer secrets the bucket stores stay off the graded path.
+
+Difficulty adds, through the composer's shape: a bucket the reader can also read
+that holds nothing (``dead_end``), a lookalike key with the same wildcard policy
+behind an org-scoped condition (``lookalike``), and an application identity route
+to the same key (``prefix_hops``), labeled as its own high-severity path.
+"""
 
 from __future__ import annotations
 
 from random import Random
 from typing import Any
 
+from app.cloudforge.generate.fragments import _aws_shape as aws
+from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
+from app.cloudforge.generate.fragments._vocab import LOOKALIKE_KEYS
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
-from app.cloudforge.models.graph import (
-    EdgeSecurity,
-    EdgeType,
-    GraphEdge,
-    GraphNode,
-    NodeSecurity,
-    NodeTags,
-    NodeType,
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
 )
+from app.cloudforge.models.graph import EdgeType, GraphEdge, GraphNode, NodeTags, NodeType
 
 _TAGS = NodeTags(env="prod", owner="data-platform-team", app="secrets-store")
-
-
-def _nid(ns: str, node_id: str) -> str:
-    return f"{ns}/{node_id}" if ns else node_id
-
-
-def _node(
-    ns: str, node_id: str, node_type: NodeType, name: str, crit: str, **attrs: str | list[str]
-) -> GraphNode:
-    return GraphNode(
-        id=_nid(ns, node_id),
-        type=node_type,
-        name=name,
-        tags=_TAGS,
-        security=NodeSecurity(criticality=crit),
-        attributes=dict(attrs),
-    )
-
-
-def _edge(ns: str, src: str, dst: str, edge_type: EdgeType, risk: str) -> GraphEdge:
-    return GraphEdge(
-        from_=_nid(ns, src),
-        to=_nid(ns, dst),
-        type=edge_type,
-        security=EdgeSecurity(risk=risk),
-    )
+_ENTRY = "role-reader"
+_BUCKET = "s3-encrypted"
+_SINK = "kms-data"
 
 
 @register("core.kms_key_overbroad")
 class KmsKeyOverbroad:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        kit = Kit(ns, _TAGS)
+        extra = aws.extend(kit, rng, shape_of(params), _story(kit), _lookalike)
         return FragmentBundle(
-            nodes=_nodes(ns),
-            edges=_edges(ns),
-            findings=_findings(ns),
-            paths=[_critical(ns)],
+            nodes=_nodes(kit) + extra.nodes,
+            edges=_edges(kit) + extra.edges,
+            findings=_findings(kit) + extra.findings,
+            paths=[_critical(kit), *extra.paths],
         )
 
 
-def _nodes(ns: str) -> list[GraphNode]:
+def _story(kit: Kit) -> aws.Story:
+    return aws.Story(
+        entry=_ENTRY,
+        resource=_BUCKET,
+        tail=[_BUCKET, _SINK],
+        tail_edges=[kit.ek(_BUCKET, EdgeType.ENCRYPTED_WITH, _SINK)],
+        actions=["s3:Get*", "s3:List*", "kms:Decrypt"],
+        sink_kind=SinkKind.KEY,
+        stem="kms",
+        dead_end=aws.dead_end_readable_bucket,
+    )
+
+
+def _lookalike(kit: Kit, rng: Random) -> Piece:
+    return aws.lookalike(
+        kit,
+        rng,
+        _ENTRY,
+        EdgeType.CAN_DECRYPT,
+        "kms",
+        NodeType.KMS_KEY,
+        LOOKALIKE_KEYS,
+        **aws.conditioned(principal="*", actions=["kms:Decrypt"]),
+    )
+
+
+def _nodes(kit: Kit) -> list[GraphNode]:
     return [
-        _node(ns, "acct-main", NodeType.ACCOUNT, "prod-account", "medium"),
-        _node(ns, "role-reader", NodeType.IAM_ROLE, "SecretsReader", "high"),
-        _node(
-            ns,
+        kit.node("acct-main", NodeType.ACCOUNT, "prod-account", "medium"),
+        kit.node(_ENTRY, NodeType.IAM_ROLE, "SecretsReader", "high"),
+        kit.node(
             "pol-reader",
             NodeType.IAM_POLICY,
             "SecretsReaderPolicy",
@@ -70,25 +86,16 @@ def _nodes(ns: str) -> list[GraphNode]:
             actions=["kms:Decrypt", "s3:Get*", "s3:List*"],
             resource="*",
         ),
-        _node(
-            ns,
-            "kms-data",
+        kit.node(
+            _SINK,
             NodeType.KMS_KEY,
             "customer-data-key",
             "critical",
             principal="*",
             actions=["kms:Decrypt"],
         ),
-        _node(
-            ns,
-            "s3-encrypted",
-            NodeType.S3_BUCKET,
-            "encrypted-exports",
-            "critical",
-            logging="disabled",
-        ),
-        _node(
-            ns,
+        kit.node(_BUCKET, NodeType.S3_BUCKET, "encrypted-exports", "critical", logging="disabled"),
+        kit.node(
             "s3-locked-backups",
             NodeType.S3_BUCKET,
             "public-looking-backups",
@@ -96,92 +103,84 @@ def _nodes(ns: str) -> list[GraphNode]:
             public_access="enabled",
             compensating_control="true",
         ),
-        _node(ns, "app-secrets-store", NodeType.APPLICATION, "secrets-store", "medium"),
-        _node(
-            ns,
+        kit.node("app-secrets-store", NodeType.APPLICATION, "secrets-store", "medium"),
+        kit.node(
             "data-secrets",
             NodeType.DATASET,
             "customer-secrets",
             "critical",
             classification="restricted",
         ),
-        _node(ns, "trail-main", NodeType.LOG_TRAIL, "main-trail", "medium"),
+        kit.node("trail-main", NodeType.LOG_TRAIL, "main-trail", "medium"),
     ]
 
 
-def _edges(ns: str) -> list[GraphEdge]:
+def _edges(kit: Kit) -> list[GraphEdge]:
     return [
-        _edge(ns, "role-reader", "pol-reader", EdgeType.ATTACHED_POLICY, "high"),
-        _edge(ns, "role-reader", "kms-data", EdgeType.CAN_DECRYPT, "high"),
-        _edge(ns, "role-reader", "s3-encrypted", EdgeType.CAN_READ, "critical"),
-        _edge(ns, "s3-encrypted", "data-secrets", EdgeType.STORES_SENSITIVE_DATA, "critical"),
-        _edge(ns, "s3-encrypted", "app-secrets-store", EdgeType.BELONGS_TO_APP, "low"),
-        _edge(ns, "s3-locked-backups", "app-secrets-store", EdgeType.BELONGS_TO_APP, "low"),
+        kit.edge(_ENTRY, "pol-reader", EdgeType.ATTACHED_POLICY, "high"),
+        kit.edge(_ENTRY, _SINK, EdgeType.CAN_DECRYPT, "critical"),
+        kit.edge(_ENTRY, _BUCKET, EdgeType.CAN_READ, "critical"),
+        kit.edge(_BUCKET, _SINK, EdgeType.ENCRYPTED_WITH, "critical"),
+        kit.edge(_BUCKET, "data-secrets", EdgeType.STORES_SENSITIVE_DATA, "none"),
+        kit.edge(_BUCKET, "app-secrets-store", EdgeType.BELONGS_TO_APP, "low"),
+        kit.edge("s3-locked-backups", "app-secrets-store", EdgeType.BELONGS_TO_APP, "low"),
     ]
 
 
-def _critical(ns: str) -> GroundTruthPath:
+def _critical(kit: Kit) -> GroundTruthPath:
     return GroundTruthPath(
-        id=_nid(ns, "path-critical-kms-01"),
+        id=kit.nid("path-critical-kms-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "role-reader"),
-            _nid(ns, "s3-encrypted"),
-            _nid(ns, "data-secrets"),
-        ],
+        nodes=[kit.nid(_ENTRY), kit.nid(_BUCKET), kit.nid(_SINK)],
         edges=[
-            f"{_nid(ns, 'role-reader')}->{EdgeType.CAN_READ.value}->{_nid(ns, 's3-encrypted')}",
-            (
-                f"{_nid(ns, 's3-encrypted')}->{EdgeType.STORES_SENSITIVE_DATA.value}"
-                f"->{_nid(ns, 'data-secrets')}"
-            ),
+            kit.ek(_ENTRY, EdgeType.CAN_READ, _BUCKET),
+            kit.ek(_BUCKET, EdgeType.ENCRYPTED_WITH, _SINK),
         ],
+        sink_kind=SinkKind.KEY,
+        target=kit.nid(_SINK),
         explanation=(
-            "The customer-data-key policy grants kms:Decrypt to *; SecretsReader "
-            "can decrypt and read encrypted-exports, which stores customer secrets."
+            "SecretsReader can read encrypted-exports; the bucket is encrypted with "
+            "customer-data-key, whose policy grants kms:Decrypt to *, so the reader "
+            "holds the decrypt capability over everything the bucket stores."
         ),
     )
 
 
-def _findings(ns: str) -> list[ExpectedFinding]:
-    return [_kms_finding(ns), _logging_finding(ns), _fp_finding(ns)]
+def _findings(kit: Kit) -> list[ExpectedFinding]:
+    return [_kms_finding(kit), _logging_finding(kit), _fp_finding(kit)]
 
 
-def _kms_finding(ns: str) -> ExpectedFinding:
+def _kms_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=_nid(ns, "find-kms-01"),
+        id=kit.nid("find-kms-01"),
         severity="critical",
         family=FindingFamily.KMS_KEY_POLICY_OVERBROAD,
-        resource_ids=[
-            _nid(ns, "kms-data"),
-            _nid(ns, "role-reader"),
-            _nid(ns, "pol-reader"),
-        ],
+        resource_ids=[kit.nid(_SINK), kit.nid(_ENTRY), kit.nid("pol-reader")],
         expected_scanner_visibility="partial",
         ground_truth="KMS key policy allows kms:Decrypt from any AWS principal.",
         remediation="Restrict the key policy principal to the SecretsReader role.",
     )
 
 
-def _logging_finding(ns: str) -> ExpectedFinding:
+def _logging_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=_nid(ns, "find-kms-logging-01"),
+        id=kit.nid("find-kms-logging-01"),
         severity="medium",
         family=FindingFamily.S3_LOGGING_MISSING,
-        resource_ids=[_nid(ns, "s3-encrypted"), _nid(ns, "trail-main")],
+        resource_ids=[kit.nid(_BUCKET), kit.nid("trail-main")],
         expected_scanner_visibility="visible",
         ground_truth="The encrypted-exports bucket has no access logging.",
         remediation="Enable S3 access logging and CloudTrail data events.",
     )
 
 
-def _fp_finding(ns: str) -> ExpectedFinding:
+def _fp_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=_nid(ns, "find-kms-fp-01"),
+        id=kit.nid("find-kms-fp-01"),
         severity="low",
         family=FindingFamily.PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL,
-        resource_ids=[_nid(ns, "s3-locked-backups")],
+        resource_ids=[kit.nid("s3-locked-backups")],
         expected_scanner_visibility="visible",
         ground_truth="benign",
-        remediation="None needed — a bucket policy restricts access despite the name.",
+        remediation="None needed: a bucket policy restricts access despite the name.",
     )

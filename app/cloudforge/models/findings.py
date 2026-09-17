@@ -9,7 +9,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.cloudforge.models.graph import NodeType
 
 ScannerVisibility = Literal["visible", "partial", "invisible"]
 Severity = Literal["low", "medium", "high", "critical"]
@@ -39,6 +41,35 @@ class FindingFamily(StrEnum):
     GCP_WORKLOAD_IDENTITY_FEDERATION = "gcp_workload_identity_federation"
 
 
+class SinkKind(StrEnum):
+    """What the attacker reaches at the end of a path: the type of its ``target``."""
+
+    DATA = "data"
+    SECRET = "secret"
+    KEY = "key"
+    ROLE = "role"
+    IMAGE = "image"
+    QUEUE = "queue"
+    SNAPSHOT = "snapshot"
+    DATABASE = "database"
+    VAULT = "vault"
+
+
+# The node types a path of each ``sink_kind`` may end on. The composer refuses a
+# fragment whose declared target is not the last node or has another type.
+SINK_NODE_TYPES: dict[SinkKind, frozenset[NodeType]] = {
+    SinkKind.DATA: frozenset({NodeType.DATASET}),
+    SinkKind.SECRET: frozenset({NodeType.SECRETS_MANAGER_SECRET}),
+    SinkKind.KEY: frozenset({NodeType.KMS_KEY}),
+    SinkKind.ROLE: frozenset({NodeType.IAM_ROLE}),
+    SinkKind.IMAGE: frozenset({NodeType.ECR_REPOSITORY}),
+    SinkKind.QUEUE: frozenset({NodeType.SQS_QUEUE}),
+    SinkKind.SNAPSHOT: frozenset({NodeType.EBS_SNAPSHOT}),
+    SinkKind.DATABASE: frozenset({NodeType.RDS_INSTANCE}),
+    SinkKind.VAULT: frozenset({NodeType.AZURE_KEY_VAULT}),
+}
+
+
 class ExpectedFinding(BaseModel):
     """One labeled finding a scanner may or may not detect."""
 
@@ -60,7 +91,15 @@ class ExpectedFindings(BaseModel):
 
 
 class GroundTruthPath(BaseModel):
-    """An intended risk path through the graph (node + edge id sequence)."""
+    """An intended risk path through the graph (node + edge id sequence).
+
+    ``target`` is the node the attacker reaches (the sink) and ``sink_kind`` says
+    what kind of thing that is; ``hop`` is the access-granting node the grade
+    requires next to the entry and the target (see ``models.hops``). A pack
+    written before these fields existed still loads: ``target`` defaults to the
+    last node, ``sink_kind`` to ``data``, and ``hop`` stays unset so the reader
+    derives it (from node types when it has them, else the second node).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -69,9 +108,22 @@ class GroundTruthPath(BaseModel):
     nodes: list[str]
     edges: list[str]
     explanation: str
+    sink_kind: SinkKind = SinkKind.DATA
+    target: str = ""
+    hop: str | None = None
+
+    @model_validator(mode="after")
+    def _target_defaults_to_the_last_node(self) -> GroundTruthPath:
+        if not self.target and self.nodes:
+            self.target = self.nodes[-1]
+        return self
 
 
 class GroundTruthPaths(BaseModel):
+    """The labeled paths, plus instructor notes about how they were built (a
+    path shape clamped to the scale profile). Never copied to the student."""
+
     model_config = ConfigDict(extra="forbid")
 
     paths: list[GroundTruthPath]
+    notes: list[str] = Field(default_factory=list)

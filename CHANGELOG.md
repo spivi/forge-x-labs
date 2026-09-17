@@ -2,6 +2,59 @@
 
 ## 1.4.0 (2026-09-17)
 
+- Every story has its own ending. Each core fragment now declares what the
+  attacker reaches (`GroundTruthPath.sink_kind` and `target`, both in the
+  grade key and the instructor's `ground_truth_paths.json`): the payroll
+  escalation ends at the admin-capable role, the cross-account trust at the
+  role the external account lands in, the KMS family at the key (the path
+  walks role -> encrypted bucket -> key over a new `encrypted_with` edge),
+  the Secrets Manager family at the secret, ECR at the repository, SQS at the
+  queue, the snapshot family at the snapshot and the RDS family at the
+  database; the eight data families are unchanged. Where a role is reached,
+  the data it can read is a second, high-severity path; where a resource is
+  reached, the data it holds lives elsewhere in the estate with no edge from
+  the sink, so the data-set card next to the risky one is not the new tell.
+  The validator's critical-sink rule follows the declared target of every
+  path rather than only `stores_sensitive_data` edges. The eight prompts, the
+  brief and the report say what is reached. Packs written before the fields
+  existed still load (`data`, last node).
+- Difficulty shapes the path, not only the scenery. The composer draws the
+  path's shape per `(spec, seed)` inside a band set by `difficulty`. For the
+  eight identity-chain families the number of intermediate identity hops
+  between the entry's first identity and the resource is drawn from easy 0,
+  medium 0..3, hard 2..6 (a hard lab of one family is 6 nodes at one seed and
+  10 at another), with the vendor's own semantics: AWS role chaining or a
+  PassRole step, GCP service-account impersonation, Azure managed identities
+  obtained in turn, Kubernetes service account to IAM role to role. Every hop
+  has a real edge, a line in the path's explanation and a Terraform block. The
+  seven resource-shaped families stay short by nature but not fixed: on medium
+  and hard a seed may add an identity route to the same sink (an application
+  role with an overbroad grant, optionally a CI identity in front of it),
+  labeled as a second, high-severity path with an `iam_excessive_privilege`
+  finding, so the public route stays the primary path and the prompt stays
+  true. Hard always adds a dead-end branch from the entry (medium half the
+  time, easy never), so walking forward from the entry alone does not solve
+  the lab, and for the resource-shaped families a lookalike of the exposed
+  resource: same type, same risk attributes, blocked by an org-scoped policy
+  condition, a private security group or encryption, which the Terraform now
+  renders. Hop, branch and lookalike ids are slugs of the names they draw;
+  nothing in an id, a name, a tag or an attribute says what a node is for,
+  and the composer plans two off-path peers per distinct path value of a type
+  so a chain of user-assigned identities next to a system-assigned one blends
+  in. The scale profile still bounds the estate: a shape that does not fit is
+  clamped and the clamp is recorded in the instructor's ground truth notes and
+  report. Estates change for the same `(spec, seed)`.
+- The click-path grade speaks the same language as the essay grade.
+  `cloudforge grade` called a path a hit when the guessed node ids were an
+  ordered subsequence of it, so two correct cards on a ten-node path passed.
+  A hit now needs the entry, the access-granting hop (the first identity
+  after the entry, or the exposed resource when there is none) and the
+  target, in that order; the other nodes are optional and reported as
+  coverage (`found 5 of 8`), with `full path yes` when every node was named
+  in order; wrong nodes are extras. `GroundTruthPath` and the grade key
+  carry `hop` next to `target`; an old key without it grades with the second
+  node, which is the type-aware hop on every family. The CLI prints one line
+  per path and the workbench's in-browser evaluator applies the same rule.
 - Noise, decoys, false positives and compensating controls now match the
   estate's vendor. The composer draws every non-core fragment from a pool
   keyed by `cloud`: `azure` gets storage containers, key vaults, managed

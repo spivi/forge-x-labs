@@ -71,7 +71,11 @@ def grade(
     lab_dir: Annotated[Path, typer.Argument(help="Directory written by ``cloudforge lab``.")],
     submission: Annotated[Path, typer.Option("--submission", help="Student guess YAML.")],
 ) -> None:
-    """Score a guess against instructor/grade_key.json. Wrong answers still exit 0."""
+    """Score a guess against instructor/grade_key.json. Wrong answers still exit 0.
+
+    A path is a hit when the guess names its entry, its access-granting hop and
+    its target in that order; the line under it says how much of the path was
+    found and whether the whole path was named in order."""
     try:
         result = _grade_lab(lab_dir, submission)
     except _CLI_ERRORS as exc:
@@ -82,6 +86,12 @@ def grade(
         f"findings hit {len(result.finding_hits)} miss {len(result.finding_misses)}  "
         f"extras {len(result.extras)}"
     )
+    for score in result.path_scores:
+        verdict = "hit" if score.hit else "miss"
+        full = "yes" if score.full_path else "no"
+        console.print(
+            f"  {score.path_id}: {verdict}, found {score.found} of {score.total}, full path {full}"
+        )
 
 
 def lab_cohort(

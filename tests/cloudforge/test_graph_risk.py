@@ -6,7 +6,12 @@ import pytest
 
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.generate.template_generator import TemplateGenerator
-from app.cloudforge.models.findings import ExpectedFindings, GroundTruthPath, GroundTruthPaths
+from app.cloudforge.models.findings import (
+    ExpectedFindings,
+    GroundTruthPath,
+    GroundTruthPaths,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -88,12 +93,9 @@ def test_critical_sink_connectivity_pass(example_spec: ScenarioSpec) -> None:
     assert status is Status.PASS
 
 
-def test_critical_sink_connectivity_disconnected_components(example_spec: ScenarioSpec) -> None:
-    """Verify that disconnected critical edge and sink are rejected (FXL-79)."""
-    spec = example_spec
-
-    # Build minimal graph: critical edge on component A, sink on component B (disconnected)
-    graph = ScenarioGraph(
+def _split_graph() -> ScenarioGraph:
+    """A critical edge on one component and a data sink on another (FXL-79)."""
+    return ScenarioGraph(
         nodes=[
             GraphNode(
                 id="node-a",
@@ -140,22 +142,67 @@ def test_critical_sink_connectivity_disconnected_components(example_spec: Scenar
         ],
     )
 
-    bundle = ScenarioBundle(
-        graph=graph,
+
+def _split_bundle(path: GroundTruthPath) -> ScenarioBundle:
+    return ScenarioBundle(
+        graph=_split_graph(),
         findings=ExpectedFindings(findings=[]),
-        ground_truth=GroundTruthPaths(
-            paths=[
-                GroundTruthPath(
-                    id="path-critical-01",
-                    severity="critical",
-                    nodes=["node-a", "node-b"],
-                    edges=["node-a->can_pass_role->node-b"],
-                    explanation="Critical path on disconnected component",
-                )
-            ]
-        ),
+        ground_truth=GroundTruthPaths(paths=[path]),
     )
 
-    status = _outcome(GraphRiskEngine(bundle, spec), "critical-sink connectivity")
+
+def test_critical_sink_connectivity_unreachable_declared_target_fails(
+    example_spec: ScenarioSpec,
+) -> None:
+    """A path that declares the data set on the other component as its target
+    is rejected: no critical edge reaches what the path says is reached (FXL-79)."""
+    path = GroundTruthPath(
+        id="path-critical-01",
+        severity="critical",
+        nodes=["node-a", "node-b"],
+        edges=["node-a->can_pass_role->node-b"],
+        target="node-d",
+        explanation="Critical path whose declared sink sits on a disconnected component",
+    )
+
+    engine = GraphRiskEngine(_split_bundle(path), example_spec)
+    status = _outcome(engine, "critical-sink connectivity")
+
+    assert status is Status.FAIL
+
+
+def test_critical_sink_connectivity_accepts_a_reached_role_target(
+    example_spec: ScenarioSpec,
+) -> None:
+    """The same split graph passes when the path says the role is what is reached:
+    the rule follows the declared target, not only ``stores_sensitive_data`` edges."""
+    path = GroundTruthPath(
+        id="path-critical-01",
+        severity="critical",
+        nodes=["node-a", "node-b"],
+        edges=["node-a->can_pass_role->node-b"],
+        sink_kind=SinkKind.ROLE,
+        target="node-b",
+        explanation="Critical path ending at the role the attacker reaches",
+    )
+
+    engine = GraphRiskEngine(_split_bundle(path), example_spec)
+    status = _outcome(engine, "critical-sink connectivity")
+
+    assert status is Status.PASS
+
+
+def test_critical_sink_connectivity_without_paths_still_needs_a_reachable_data_sink(
+    example_spec: ScenarioSpec,
+) -> None:
+    """No declared paths: the original sink-edge rule still applies and the split
+    graph is rejected (FXL-79)."""
+    bundle = ScenarioBundle(
+        graph=_split_graph(),
+        findings=ExpectedFindings(findings=[]),
+        ground_truth=GroundTruthPaths(paths=[]),
+    )
+
+    status = _outcome(GraphRiskEngine(bundle, example_spec), "critical-sink connectivity")
 
     assert status is Status.FAIL

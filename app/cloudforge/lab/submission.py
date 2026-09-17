@@ -22,6 +22,21 @@ class LabSubmission(BaseModel):
     findings: list[str] = Field(default_factory=list)
 
 
+class PathScore(BaseModel):
+    """How one labeled path was graded: the hit rule, the coverage, the full walk."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path_id: str
+    hit: bool
+    # Nodes of the best guess that are on the path, over the path length.
+    found: int
+    total: int
+    coverage: float
+    # Every path node was guessed, in order.
+    full_path: bool
+
+
 class GradeResult(BaseModel):
     """Hits / misses / extras. A wrong answer is still a valid grade."""
 
@@ -32,3 +47,4 @@ class GradeResult(BaseModel):
     finding_hits: list[str]
     finding_misses: list[str]
     extras: list[str]
+    path_scores: list[PathScore] = Field(default_factory=list)

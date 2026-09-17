@@ -32,7 +32,7 @@ from typing import Any
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
-from app.cloudforge.generate.composer_blend import PEERS_WANTED, blend_into_padding
+from app.cloudforge.generate.composer_blend import blend_into_padding, peers_wanted
 from app.cloudforge.generate.composer_ids import node_ns, retoken
 from app.cloudforge.generate.composer_kinds import (
     CORE_KINDS,
@@ -65,15 +65,18 @@ from app.cloudforge.generate.fragments import (
     noncore_gcp,  # noqa: F401
     noncore_k8s,  # noqa: F401
 )
+from app.cloudforge.generate.fragments._core import Shape
 from app.cloudforge.generate.fragments.base import FragmentBundle, get_fragment
 from app.cloudforge.generate.scale_profiles import get_profile
 from app.cloudforge.models.findings import (
+    SINK_NODE_TYPES,
     ExpectedFinding,
     ExpectedFindings,
     GroundTruthPath,
     GroundTruthPaths,
 )
 from app.cloudforge.models.graph import GraphEdge, GraphNode, NodeType, ScenarioGraph
+from app.cloudforge.models.hops import access_hop
 from app.cloudforge.models.scenario import ScenarioSpec
 
 _Plan = list[tuple[str, str, dict[str, Any]]]
@@ -95,6 +98,43 @@ _DIFFICULTY_EXTRA_COUNTS: dict[str, dict[str, int | tuple[int, int]]] = {
 _BLEND_STREAM = 523
 
 
+class _ShapeBand:
+    """Per-difficulty bands the core path's shape is drawn from.
+
+    ``hops`` is the inclusive band of intermediate identity hops for an
+    identity-chain family and ``prefix`` the band of identity nodes on the second
+    route a resource-shaped family may add, both drawn with ``rng.randint``;
+    ``dead_end`` is the per-seed probability of a dead-end branch from the entry;
+    ``lookalike`` says whether a resource-shaped family gets a blocked twin of its
+    exposed resource.
+    """
+
+    def __init__(
+        self, hops: tuple[int, int], prefix: tuple[int, int], dead_end: float, lookalike: bool
+    ) -> None:
+        self.hops = hops
+        self.prefix = prefix
+        self.dead_end = dead_end
+        self.lookalike = lookalike
+
+    def draw(self, rng: Random) -> Shape:
+        return Shape(
+            extra_hops=rng.randint(*self.hops),
+            prefix_hops=rng.randint(*self.prefix),
+            dead_end=rng.random() < self.dead_end,
+            lookalike=self.lookalike,
+        )
+
+
+# Easy is the family's direct chain; medium widens it; hard is never direct and
+# always branches. A hard lab of one family is 6 nodes at one seed and 10 at another.
+_SHAPE_BANDS: dict[str, _ShapeBand] = {
+    "easy": _ShapeBand(hops=(0, 0), prefix=(0, 0), dead_end=0.0, lookalike=False),
+    "medium": _ShapeBand(hops=(0, 3), prefix=(0, 2), dead_end=0.5, lookalike=False),
+    "hard": _ShapeBand(hops=(2, 6), prefix=(0, 2), dead_end=1.0, lookalike=True),
+}
+
+
 class GraphComposer:
     """Assembles one scenario from seeded fragments (deterministic per seed)."""
 
@@ -102,17 +142,19 @@ class GraphComposer:
         self._spec = spec
         self._seed = seed
         self._profile = get_profile(spec.scale_profile)
+        self._notes: list[str] = []
 
     def generate(self) -> ScenarioBundle:
+        self._notes = []
         merged = self._assemble(self._plan(Random(self._seed)))
         return ScenarioBundle(
             graph=ScenarioGraph(nodes=merged.nodes, edges=merged.edges),
             findings=ExpectedFindings(findings=merged.findings),
-            ground_truth=GroundTruthPaths(paths=merged.paths),
+            ground_truth=GroundTruthPaths(paths=merged.paths, notes=list(self._notes)),
         )
 
     def _plan(self, rng: Random) -> _Plan:
-        core_params: dict[str, Any] = {"path_hops": rng.randint(3, 5)}
+        core_params: dict[str, Any] = dict(self._shape(rng)._asdict())
         draft: _Draft = [(self._core_kind(), core_params)]
         # Every non-core fragment learns the core's tag set so its own draws can
         # share the core's owner and app (see ``_noncore.draw_tags``).
@@ -125,6 +167,36 @@ class GraphComposer:
 
     def _core_kind(self) -> str:
         return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
+
+    def _shape(self, rng: Random) -> Shape:
+        """Draw the core path's shape from the difficulty band, then clamp it so
+        the core fragment leaves the profile room for its extras and fill. A clamp
+        is recorded in the instructor's ground truth notes, never silent."""
+        drawn = _SHAPE_BANDS[self._spec.difficulty].draw(rng)
+        shape = drawn
+        budget = self._profile.max_nodes - 1
+        while _fragment_size(self._core_kind(), dict(shape._asdict())) > budget:
+            if shape.extra_hops > 0:
+                shape = shape._replace(extra_hops=shape.extra_hops - 1)
+            elif shape.prefix_hops > 0:
+                shape = shape._replace(prefix_hops=shape.prefix_hops - 1)
+            elif shape.dead_end:
+                shape = shape._replace(dead_end=False)
+            elif shape.lookalike:
+                shape = shape._replace(lookalike=False)
+            else:
+                break
+        if shape != drawn:
+            changed = ", ".join(
+                f"{key} {before} -> {after}"
+                for (key, before), after in zip(drawn._asdict().items(), shape, strict=True)
+                if before != after
+            )
+            self._notes.append(
+                f"path shape clamped to fit the {self._profile.name} profile "
+                f"({self._profile.max_nodes} nodes): {changed}"
+            )
+        return shape
 
     def _pool(self, role: str) -> tuple[str, ...]:
         """The kinds of ``role`` in the spec's vendor pool (``POOLS[spec.cloud]``)."""
@@ -161,22 +233,26 @@ class GraphComposer:
             draft.append((kind, dict(params)))
 
     def _ensure_peers(self, draft: _Draft, rng: Random, params: dict[str, Any]) -> None:
-        """Plan at least ``PEERS_WANTED`` off-path nodes of every path node type the
-        pool's noise can mint, so the blend has peers to copy the path's tag values
-        and benign configuration onto. A path type the pool cannot mint (an EC2
-        instance, a CI identity) is left alone: it is unique in its estate and
-        may only carry the risk and identifier attributes the blend exempts."""
+        """Plan enough off-path nodes of every path node type the pool's noise can
+        mint for the blend to copy the path's tag values and benign configuration
+        onto: two per distinct value a path attribute takes on that type (a chain
+        of user-assigned hop identities next to a system-assigned head needs peers
+        for both). A path type the pool cannot mint (an EC2 instance, a CI
+        identity) is left alone: it is unique in its estate and may only carry the
+        risk and identifier attributes the blend exempts."""
         core_kind, core_params = draft[0]
         core = get_fragment(core_kind).build(_COUNT_NS, Random(0), core_params)
         on_path = {nid for path in core.paths for nid in path.nodes}
-        path_types = {n.type for n in core.nodes if n.id in on_path}
+        path_nodes = [n for n in core.nodes if n.id in on_path]
+        path_types = {n.type for n in path_nodes}
         counts = Counter(n.type for n in core.nodes if n.id not in on_path)
         for kind, kind_params in draft[1:]:
             counts.update(_fragment_types(kind, kind_params))
         minters = self._noise_minters()
         for ntype in sorted(path_types, key=lambda t: t.value):
             kinds = minters.get(ntype, ())
-            while kinds and counts[ntype] < PEERS_WANTED:
+            wanted = peers_wanted([n for n in path_nodes if n.type is ntype])
+            while kinds and counts[ntype] < wanted:
                 kind = _pick(rng, kinds)
                 planned = self._planned_node_count(draft) + _fragment_size(kind)
                 if planned > self._profile.max_nodes:
@@ -256,6 +332,8 @@ class GraphComposer:
             findings.extend(part.findings)
             paths.extend(part.paths)
         _assert_unique_ids(nodes)
+        _assert_sinks_declared(nodes, paths)
+        _declare_hops(nodes, paths)
         blend_into_padding(nodes, paths, Random(self._seed + _BLEND_STREAM))
         _dedupe_names(nodes)
         if salt:
@@ -300,6 +378,28 @@ def _assert_unique_ids(nodes: list[GraphNode]) -> None:
         if node.id in seen:
             raise GraphIntegrityError(f"duplicate composed node id: {node.id}")
         seen.add(node.id)
+
+
+def _assert_sinks_declared(nodes: list[GraphNode], paths: list[GroundTruthPath]) -> None:
+    """Every path ends at its declared target, and the target has the type its
+    ``sink_kind`` names; a fragment that drifts fails here, before any artifact."""
+    types = {node.id: node.type for node in nodes}
+    for path in paths:
+        if path.target != path.nodes[-1]:
+            raise GraphIntegrityError(f"{path.id}: target {path.target} is not the last node")
+        if types.get(path.target) not in SINK_NODE_TYPES[path.sink_kind]:
+            raise GraphIntegrityError(
+                f"{path.id}: target {path.target} is not a {path.sink_kind.value} sink"
+            )
+
+
+def _declare_hops(nodes: list[GraphNode], paths: list[GroundTruthPath]) -> None:
+    """Record each path's access-granting hop from node types (``models.hops``)
+    so the grade key carries it next to the target."""
+    types = {node.id: node.type for node in nodes}
+    for path in paths:
+        if path.hop is None:
+            path.hop = access_hop(path.nodes, types)
 
 
 def _dedupe_names(nodes: list[GraphNode]) -> None:
