@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 (2026-09-17)
+
+- The student workbench and the demo challenge page show the release version
+  again (they still said 1.0.0).
+- README: the workbench has seven zones, not five, and its finding checklist
+  is the whole catalog rather than a per-vendor list. Two claim badges dropped.
+
 ## 1.3.0 (2026-09-17)
 
 SOC roundtable pack and multi-cloud labs.
