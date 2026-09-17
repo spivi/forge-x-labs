@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.0 (2026-09-17)
+
+- Noise, decoys, false positives and compensating controls now match the
+  estate's vendor. The composer draws every non-core fragment from a pool
+  keyed by `cloud`: `azure` gets storage containers, key vaults, managed
+  identities, app services and resource groups; `gcp` gets buckets, service
+  accounts, projects, folders and workload identity pools; `k8s` gets
+  namespaces, pods, service accounts and a second cluster on top of the AWS
+  pool, since that family federates into AWS IAM. AWS estates are unchanged,
+  byte for byte, for the same `(spec, seed)`. Before this an Azure or GCP lab
+  was padded with ECR repositories, SQS queues and an IAM decoy role.
+  `variation_axes` and `difficulty` count instances per role, whatever the
+  vendor. The Azure and GCP emitters render the control attributes the new
+  fragments carry (key vault network ACL and private access, storage account
+  public-blob flag, bucket uniform access and public access prevention).
+
 ## 1.3.1 (2026-09-17)
 
 - The student workbench and the demo challenge page show the release version

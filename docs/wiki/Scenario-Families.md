@@ -34,6 +34,20 @@ The last three families emit matching Terraform (`k8s.tf`, `azure.tf`,
 `gcp.tf`) plus any AWS resources on the path. Still never applied. AWS-only
 labs do not pull those providers.
 
+### Vendor pools (v1.4)
+
+The composer pads every family from a pool of non-core fragments keyed by the
+spec's `cloud` (`generate/composer_kinds.py`, `POOLS`). Each pool carries its
+own noise, one decoy, one false positive and one compensating control, built
+from node types the vendor's emitter and the workbench zones already cover:
+`aws` is the original S3 / SQS / KMS / IAM / ECR / trail set, `azure` is
+containers, key vaults, managed identities, app services and resource groups,
+`gcp` is buckets, service accounts, projects, folders and workload identity
+pools, and `k8s` is namespaces, pods, service accounts and a second cluster
+on top of the whole AWS pool, because that family's path federates into AWS
+IAM. `variation_axes` (`decoy` / `fp` / `ctrl`) and `difficulty` count
+instances per role, whatever vendor kind fills the slot.
+
 ### `ci_cd_iam_chain` (detail)
 
 **Critical path:** `github-actions-oidc -> DeployRole -> RuntimeRole ->

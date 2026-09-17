@@ -101,11 +101,11 @@ CANONICAL_FINDINGS: tuple[dict[str, str], ...] = (
     },
 )
 
-# Node types minted generically by the decoy / false-positive / compensating-control
-# / benign-noise fragments (app/cloudforge/generate/fragments/{decoy,false_positive,
-# compensating_control,benign_noise}.py). Every scenario family draws some of these
-# regardless of its own cloud, so their presence says nothing about which vendor the
-# estate's own story belongs to and must not trip the ``aws`` bucket below.
+# Node types the ``aws`` fragment pool mints (app/cloudforge/generate/fragments/
+# {decoy,false_positive,compensating_control,benign_noise}.py). The Kubernetes
+# family draws that pool too, since its path federates into AWS IAM, so these
+# types say nothing about which vendor the estate's own story belongs to and must
+# not trip the ``aws`` bucket below.
 _SHARED_FILLER_TYPES = frozenset(
     {
         "IAMRole",

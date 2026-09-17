@@ -5,14 +5,25 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from random import Random
-from typing import Any
+from typing import Any, get_args
 
 import pytest
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
-from app.cloudforge.generate.composer import ComposerGenerator, GraphComposer
+from app.cloudforge.generate.composer import ComposerGenerator, GraphComposer, _pick
 from app.cloudforge.generate.composer_ids import retoken
+from app.cloudforge.generate.composer_kinds import (
+    AWS_KINDS,
+    AZURE_KINDS,
+    CORE_KINDS,
+    EXTRA_ROLES,
+    GCP_KINDS,
+    K8S_KINDS,
+    POOLS,
+    SHORT,
+    kinds_for,
+)
 from app.cloudforge.generate.fragments.base import get_fragment
 from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.models.scenario import ScenarioSpec
@@ -260,3 +271,147 @@ def test_names_are_unique_per_node_type() -> None:
         g = GraphComposer(_spec(scale_profile="small"), seed=seed).generate().graph
         keys = [(n.type.value, n.name) for n in g.nodes]
         assert len(keys) == len(set(keys)), seed
+
+
+# --- vendor pools --------------------------------------------------------------
+
+_CLOUDS = get_args(ScenarioSpec.model_fields["cloud"].annotation)
+_VENDOR_EXAMPLES = {
+    "azure": "examples/azure_imds_keyvault_harvest.yaml",
+    "gcp": "examples/gcp_workload_identity_federation.yaml",
+    "k8s": "examples/k8s_pod_irsa_exfil.yaml",
+}
+
+
+def _vendor_spec(cloud: str, **over: Any) -> ScenarioSpec:
+    data = load_yaml(Path(_VENDOR_EXAMPLES[cloud]))
+    data.update(over)
+    return ScenarioSpec.model_validate(data)
+
+
+def _plan_kinds(spec: ScenarioSpec, seed: int) -> list[str]:
+    composer = GraphComposer(spec, seed=seed)
+    return [kind for kind, _ns, _params in composer._plan(Random(seed))]  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize("cloud", _CLOUDS)
+def test_every_cloud_value_has_a_pool_with_every_role(cloud: str) -> None:
+    assert cloud in POOLS
+    assert len(kinds_for(cloud, "noise")) >= 4
+    for role in EXTRA_ROLES:
+        assert kinds_for(cloud, role), (cloud, role)
+    assert set(POOLS[cloud]) <= set(SHORT)
+
+
+def test_pools_are_the_vendor_sets_the_design_names() -> None:
+    assert POOLS["aws"] == AWS_KINDS
+    assert POOLS["azure"] == AZURE_KINDS
+    assert POOLS["gcp"] == GCP_KINDS
+    assert POOLS["k8s"] == K8S_KINDS + AWS_KINDS
+    assert set(POOLS["multi_cloud"]) == set(AWS_KINDS + AZURE_KINDS + GCP_KINDS + K8S_KINDS)
+
+
+@pytest.mark.parametrize("cloud", ["azure", "gcp"])
+def test_azure_and_gcp_plans_draw_every_non_core_kind_from_their_own_pool(cloud: str) -> None:
+    for seed in (0, 1, 17):
+        kinds = _plan_kinds(_vendor_spec(cloud, scale_profile="small"), seed)
+        assert kinds[0] == CORE_KINDS[_vendor_spec(cloud).scenario_type]
+        assert set(kinds[1:]) <= set(POOLS[cloud]), (cloud, seed)
+
+
+def test_k8s_plan_draws_from_both_the_k8s_and_the_aws_pool() -> None:
+    kinds = set()
+    for seed in (0, 1, 17):
+        kinds |= set(_plan_kinds(_vendor_spec("k8s", scale_profile="small"), seed)[1:])
+    assert kinds <= set(POOLS["k8s"])
+    assert kinds & set(K8S_KINDS)
+    assert kinds & set(AWS_KINDS)
+
+
+def test_aws_plan_never_draws_a_vendor_kind() -> None:
+    for seed in (0, 1, 17):
+        kinds = _plan_kinds(_spec(scale_profile="small"), seed)
+        assert set(kinds[1:]) <= set(AWS_KINDS), seed
+
+
+@pytest.mark.parametrize("cloud", ["azure", "gcp", "k8s"])
+def test_vendor_estates_mint_only_their_vendor_types_outside_the_core(cloud: str) -> None:
+    """Every non-core node an Azure or GCP estate carries is that vendor's own type;
+    a Kubernetes estate may add AWS types, since its path federates into AWS."""
+    for seed in (0, 17):
+        g = GraphComposer(_vendor_spec(cloud, scale_profile="small"), seed=seed).generate().graph
+        for n in g.nodes:
+            if n.origin == "core":
+                continue
+            value = n.type.value
+            if cloud == "azure":
+                assert value.startswith("Azure"), (seed, n.id, value)
+            elif cloud == "gcp":
+                assert value.startswith("Gcp"), (seed, n.id, value)
+            else:
+                assert not value.startswith(("Azure", "Gcp")), (seed, n.id, value)
+
+
+@pytest.mark.parametrize("cloud", ["azure", "gcp", "k8s"])
+def test_variation_axes_count_instances_per_role_whatever_the_vendor(cloud: str) -> None:
+    axes = {"decoy": "2", "fp": "1", "ctrl": "1"}
+    for seed in (0, 5):
+        kinds = _plan_kinds(_vendor_spec(cloud, scale_profile="small", variation_axes=axes), seed)
+        roles = [SHORT[k] for k in kinds]
+        assert roles.count("decoy") == 2, (cloud, seed, kinds)
+        assert roles.count("fp") == 1, (cloud, seed, kinds)
+        assert roles.count("ctrl") == 1, (cloud, seed, kinds)
+
+
+@pytest.mark.parametrize("cloud", ["azure", "gcp", "k8s"])
+def test_vendor_origin_counts_respond_to_difficulty(cloud: str) -> None:
+    for seed in (1, 7, 17):
+        easy = _origin_counts(_vendor_spec(cloud, scale_profile="small", difficulty="easy"), seed)
+        hard = _origin_counts(_vendor_spec(cloud, scale_profile="small", difficulty="hard"), seed)
+        assert easy.get("false_positive", 0) == 0
+        assert easy.get("compensating_control", 0) == 0
+        assert 0 < easy.get("decoy", 0) < hard.get("decoy", 0), (cloud, seed)
+        assert hard.get("false_positive", 0) > 0, (cloud, seed)
+        assert hard.get("compensating_control", 0) > 0, (cloud, seed)
+
+
+@pytest.mark.parametrize("cloud", ["azure", "gcp", "k8s"])
+def test_vendor_estates_are_deterministic_per_spec_and_seed(cloud: str) -> None:
+    spec = _vendor_spec(cloud, scale_profile="small")
+    for seed in (0, 17):
+        a = GraphComposer(spec, seed=seed).generate()
+        b = GraphComposer(spec, seed=seed).generate()
+        assert a.graph.model_dump(by_alias=True) == b.graph.model_dump(by_alias=True)
+        assert a.findings.model_dump() == b.findings.model_dump()
+        assert a.ground_truth.model_dump() == b.ground_truth.model_dump()
+
+
+@pytest.mark.parametrize("profile", ["tiny", "small"])
+def test_multi_node_noise_never_overshoots_the_profile_band(profile: str) -> None:
+    """The k8s pool has a two-node noise kind (namespace + pod); the fill must count
+    its real size instead of assuming one node per kind."""
+    lo, hi = {"tiny": (10, 20), "small": (25, 50)}[profile]
+    for seed in range(25):
+        g = GraphComposer(_vendor_spec("k8s", scale_profile=profile), seed=seed).generate().graph
+        assert lo <= len(g.nodes) <= hi, (profile, seed, len(g.nodes))
+
+
+def test_picking_from_a_one_kind_pool_spends_no_rng_draw() -> None:
+    """Keeps every AWS estate byte-identical to what 1.3.1 drew for the same seed."""
+    rng = Random(3)
+    state = rng.getstate()
+    assert _pick(rng, ("only",)) == "only"
+    assert rng.getstate() == state
+    _pick(rng, ("a", "b"))
+    assert rng.getstate() != state
+
+
+@pytest.mark.parametrize("cloud", ["azure", "gcp", "k8s"])
+def test_vendor_estate_ids_and_names_carry_no_role_words(cloud: str) -> None:
+    for seed in (0, 1, 17):
+        g = GraphComposer(_vendor_spec(cloud, scale_profile="small"), seed=seed).generate().graph
+        for n in g.nodes:
+            assert not _ROLE_WORDS.search(n.id), n.id
+            assert not _ROLE_WORDS.search(n.name), n.name
+        keys = [(n.type.value, n.name) for n in g.nodes]
+        assert len(keys) == len(set(keys)), (cloud, seed)
