@@ -122,6 +122,9 @@ def build_critical_path(bundle: ScenarioBundle, *, integrity_failed: bool = Fals
     """
     header = "## Ground-Truth Risk Path"
     lines = [header, ""]
+    for note in bundle.ground_truth.notes:
+        lines.append(f"> **Note:** {note}")
+        lines.append("")
     if integrity_failed:
         lines.append(
             "> **UNVERIFIED**: validation could not confirm these paths are "

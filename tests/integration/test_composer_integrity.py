@@ -47,9 +47,11 @@ def _no_external_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(tool_probe, "detect_tool", lambda name: False)
 
 
-def _spec(family: str) -> ScenarioSpec:
+def _spec(family: str, difficulty: str | None = None) -> ScenarioSpec:
     data = load_yaml(Path(f"examples/{family}.yaml"))
     data["scale_profile"] = "small"
+    if difficulty is not None:
+        data["difficulty"] = difficulty
     return ScenarioSpec.model_validate(data)
 
 
@@ -65,6 +67,23 @@ def test_composed_scenarios_have_no_validation_failure(
     report = run_validations(out)
     fails = [o.render() for o in report.outcomes if o.status is Status.FAIL]
     assert fails == [], f"FAILs for {family}/{seed}: {fails}"
+
+
+@pytest.mark.parametrize("family", _FAMILIES)
+@pytest.mark.parametrize("seed", [0, 17])
+@pytest.mark.parametrize("difficulty", ["easy", "medium", "hard"])
+def test_every_difficulty_validates(
+    tmp_path: Path, family: str, seed: int, difficulty: str
+) -> None:
+    """Difficulty shapes the path (hops, branches, lookalikes, a second route);
+    every shape must still pass the full validator suite."""
+    spec = _spec(family, difficulty)
+    bundle = GraphComposer(spec, seed=seed).generate()
+    out = tmp_path / f"{family}_{difficulty}_{seed}"
+    ScenarioArtifacts(ScenarioPaths.from_dir(out)).write_all(spec, bundle)
+    report = run_validations(out)
+    fails = [o.render() for o in report.outcomes if o.status is Status.FAIL]
+    assert fails == [], f"FAILs for {family}/{difficulty}/{seed}: {fails}"
 
 
 @pytest.mark.parametrize("family", _FAMILIES)

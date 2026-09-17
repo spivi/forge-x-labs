@@ -1,17 +1,17 @@
-"""``core.ci_cd_iam_chain`` fragment — parameterized CI/CD-to-data IAM chain.
+"""``core.ci_cd_iam_chain`` fragment: a parameterized CI/CD-to-data IAM chain.
 
 Story: a GitHub Actions OIDC identity assumes a DeployRole, which can
-``iam:PassRole`` a chain of intermediate roles (``path_hops - 3`` extra hops)
-before reaching a RuntimeRole that holds broad S3 read over a sensitive
-customer-exports bucket. That chain is the critical risk. Supporting findings:
-an overly-broad S3 read, a missing-logging gap, an over-exposed security
-group, and one benign false-positive (a public-looking bucket with a
-compensating control).
+``iam:PassRole`` a chain of intermediate roles (``extra_hops`` of them, drawn
+by the composer from the difficulty band) before reaching a RuntimeRole that
+holds broad S3 read over a sensitive customer-exports bucket. That chain is the
+critical risk. Supporting findings: an overly-broad S3 read, a missing-logging
+gap, an over-exposed security group, and one benign false-positive (a
+public-looking bucket with a compensating control). With ``dead_end`` the CI
+identity can also assume a second role whose grant reaches nothing.
 
-Ported from the legacy ``generate/ci_cd_iam_chain.py`` hardcoded generator;
-every id is namespaced by ``ns`` so composed bundles stay self-consistent.
-Node/edge builders live in ``core_ci_cd_nodes.py`` to respect the module/
-function size limits (rules/general.md).
+Node/edge builders live in ``core_ci_cd_nodes.py``; the AWS dead end in
+``_aws_shape``. ``path_hops`` is still honored as the legacy spelling of the
+chain length (``path_hops - 3`` extra hops).
 """
 
 from __future__ import annotations
@@ -19,7 +19,9 @@ from __future__ import annotations
 from random import Random
 from typing import Any
 
+from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments import core_ci_cd_nodes as parts
+from app.cloudforge.generate.fragments._core import Kit, hop_lines, shape_of
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import (
     ExpectedFinding,
@@ -30,90 +32,86 @@ from app.cloudforge.models.findings import (
 from app.cloudforge.models.graph import EdgeType
 
 _DEFAULT_HOPS = 3
+_ENTRY = "cicd-github"
 
 
-def _extra_hops(hops: int) -> int:
-    """Extra intermediate roles inserted between deploy and runtime roles."""
-    return max(0, hops - _DEFAULT_HOPS)
+def _extra_hops(params: dict[str, Any]) -> int:
+    if "path_hops" in params and "extra_hops" not in params:
+        return max(0, int(params["path_hops"]) - _DEFAULT_HOPS)
+    return shape_of(params).extra_hops
 
 
 @register("core.ci_cd_iam_chain")
 class CiCdIamChain:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        hops = int(params.get("path_hops", _DEFAULT_HOPS))
-        extra = _extra_hops(hops)
-        nodes = parts.fixed_nodes(ns) + parts.hop_nodes(ns, extra)
-        edges = parts.fixed_edges(ns) + parts.pass_role_chain(ns, extra)
-        findings = _findings(ns, extra)
-        path = _critical(ns, extra)
+        kit = Kit(ns, parts.TAGS)
+        hops = parts.hop_nodes(kit, rng, _extra_hops(params))
+        chain = ["role-deploy", *hops.ids, "role-runtime"]
+        nodes = parts.fixed_nodes(kit) + hops.nodes
+        edges = parts.fixed_edges(kit) + parts.pass_role_chain(kit, chain)
+        if shape_of(params).dead_end:
+            branch = aws.dead_end_role(kit, rng, _ENTRY)
+            nodes, edges = nodes + branch.nodes, edges + branch.edges
+        findings = _findings(kit, chain)
+        path = _critical(kit, chain, ["DeployRole", *hops.names, "RuntimeRole"])
         return FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=[path])
 
 
-def _role_chain(extra: int) -> list[str]:
-    return ["role-deploy", *[parts.hop_role_id(i) for i in range(extra)], "role-runtime"]
-
-
-def _critical(ns: str, extra: int) -> GroundTruthPath:
-    role_chain = _role_chain(extra)
-    nodes = ["cicd-github", *role_chain, "s3-customer-exports", "data-customer-exports"]
-    edges = [f"{ns}/cicd-github->{EdgeType.ASSUMES.value}->{ns}/role-deploy"]
-    for i in range(len(role_chain) - 1):
-        edges.append(
-            f"{ns}/{role_chain[i]}->{EdgeType.CAN_PASS_ROLE.value}->{ns}/{role_chain[i + 1]}"
-        )
-    edges.append(f"{ns}/role-runtime->{EdgeType.CAN_READ.value}->{ns}/s3-customer-exports")
-    edges.append(
-        f"{ns}/s3-customer-exports->{EdgeType.STORES_SENSITIVE_DATA.value}"
-        f"->{ns}/data-customer-exports"
-    )
+def _critical(kit: Kit, chain: list[str], names: list[str]) -> GroundTruthPath:
+    nodes = [_ENTRY, *chain, "s3-customer-exports", "data-customer-exports"]
+    edges = [
+        kit.ek(_ENTRY, EdgeType.ASSUMES, "role-deploy"),
+        *kit.chain_keys(chain, EdgeType.CAN_PASS_ROLE),
+        kit.ek("role-runtime", EdgeType.CAN_READ, "s3-customer-exports"),
+        kit.ek("s3-customer-exports", EdgeType.STORES_SENSITIVE_DATA, "data-customer-exports"),
+    ]
     return GroundTruthPath(
-        id=f"{ns}/path-critical-01",
+        id=kit.nid("path-critical-01"),
         severity="critical",
-        nodes=[f"{ns}/{n}" for n in nodes],
+        nodes=[kit.nid(n) for n in nodes],
         edges=edges,
         sink_kind=SinkKind.DATA,
-        target=f"{ns}/data-customer-exports",
+        target=kit.nid("data-customer-exports"),
         explanation=(
-            "GitHub Actions OIDC assumes DeployRole; DeployRole can iam:PassRole "
-            "(via any intermediate hops) RuntimeRole; RuntimeRole holds broad "
-            "s3:Get*/List* on the sensitive customer-exports bucket -> full read "
-            "of customer data via CI."
+            f"GitHub Actions OIDC assumes DeployRole; {hop_lines(names, 'can iam:PassRole')}; "
+            "RuntimeRole holds broad s3:Get*/List* on the sensitive customer-exports "
+            "bucket -> full read of customer data via CI."
         ),
     )
 
 
-def _findings(ns: str, extra: int) -> list[ExpectedFinding]:
-    chain_ids = [f"{ns}/{step}" for step in _role_chain(extra)[:-1]]
+def _findings(kit: Kit, chain: list[str]) -> list[ExpectedFinding]:
+    chain_ids = [kit.nid(step) for step in chain[:-1]]
     return [
-        _passrole_finding(ns, chain_ids),
-        _excessive_finding(ns),
-        _logging_finding(ns),
-        _sg_finding(ns),
-        _false_positive_finding(ns),
+        _passrole_finding(kit, chain_ids),
+        _excessive_finding(kit),
+        _logging_finding(kit),
+        _sg_finding(kit),
+        _false_positive_finding(kit),
     ]
 
 
-def _passrole_finding(ns: str, chain_ids: list[str]) -> ExpectedFinding:
+def _passrole_finding(kit: Kit, chain_ids: list[str]) -> ExpectedFinding:
     return ExpectedFinding(
-        id=f"{ns}/find-passrole-01",
+        id=kit.nid("find-passrole-01"),
         severity="critical",
         family=FindingFamily.IAM_PASSROLE_RISK,
-        resource_ids=[*chain_ids, f"{ns}/role-runtime", f"{ns}/pol-deploy-passrole"],
+        resource_ids=[*chain_ids, kit.nid("role-runtime"), kit.nid("pol-deploy-passrole")],
         expected_scanner_visibility="partial",
         ground_truth="DeployRole can pass RuntimeRole, completing the CI-to-data chain.",
         remediation="Scope iam:PassRole to the exact RuntimeRole ARN and add a role condition.",
     )
 
 
-def _excessive_finding(ns: str) -> ExpectedFinding:
+def _excessive_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=f"{ns}/find-s3read-01",
+        id=kit.nid("find-s3read-01"),
         severity="high",
         family=FindingFamily.IAM_EXCESSIVE_PRIVILEGE,
         resource_ids=[
-            f"{ns}/role-runtime",
-            f"{ns}/pol-runtime-s3read",
-            f"{ns}/s3-customer-exports",
+            kit.nid("role-runtime"),
+            kit.nid("pol-runtime-s3read"),
+            kit.nid("s3-customer-exports"),
         ],
         expected_scanner_visibility="visible",
         ground_truth="RuntimeRole has broader S3 read than intended over the exports bucket.",
@@ -121,39 +119,39 @@ def _excessive_finding(ns: str) -> ExpectedFinding:
     )
 
 
-def _logging_finding(ns: str) -> ExpectedFinding:
+def _logging_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=f"{ns}/find-logging-01",
+        id=kit.nid("find-logging-01"),
         severity="medium",
         family=FindingFamily.S3_LOGGING_MISSING,
-        resource_ids=[f"{ns}/s3-customer-exports", f"{ns}/trail-main"],
+        resource_ids=[kit.nid("s3-customer-exports"), kit.nid("trail-main")],
         expected_scanner_visibility="visible",
         ground_truth="The sensitive bucket has no access logging / CloudTrail data events.",
         remediation="Enable S3 access logging and CloudTrail data events for the bucket.",
     )
 
 
-def _sg_finding(ns: str) -> ExpectedFinding:
+def _sg_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=f"{ns}/find-sg-01",
+        id=kit.nid("find-sg-01"),
         severity="medium",
         family=FindingFamily.SECURITY_GROUP_OVEREXPOSED,
-        resource_ids=[f"{ns}/sg-web", f"{ns}/subnet-public-a"],
+        resource_ids=[kit.nid("sg-web"), kit.nid("subnet-public-a")],
         expected_scanner_visibility="visible",
         ground_truth="web-sg allows ingress from 0.0.0.0/0.",
         remediation="Restrict ingress from 0.0.0.0/0 to known corporate/CI CIDRs.",
     )
 
 
-def _false_positive_finding(ns: str) -> ExpectedFinding:
+def _false_positive_finding(kit: Kit) -> ExpectedFinding:
     return ExpectedFinding(
-        id=f"{ns}/find-fp-01",
+        id=kit.nid("find-fp-01"),
         severity="low",
         family=FindingFamily.PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL,
-        resource_ids=[f"{ns}/s3-public-assets"],
+        resource_ids=[kit.nid("s3-public-assets")],
         expected_scanner_visibility="visible",
         ground_truth="benign",
         remediation=(
-            "None needed — public read is intentional; a bucket policy limits it to GetObject."
+            "None needed: public read is intentional; a bucket policy limits it to GetObject."
         ),
     )

@@ -7,7 +7,11 @@ import json
 from app.cloudforge import constants
 from app.cloudforge.models.graph import GraphNode, NodeType
 from app.cloudforge.pipeline.identifiers import resource_name
-from app.cloudforge.pipeline.terraform_resource_blocks import hcl_str, neutralize_hcl_openers
+from app.cloudforge.pipeline.terraform_resource_blocks import (
+    hcl_str,
+    neutralize_hcl_openers,
+    with_condition,
+)
 
 _EMPTY = constants.EMPTY_TF_HEADER
 _STAR = "*"
@@ -54,14 +58,19 @@ def secretsmanager_secret_block(node: GraphNode) -> str:
         {
             "Version": "2012-10-17",
             "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": (
-                        _STAR if principal == _STAR else {"AWS": f"arn:aws:iam::{principal}:root"}
-                    ),
-                    "Action": actions,
-                    "Resource": _STAR,
-                }
+                with_condition(
+                    {
+                        "Effect": "Allow",
+                        "Principal": (
+                            _STAR
+                            if principal == _STAR
+                            else {"AWS": f"arn:aws:iam::{principal}:root"}
+                        ),
+                        "Action": actions,
+                        "Resource": _STAR,
+                    },
+                    node,
+                )
             ],
         },
         ensure_ascii=False,

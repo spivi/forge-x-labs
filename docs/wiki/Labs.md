@@ -5,6 +5,22 @@ answer key) and an **instructor pack** (grade key). `cloudforge grade`
 scores a guessed path as a subsequence of a ground-truth path's node
 list. A wrong answer exits 0. A missing instructor key exits 1.
 
+## Difficulty
+
+`difficulty` used to set how many decoys and false positives sat around a
+fixed path. It now shapes the path itself, drawn per `(spec, seed)` inside a
+band. Easy is the family's direct chain and never branches. Medium draws 0 to
+3 intermediate identity hops for an identity-chain family, may add an
+identity route next to a resource-shaped family's public one (a second,
+high-severity path to the same sink), and adds a dead-end branch from the
+entry half the time. Hard draws 2 to 6 hops, always branches, and gives every
+resource-shaped family a lookalike of its exposed resource that is blocked by
+a control the student has to read. Counting cards tells the student nothing:
+the same family is 6 nodes at one seed and 10 at another. The scale profile
+still bounds the estate; a shape that does not fit is clamped and the clamp
+is written into the instructor's `ground_truth_paths.json` notes and
+`report.md`.
+
 ## Student pack
 
 Under `DIR/student/`:

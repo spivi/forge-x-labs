@@ -1,10 +1,21 @@
-"""``core.lambda_public_function_url`` — Unauthenticated Lambda Function URL."""
+"""``core.lambda_public_function_url``: an unauthenticated Lambda Function URL.
+
+Story: an order-lookup function is invokable by anyone (``authorization_type
+NONE``) and runs as OrderLookupLambdaRole. That role reads the customer orders
+bucket directly on the direct chain; with ``extra_hops`` it chains by
+``sts:AssumeRole`` through intermediate roles and the last one holds the read
+grant. With ``dead_end`` the function can also invoke a second function that
+runs as a role reading nothing.
+"""
 
 from __future__ import annotations
 
 from random import Random
 from typing import Any
 
+from app.cloudforge.generate.fragments import _aws_shape as aws
+from app.cloudforge.generate.fragments._core import Kit, draw_hops, hop_lines, shape_of
+from app.cloudforge.generate.fragments._vocab import AWS_HOP_ROLES
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import (
     ExpectedFinding,
@@ -12,86 +23,53 @@ from app.cloudforge.models.findings import (
     GroundTruthPath,
     SinkKind,
 )
-from app.cloudforge.models.graph import (
-    EdgeSecurity,
-    EdgeType,
-    GraphEdge,
-    GraphNode,
-    NodeSecurity,
-    NodeTags,
-    NodeType,
-)
+from app.cloudforge.models.graph import EdgeType, GraphEdge, GraphNode, NodeTags, NodeType
 
 _TAGS = NodeTags(env="prod", owner="serverless-team", app="ecommerce-api")
-
-
-def _nid(ns: str, node_id: str) -> str:
-    return f"{ns}/{node_id}" if ns else node_id
-
-
-def _node(
-    ns: str, node_id: str, node_type: NodeType, name: str, crit: str, **attrs: str | list[str]
-) -> GraphNode:
-    return GraphNode(
-        id=_nid(ns, node_id),
-        type=node_type,
-        name=name,
-        tags=_TAGS,
-        security=NodeSecurity(criticality=crit),
-        attributes=dict(attrs),
-    )
-
-
-def _edge(ns: str, src: str, dst: str, edge_type: EdgeType, risk: str) -> GraphEdge:
-    return GraphEdge(
-        from_=_nid(ns, src),
-        to=_nid(ns, dst),
-        type=edge_type,
-        security=EdgeSecurity(risk=risk),
-    )
+_ENTRY = "lambda-order-lookup"
+_HEAD = "role-lambda-exec"
+_BUCKET = "s3-customer-orders"
+_SINK = "data-customer-orders"
 
 
 @register("core.lambda_public_function_url")
 class LambdaPublicFunctionUrl:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        kit = Kit(ns, _TAGS)
+        shape = shape_of(params)
+        hops = draw_hops(kit, rng, shape.extra_hops, AWS_HOP_ROLES, "role", NodeType.IAM_ROLE)
+        chain = [_HEAD, *hops.ids]
+        nodes = _nodes(kit) + hops.nodes
+        edges = _edges(kit, chain)
+        if shape.dead_end:
+            branch = aws.dead_end_function(kit, rng, _ENTRY)
+            nodes, edges = nodes + branch.nodes, edges + branch.edges
+        names = ["OrderLookupLambdaRole", *hops.names]
         return FragmentBundle(
-            nodes=_nodes(ns),
-            edges=_edges(ns),
-            findings=_findings(ns),
-            paths=[_critical(ns)],
+            nodes=nodes,
+            edges=edges,
+            findings=_findings(kit, chain[-1]),
+            paths=[_critical(kit, chain, names)],
         )
 
 
-def _nodes(ns: str) -> list[GraphNode]:
+def _nodes(kit: Kit) -> list[GraphNode]:
     return [
-        _node(ns, "acct-main", NodeType.ACCOUNT, "prod-account", "medium"),
-        _node(
-            ns,
-            "lambda-order-lookup",
-            NodeType.LAMBDA_FUNCTION,
-            "order-lookup-service",
-            "critical",
-            auth_type="NONE",
+        kit.node("acct-main", NodeType.ACCOUNT, "prod-account", "medium"),
+        kit.node(
+            _ENTRY, NodeType.LAMBDA_FUNCTION, "order-lookup-service", "critical", auth_type="NONE"
         ),
-        _node(ns, "role-lambda-exec", NodeType.IAM_ROLE, "OrderLookupLambdaRole", "high"),
-        _node(
-            ns,
+        kit.node(_HEAD, NodeType.IAM_ROLE, "OrderLookupLambdaRole", "high"),
+        kit.node(
             "pol-lambda-s3",
             NodeType.IAM_POLICY,
             "OrderLookupDataPolicy",
             "high",
             actions=["s3:Get*", "s3:List*"],
         ),
-        _node(
-            ns,
-            "s3-customer-orders",
-            NodeType.S3_BUCKET,
-            "customer-orders-prod-000000000000",
-            "critical",
-        ),
-        _node(
-            ns,
-            "data-customer-orders",
+        kit.node(_BUCKET, NodeType.S3_BUCKET, "customer-orders-prod-000000000000", "critical"),
+        kit.node(
+            _SINK,
             NodeType.DATASET,
             "customer-order-history",
             "critical",
@@ -100,29 +78,25 @@ def _nodes(ns: str) -> list[GraphNode]:
     ]
 
 
-def _edges(ns: str) -> list[GraphEdge]:
+def _edges(kit: Kit, chain: list[str]) -> list[GraphEdge]:
+    reader = chain[-1]
     return [
-        _edge(ns, "acct-main", "lambda-order-lookup", EdgeType.EXPOSED_TO_INTERNET, "critical"),
-        _edge(ns, "lambda-order-lookup", "role-lambda-exec", EdgeType.ASSUMES, "critical"),
-        _edge(ns, "role-lambda-exec", "pol-lambda-s3", EdgeType.ATTACHED_POLICY, "high"),
-        _edge(ns, "role-lambda-exec", "s3-customer-orders", EdgeType.CAN_READ, "critical"),
-        _edge(
-            ns,
-            "s3-customer-orders",
-            "data-customer-orders",
-            EdgeType.STORES_SENSITIVE_DATA,
-            "none",
-        ),
+        kit.edge("acct-main", _ENTRY, EdgeType.EXPOSED_TO_INTERNET, "critical"),
+        kit.edge(_ENTRY, _HEAD, EdgeType.ASSUMES, "critical"),
+        *kit.chain(chain, EdgeType.ASSUMES, "critical"),
+        kit.edge(reader, "pol-lambda-s3", EdgeType.ATTACHED_POLICY, "high"),
+        kit.edge(reader, _BUCKET, EdgeType.CAN_READ, "critical"),
+        kit.edge(_BUCKET, _SINK, EdgeType.STORES_SENSITIVE_DATA, "none"),
     ]
 
 
-def _findings(ns: str) -> list[ExpectedFinding]:
+def _findings(kit: Kit, reader: str) -> list[ExpectedFinding]:
     return [
         ExpectedFinding(
-            id=_nid(ns, "finding-lambda-url-unauthenticated-01"),
+            id=kit.nid("finding-lambda-url-unauthenticated-01"),
             severity="critical",
             family=FindingFamily.LAMBDA_FUNCTION_URL_UNAUTHENTICATED,
-            resource_ids=[_nid(ns, "lambda-order-lookup")],
+            resource_ids=[kit.nid(_ENTRY)],
             expected_scanner_visibility="visible",
             ground_truth=(
                 "Lambda Function URL configured with authorization_type = 'NONE' "
@@ -134,40 +108,34 @@ def _findings(ns: str) -> list[ExpectedFinding]:
             ),
         ),
         ExpectedFinding(
-            id=_nid(ns, "finding-iam-excessive-privilege-01"),
+            id=kit.nid("finding-iam-excessive-privilege-01"),
             severity="high",
             family=FindingFamily.IAM_EXCESSIVE_PRIVILEGE,
-            resource_ids=[_nid(ns, "role-lambda-exec"), _nid(ns, "pol-lambda-s3")],
+            resource_ids=[kit.nid(reader), kit.nid("pol-lambda-s3")],
             expected_scanner_visibility="visible",
-            ground_truth="Lambda execution role holds broad s3:Get* permissions on orders",
+            ground_truth="The role that reads customer orders holds broad s3:Get* permissions",
             remediation="Scope IAM policy to specific S3 object prefixes",
         ),
     ]
 
 
-def _ek(ns: str, src: str, edge_type: EdgeType, dst: str) -> str:
-    return f"{_nid(ns, src)}->{edge_type.value}->{_nid(ns, dst)}"
-
-
-def _critical(ns: str) -> GroundTruthPath:
+def _critical(kit: Kit, chain: list[str], names: list[str]) -> GroundTruthPath:
+    reader = chain[-1]
     return GroundTruthPath(
-        id=_nid(ns, "path-critical-lambda-01"),
+        id=kit.nid("path-critical-lambda-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "lambda-order-lookup"),
-            _nid(ns, "role-lambda-exec"),
-            _nid(ns, "s3-customer-orders"),
-            _nid(ns, "data-customer-orders"),
-        ],
+        nodes=[kit.nid(n) for n in [_ENTRY, *chain, _BUCKET, _SINK]],
         edges=[
-            _ek(ns, "lambda-order-lookup", EdgeType.ASSUMES, "role-lambda-exec"),
-            _ek(ns, "role-lambda-exec", EdgeType.CAN_READ, "s3-customer-orders"),
-            _ek(ns, "s3-customer-orders", EdgeType.STORES_SENSITIVE_DATA, "data-customer-orders"),
+            kit.ek(_ENTRY, EdgeType.ASSUMES, _HEAD),
+            *kit.chain_keys(chain, EdgeType.ASSUMES),
+            kit.ek(reader, EdgeType.CAN_READ, _BUCKET),
+            kit.ek(_BUCKET, EdgeType.STORES_SENSITIVE_DATA, _SINK),
         ],
         sink_kind=SinkKind.DATA,
-        target=_nid(ns, "data-customer-orders"),
+        target=kit.nid(_SINK),
         explanation=(
-            "Public unauthenticated Lambda Function URL proxies "
-            "directly to sensitive customer order history"
+            "Public unauthenticated Lambda Function URL runs as OrderLookupLambdaRole"
+            + (f"; {hop_lines(names, 'assumes')}" if len(names) > 1 else "")
+            + f"; {names[-1]} reads the customer order history"
         ),
     )

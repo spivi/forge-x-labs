@@ -32,7 +32,8 @@ def test_stripped_nodes_have_no_origin() -> None:
     estate = strip_graph(bundle.graph)
     for node in estate["nodes"]:
         assert "origin" not in node
-    assert "origin" not in json.dumps(estate)
+    # The key, not the substring: a pool bucket may be called ``cdn-origin-media``.
+    assert '"origin":' not in json.dumps(estate)
 
 
 def test_stripped_edges_have_no_security() -> None:

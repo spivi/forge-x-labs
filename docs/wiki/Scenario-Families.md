@@ -68,10 +68,24 @@ modeled-risk attributes and per-resource identifiers are the only values that
 may exist on a path node alone; `tests/cloudforge/lab/test_path_tells.py`
 prints that allowlist and holds every example to the rule.
 
+### Path shape (v1.4)
+
+The composer draws each estate's path shape from the difficulty band
+(`generate/composer.py`, `_SHAPE_BANDS`) and hands it to the core fragment
+as `extra_hops`, `prefix_hops`, `dead_end` and `lookalike`
+(`generate/fragments/_core.py`). Identity-chain families insert the hops
+between the entry's first identity and the resource with the vendor's own
+edge (`can_pass_role`, `assumes`, `impersonates`); resource-shaped families
+add an identity route (`generate/fragments/_aws_shape.py`) as a second
+labeled path, a dead end from the entry and, on hard, a blocked lookalike of
+the exposed resource. A fragment builds the same node types for the same
+shape whatever the rng; the rng only picks names from `_vocab`.
+
 ### `ci_cd_iam_chain` (detail)
 
-**Critical path:** `github-actions-oidc -> DeployRole -> RuntimeRole ->
-customer-exports -> customer-export-data`.
+**Critical path (easy):** `github-actions-oidc -> DeployRole -> RuntimeRole ->
+customer-exports -> customer-export-data`; medium and hard insert drawn
+intermediate roles between DeployRole and RuntimeRole.
 
 **Findings:** `iam_passrole_risk` (critical), `iam_excessive_privilege` (high),
 `s3_logging_missing` (medium), `security_group_overexposed` (medium),

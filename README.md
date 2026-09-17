@@ -46,9 +46,12 @@ range.
 We lose on live console practice and catalog depth. We win on no account,
 per-student copies, and a machine-checkable key.
 
-Fifteen families, one attack story each. Seeds change the estate around the story (names,
-noise, decoys, hop count on the CI chain), not the story. `difficulty` sets how many decoys
-and false positives sit around it. The community is welcome to fork, add, and contribute
+Fifteen families, one attack story each, and each story has its own ending: a data set, a
+role, a key, a secret, an image, a queue, a snapshot or a database. Seeds change the estate
+around the story (names, noise, decoys, the path's shape), not the story. `difficulty` shapes
+the path: easy is the direct chain; medium and hard draw intermediate identity hops per seed,
+add a dead-end branch from the entry, and on hard a blocked lookalike of the exposed resource,
+so the same family is 6 nodes at one seed and 10 at another. The community is welcome to fork, add, and contribute
 more sophisticated scenarios; see CONTRIBUTING.md.
 
 ## Install

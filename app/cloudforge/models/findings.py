@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.cloudforge.models.graph import NodeType
 
@@ -116,6 +116,10 @@ class GroundTruthPath(BaseModel):
 
 
 class GroundTruthPaths(BaseModel):
+    """The labeled paths, plus instructor notes about how they were built (a
+    path shape clamped to the scale profile). Never copied to the student."""
+
     model_config = ConfigDict(extra="forbid")
 
     paths: list[GroundTruthPath]
+    notes: list[str] = Field(default_factory=list)

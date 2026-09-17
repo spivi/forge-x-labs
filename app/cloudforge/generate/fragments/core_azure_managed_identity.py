@@ -1,10 +1,21 @@
-"""core.azure_imds_keyvault_harvest — Azure App Service IMDS Key Vault harvest."""
+"""core.azure_imds_keyvault_harvest: an App Service token walks to customer data.
+
+Story: SSRF against app-service-frontend queries IMDS for the token of its
+system-assigned identity. On the direct chain that identity reads
+kv-corp-secrets, whose stored storage key opens the customer financials
+container. With ``extra_hops`` the identity first holds Managed Identity
+Operator over a chain of user-assigned identities and obtains each one's token
+in turn; the last one reads the vault. With ``dead_end`` the app service also
+holds a second identity whose only grant reaches a container of build output.
+"""
 
 from __future__ import annotations
 
 from random import Random
 from typing import Any
 
+from app.cloudforge.generate.fragments._core import Kit, Piece, draw_hops, hop_lines, shape_of
+from app.cloudforge.generate.fragments._vocab import AZURE_DEAD_ENDS, AZURE_HOP_IDENTITIES
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import (
     ExpectedFinding,
@@ -12,149 +23,153 @@ from app.cloudforge.models.findings import (
     GroundTruthPath,
     SinkKind,
 )
-from app.cloudforge.models.graph import (
-    EdgeSecurity,
-    EdgeType,
-    GraphEdge,
-    GraphNode,
-    NodeSecurity,
-    NodeTags,
-    NodeType,
-)
+from app.cloudforge.models.graph import EdgeType, GraphEdge, GraphNode, NodeTags, NodeType
 
 _TAGS = NodeTags(env="prod", owner="azure-platform", app="customer-portal")
-
-
-def _nid(ns: str, node_id: str) -> str:
-    return f"{ns}/{node_id}" if ns else node_id
-
-
-def _node(
-    ns: str, node_id: str, ntype: NodeType, name: str, crit: str, **attrs: str | list[str]
-) -> GraphNode:
-    return GraphNode(
-        id=_nid(ns, node_id),
-        type=ntype,
-        name=name,
-        tags=_TAGS,
-        security=NodeSecurity(criticality=crit),
-        attributes=dict(attrs),
-    )
-
-
-def _edge(ns: str, src: str, dst: str, etype: EdgeType, risk: str) -> GraphEdge:
-    return GraphEdge(
-        from_=_nid(ns, src), to=_nid(ns, dst), type=etype, security=EdgeSecurity(risk=risk)
-    )
-
-
-def _ek(ns: str, src: str, etype: EdgeType, dst: str) -> str:
-    return f"{_nid(ns, src)}->{etype.value}->{_nid(ns, dst)}"
+_RESOURCE_GROUP = "rg-workloads"
+_ENTRY = "app-service-frontend"
+_HEAD = "id-app-service-frontend"
+_VAULT = "kv-corp-secrets"
+_CONTAINER = "cnt-customer-financials"
+_SINK = "customer-financials"
+_HOP_VERB = "holds Managed Identity Operator over and obtains the token of"
 
 
 @register("core.azure_imds_keyvault_harvest")
 @register("core.azure_managed_identity")
 class AzureManagedIdentity:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        kit = Kit(ns, _TAGS)
+        shape = shape_of(params)
+        hops = draw_hops(
+            kit,
+            rng,
+            shape.extra_hops,
+            AZURE_HOP_IDENTITIES,
+            "id",
+            NodeType.AZURE_MANAGED_IDENTITY,
+            identity_type="UserAssigned",
+            resource_group_name=_RESOURCE_GROUP,
+        )
+        chain = [_HEAD, *hops.ids]
+        nodes = _nodes(kit) + hops.nodes
+        edges = _edges(kit, chain)
+        if shape.dead_end:
+            branch = _dead_end(kit, rng)
+            nodes, edges = nodes + branch.nodes, edges + branch.edges
+        names = [_HEAD, *hops.names]
         return FragmentBundle(
-            nodes=_nodes(ns), edges=_edges(ns), findings=_findings(ns), paths=[_critical(ns)]
+            nodes=nodes,
+            edges=edges,
+            findings=_findings(kit, chain[-1]),
+            paths=[_critical(kit, chain, names)],
         )
 
 
-def _nodes(ns: str) -> list[GraphNode]:
+def _nodes(kit: Kit) -> list[GraphNode]:
     return [
-        _node(
-            ns,
+        kit.node(
             "sub-corp-prod",
             NodeType.AZURE_SUBSCRIPTION,
             "sub-corp-prod",
             "medium",
             subscription_id="00000000-0000-0000-0000-000000000001",
         ),
-        _node(
-            ns,
-            "rg-workloads",
+        kit.node(
+            _RESOURCE_GROUP,
             NodeType.AZURE_RESOURCE_GROUP,
-            "rg-workloads",
+            _RESOURCE_GROUP,
             "medium",
             location="eastus",
         ),
-        _node(
-            ns,
-            "app-service-frontend",
+        kit.node(
+            _ENTRY,
             NodeType.AZURE_APP_SERVICE,
-            "app-service-frontend",
+            _ENTRY,
             "high",
             identity_type="SystemAssigned",
             https_only="true",
         ),
-        _node(
-            ns,
-            "id-app-service-frontend",
+        kit.node(
+            _HEAD,
             NodeType.AZURE_MANAGED_IDENTITY,
-            "id-app-service-frontend",
+            _HEAD,
             "high",
             principal_id="11111111-1111-1111-1111-111111111111",
             identity_type="SystemAssigned",
         ),
-        _node(
-            ns,
-            "kv-corp-secrets",
+        kit.node(
+            _VAULT,
             NodeType.AZURE_KEY_VAULT,
-            "kv-corp-secrets",
+            _VAULT,
             "critical",
             sku="standard",
             purge_protection="false",
             secret_names=["storage-account-key"],
         ),
-        _node(
-            ns,
-            "cnt-customer-financials",
+        kit.node(
+            _CONTAINER,
             NodeType.AZURE_STORAGE_CONTAINER,
-            "cnt-customer-financials",
+            _CONTAINER,
             "critical",
             storage_account="stcorpfinancials",
             access_type="private",
         ),
-        _node(
-            ns,
-            "customer-financials",
-            NodeType.DATASET,
-            "customer-financials",
-            "critical",
-            classification="restricted",
-        ),
+        kit.node(_SINK, NodeType.DATASET, _SINK, "critical", classification="restricted"),
     ]
 
 
-def _edges(ns: str) -> list[GraphEdge]:
+def _edges(kit: Kit, chain: list[str]) -> list[GraphEdge]:
+    reader = chain[-1]
     return [
-        _edge(ns, "sub-corp-prod", "rg-workloads", EdgeType.ORGANIZATIONAL_CHILD, "none"),
-        _edge(ns, "rg-workloads", "app-service-frontend", EdgeType.ORGANIZATIONAL_CHILD, "none"),
-        _edge(ns, "app-service-frontend", "id-app-service-frontend", EdgeType.ASSUMES, "high"),
-        _edge(ns, "id-app-service-frontend", "kv-corp-secrets", EdgeType.CAN_READ, "critical"),
-        _edge(ns, "kv-corp-secrets", "cnt-customer-financials", EdgeType.CAN_READ, "critical"),
-        _edge(
-            ns,
-            "cnt-customer-financials",
-            "customer-financials",
-            EdgeType.STORES_SENSITIVE_DATA,
-            "critical",
-        ),
+        kit.edge("sub-corp-prod", _RESOURCE_GROUP, EdgeType.ORGANIZATIONAL_CHILD, "none"),
+        kit.edge(_RESOURCE_GROUP, _ENTRY, EdgeType.ORGANIZATIONAL_CHILD, "none"),
+        kit.edge(_ENTRY, _HEAD, EdgeType.ASSUMES, "high"),
+        *kit.chain(chain, EdgeType.ASSUMES, "critical"),
+        kit.edge(reader, _VAULT, EdgeType.CAN_READ, "critical"),
+        kit.edge(_VAULT, _CONTAINER, EdgeType.CAN_READ, "critical"),
+        kit.edge(_CONTAINER, _SINK, EdgeType.STORES_SENSITIVE_DATA, "critical"),
     ]
 
 
-def _findings(ns: str) -> list[ExpectedFinding]:
+def _dead_end(kit: Kit, rng: Random) -> Piece:
+    """A second identity the app service holds, granted only a build container."""
+    identity_name, container_name, account = rng.choice(AZURE_DEAD_ENDS)
+    return Piece(
+        nodes=[
+            kit.node(
+                identity_name,
+                NodeType.AZURE_MANAGED_IDENTITY,
+                identity_name,
+                "low",
+                identity_type="UserAssigned",
+                role_definition="Storage Blob Data Contributor",
+                resource_group_name=_RESOURCE_GROUP,
+            ),
+            kit.node(
+                container_name,
+                NodeType.AZURE_STORAGE_CONTAINER,
+                container_name,
+                "low",
+                storage_account=account,
+                access_type="private",
+            ),
+        ],
+        edges=[
+            kit.edge(_ENTRY, identity_name, EdgeType.ASSUMES, "low"),
+            kit.edge(identity_name, container_name, EdgeType.CAN_READ, "low"),
+        ],
+    )
+
+
+def _findings(kit: Kit, reader: str) -> list[ExpectedFinding]:
+    resources = [kit.nid(_ENTRY), kit.nid(_HEAD), kit.nid(reader), kit.nid(_VAULT)]
     return [
         ExpectedFinding(
-            id=_nid(ns, "finding-azure-imds-keyvault-01"),
+            id=kit.nid("finding-azure-imds-keyvault-01"),
             severity="critical",
             family=FindingFamily.AZURE_IMDS_KEYVAULT_HARVEST,
-            resource_ids=[
-                _nid(ns, "app-service-frontend"),
-                _nid(ns, "id-app-service-frontend"),
-                _nid(ns, "kv-corp-secrets"),
-            ],
+            resource_ids=list(dict.fromkeys(resources)),
             expected_scanner_visibility="visible",
             ground_truth=(
                 "App Service managed identity enables IMDS secret harvesting from Key Vault"
@@ -166,32 +181,24 @@ def _findings(ns: str) -> list[ExpectedFinding]:
     ]
 
 
-def _critical(ns: str) -> GroundTruthPath:
+def _critical(kit: Kit, chain: list[str], names: list[str]) -> GroundTruthPath:
+    reader = chain[-1]
     return GroundTruthPath(
-        id=_nid(ns, "path-critical-azure-imds-01"),
+        id=kit.nid("path-critical-azure-imds-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "app-service-frontend"),
-            _nid(ns, "id-app-service-frontend"),
-            _nid(ns, "kv-corp-secrets"),
-            _nid(ns, "cnt-customer-financials"),
-            _nid(ns, "customer-financials"),
-        ],
+        nodes=[kit.nid(n) for n in [_ENTRY, *chain, _VAULT, _CONTAINER, _SINK]],
         edges=[
-            _ek(ns, "app-service-frontend", EdgeType.ASSUMES, "id-app-service-frontend"),
-            _ek(ns, "id-app-service-frontend", EdgeType.CAN_READ, "kv-corp-secrets"),
-            _ek(ns, "kv-corp-secrets", EdgeType.CAN_READ, "cnt-customer-financials"),
-            _ek(
-                ns,
-                "cnt-customer-financials",
-                EdgeType.STORES_SENSITIVE_DATA,
-                "customer-financials",
-            ),
+            kit.ek(_ENTRY, EdgeType.ASSUMES, _HEAD),
+            *kit.chain_keys(chain, EdgeType.ASSUMES),
+            kit.ek(reader, EdgeType.CAN_READ, _VAULT),
+            kit.ek(_VAULT, EdgeType.CAN_READ, _CONTAINER),
+            kit.ek(_CONTAINER, EdgeType.STORES_SENSITIVE_DATA, _SINK),
         ],
         sink_kind=SinkKind.DATA,
-        target=_nid(ns, "customer-financials"),
+        target=kit.nid(_SINK),
         explanation=(
-            "SSRF against App Service queries IMDS for managed identity token, reads Key Vault "
-            "secrets and accesses customer financial container"
+            "SSRF against App Service queries IMDS for the managed identity token"
+            + (f"; {hop_lines(names, _HOP_VERB)}" if len(names) > 1 else "")
+            + f"; {names[-1]} reads Key Vault secrets and opens the customer financial container"
         ),
     )

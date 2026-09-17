@@ -18,6 +18,32 @@
   path rather than only `stores_sensitive_data` edges. The eight prompts, the
   brief and the report say what is reached. Packs written before the fields
   existed still load (`data`, last node).
+- Difficulty shapes the path, not only the scenery. The composer draws the
+  path's shape per `(spec, seed)` inside a band set by `difficulty`. For the
+  eight identity-chain families the number of intermediate identity hops
+  between the entry's first identity and the resource is drawn from easy 0,
+  medium 0..3, hard 2..6 (a hard lab of one family is 6 nodes at one seed and
+  10 at another), with the vendor's own semantics: AWS role chaining or a
+  PassRole step, GCP service-account impersonation, Azure managed identities
+  obtained in turn, Kubernetes service account to IAM role to role. Every hop
+  has a real edge, a line in the path's explanation and a Terraform block. The
+  seven resource-shaped families stay short by nature but not fixed: on medium
+  and hard a seed may add an identity route to the same sink (an application
+  role with an overbroad grant, optionally a CI identity in front of it),
+  labeled as a second, high-severity path with an `iam_excessive_privilege`
+  finding, so the public route stays the primary path and the prompt stays
+  true. Hard always adds a dead-end branch from the entry (medium half the
+  time, easy never), so walking forward from the entry alone does not solve
+  the lab, and for the resource-shaped families a lookalike of the exposed
+  resource: same type, same risk attributes, blocked by an org-scoped policy
+  condition, a private security group or encryption, which the Terraform now
+  renders. Hop, branch and lookalike ids are slugs of the names they draw;
+  nothing in an id, a name, a tag or an attribute says what a node is for,
+  and the composer plans two off-path peers per distinct path value of a type
+  so a chain of user-assigned identities next to a system-assigned one blends
+  in. The scale profile still bounds the estate: a shape that does not fit is
+  clamped and the clamp is recorded in the instructor's ground truth notes and
+  report. Estates change for the same `(spec, seed)`.
 - Noise, decoys, false positives and compensating controls now match the
   estate's vendor. The composer draws every non-core fragment from a pool
   keyed by `cloud`: `azure` gets storage containers, key vaults, managed

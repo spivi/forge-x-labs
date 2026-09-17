@@ -392,3 +392,116 @@ K8S_DECOY_BINDINGS = (
         ("route53:ListHostedZones", "route53:ListResourceRecordSets"),
     ),
 )
+
+# --- path shape vocabulary (difficulty shapes the path) ------------------------
+# Names for the nodes difficulty adds to a core fragment: intermediate identity
+# hops, dead-end branches from the entry, compensating-control lookalikes next to
+# an exposed resource, and the identity route a resource-shaped family may add.
+# Same rule as everything above: nothing says what the node is for, and no name
+# repeats a noise, decoy or fixed core name, so the composer never has to suffix.
+
+AWS_HOP_ROLES = (
+    "ArtifactPromotionRole",
+    "ReleaseOrchestratorRole",
+    "ConfigSyncRole",
+    "DataPipelineRole",
+    "SchedulerRole",
+    "IngestWorkerRole",
+    "ReportBuilderRole",
+    "CacheWarmerRole",
+)
+
+AWS_DEAD_END_ROLES = (
+    # (role name, policy name, benign actions): a second role the entry can
+    # assume whose grant reaches nothing sensitive
+    ("MetricsPublisherRole", "MetricsPublishPolicy", ("cloudwatch:PutMetricData",)),
+    ("CostExplorerRole", "CostExplorerReadPolicy", ("ce:GetCostAndUsage", "ce:GetCostForecast")),
+    ("DnsUpdaterRole", "DnsUpdatePolicy", ("route53:ListHostedZones",)),
+    ("QueuePollerRole", "QueuePollPolicy", ("sqs:GetQueueAttributes",)),
+)
+
+AWS_DEAD_END_FUNCTIONS = (
+    # (function name, role name): a function the entry can invoke that runs as a
+    # role with no data access
+    ("order-notifier", "OrderNotifierRole"),
+    ("cache-refresher", "CacheRefreshRole"),
+    ("health-reporter", "HealthReportRole"),
+)
+
+AWS_DEAD_END_BUCKETS = (
+    # public-looking buckets a bucket policy locks down, reachable from the entry
+    ("status-page", "status-page-assets"),
+    ("press-kit", "press-kit-downloads"),
+    ("sdk-releases", "sdk-releases"),
+)
+
+AWS_READABLE_BUCKETS = (
+    # (stem, bucket name): a bucket the entry is allowed to read that
+    # holds nothing labeled
+    ("partner-inbox", "partner-upload-inbox"),
+    ("exchange-drop", "exchange-dropbox"),
+    ("vendor-feeds", "vendor-feed-inbox"),
+)
+
+AWS_PREFIX_IDENTITIES = (
+    # (CI identity name, application role name, its policy name): the identity
+    # route a resource-shaped family adds next to the public one
+    ("gitlab-ci-oidc", "IngestServiceRole", "IngestServicePolicy"),
+    ("circleci-oidc", "ReportingServiceRole", "ReportingServicePolicy"),
+    ("buildkite-oidc", "ExportServiceRole", "ExportServicePolicy"),
+    ("jenkins-oidc", "BatchServiceRole", "BatchServicePolicy"),
+)
+
+# One lookalike name list per exposed type: the same type as the exposed
+# resource, equally exposed on its face, actually blocked.
+LOOKALIKE_BUCKETS = ("customer-exports-mirror", "public-datasets", "open-data-share")
+LOOKALIKE_SNAPSHOTS = ("warehouse-snapshot-weekly", "analytics-snapshot-nightly")
+LOOKALIKE_DATABASES = ("customer-financials-replica", "billing-reporting-db")
+LOOKALIKE_REPOSITORIES = ("payment-gateway-canary", "checkout-service")
+LOOKALIKE_QUEUES = ("order-events-dlq", "payment-events-queue")
+LOOKALIKE_SECRETS = ("prod-db-replica-credentials", "prod-cache-credentials")
+LOOKALIKE_KEYS = ("customer-archive-key", "billing-data-key")
+# The org-scoped condition that makes a wildcard or external principal inert.
+LOOKALIKE_CONDITION = ("aws:PrincipalOrgID", "o-000000000000")
+
+AZURE_HOP_IDENTITIES = (
+    "id-pipeline-runner",
+    "id-config-sync",
+    "id-report-builder",
+    "id-cache-warmer",
+    "id-ingest-worker",
+    "id-release-agent",
+)
+
+AZURE_DEAD_ENDS = (
+    # (identity name, container name, storage account): a second identity the
+    # app service holds whose only grant reaches a container of build output
+    ("id-site-publisher", "cnt-site-build", "stsitebuild"),
+    ("id-docs-publisher", "cnt-docs-build", "stdocsbuild"),
+    ("id-asset-sync", "cnt-asset-staging", "stassetstaging"),
+)
+
+GCP_HOP_ACCOUNTS = (
+    "sa-pipeline-runner",
+    "sa-config-sync",
+    "sa-report-builder",
+    "sa-cache-warmer",
+    "sa-ingest-worker",
+    "sa-release-agent",
+)
+
+GCP_DEAD_ENDS = (
+    # (service account, bucket): a second account the pool federates to whose
+    # only grant reaches a bucket of build output
+    ("sa-site-publisher", "bkt-site-build"),
+    ("sa-docs-publisher", "bkt-docs-build"),
+    ("sa-asset-sync", "bkt-asset-staging"),
+)
+
+K8S_DEAD_ENDS = (
+    # (pod, service account): a pod the entry pod calls whose service account
+    # carries no cloud annotation
+    ("session-store", "session-store-sa"),
+    ("search-indexer", "search-indexer-sa"),
+    ("rate-limiter", "rate-limiter-sa"),
+)

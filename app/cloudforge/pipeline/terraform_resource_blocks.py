@@ -69,6 +69,23 @@ def _str_attr(node: GraphNode, key: str, default: str) -> str:
     return raw if isinstance(raw, str) else default
 
 
+def policy_condition(node: GraphNode) -> dict[str, dict[str, str]] | None:
+    """The ``Condition`` block a resource policy carries when the node declares
+    ``condition_key`` / ``condition_value`` (a compensating-control lookalike whose
+    wildcard or external principal is scoped to the organization), else ``None``."""
+    key = _str_attr(node, "condition_key", "")
+    value = _str_attr(node, "condition_value", "")
+    if not key or not value:
+        return None
+    return {"StringEquals": {neutralize_hcl_openers(key): neutralize_hcl_openers(value)}}
+
+
+def with_condition(statement: dict[str, object], node: GraphNode) -> dict[str, object]:
+    """``statement`` plus the node's policy condition, when it declares one."""
+    condition = policy_condition(node)
+    return {**statement, "Condition": condition} if condition else statement
+
+
 def _bucket_name(node: GraphNode) -> str:
     return f"{node.name}-{node.tags.env}-{_ACCOUNT}"
 

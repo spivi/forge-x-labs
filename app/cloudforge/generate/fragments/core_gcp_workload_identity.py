@@ -1,10 +1,21 @@
-"""core.gcp_workload_identity_federation — GCP Workload Identity Federation."""
+"""core.gcp_workload_identity_federation: an unrestricted pool walks to GCS.
+
+Story: pool-github-actions has no attribute condition, so any GitHub workflow
+can exchange its token for sa-workload-deployer. On the direct chain that
+account reads the enterprise analytics bucket; with ``extra_hops`` it holds
+``roles/iam.serviceAccountTokenCreator`` on a chain of service accounts and
+impersonates each in turn, and the last one reads the bucket. With
+``dead_end`` the pool also federates to a second account whose only grant
+reaches a bucket of build output.
+"""
 
 from __future__ import annotations
 
 from random import Random
 from typing import Any
 
+from app.cloudforge.generate.fragments._core import Kit, Piece, draw_hops, hop_lines, shape_of
+from app.cloudforge.generate.fragments._vocab import GCP_DEAD_ENDS, GCP_HOP_ACCOUNTS
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import (
     ExpectedFinding,
@@ -12,159 +23,125 @@ from app.cloudforge.models.findings import (
     GroundTruthPath,
     SinkKind,
 )
-from app.cloudforge.models.graph import (
-    EdgeSecurity,
-    EdgeType,
-    GraphEdge,
-    GraphNode,
-    NodeSecurity,
-    NodeTags,
-    NodeType,
-)
+from app.cloudforge.models.graph import EdgeType, GraphEdge, GraphNode, NodeTags, NodeType
 
 _TAGS = NodeTags(env="prod", owner="gcp-infra", app="data-warehouse")
+_PROJECT_ID = "prj-analytics-prod-101"
+_ENTRY = "pool-github-actions"
+_HEAD = "sa-workload-deployer"
+_BUCKET = "bkt-enterprise-analytics"
+_SINK = "enterprise-analytics"
 
 
-def _nid(ns: str, node_id: str) -> str:
-    return f"{ns}/{node_id}" if ns else node_id
-
-
-def _node(
-    ns: str, node_id: str, ntype: NodeType, name: str, crit: str, **attrs: str | list[str]
-) -> GraphNode:
-    return GraphNode(
-        id=_nid(ns, node_id),
-        type=ntype,
-        name=name,
-        tags=_TAGS,
-        security=NodeSecurity(criticality=crit),
-        attributes=dict(attrs),
-    )
-
-
-def _edge(ns: str, src: str, dst: str, etype: EdgeType, risk: str) -> GraphEdge:
-    return GraphEdge(
-        from_=_nid(ns, src), to=_nid(ns, dst), type=etype, security=EdgeSecurity(risk=risk)
-    )
-
-
-def _ek(ns: str, src: str, etype: EdgeType, dst: str) -> str:
-    return f"{_nid(ns, src)}->{etype.value}->{_nid(ns, dst)}"
+def _email(name: str) -> str:
+    return f"{name}@{_PROJECT_ID}.iam.gserviceaccount.com"
 
 
 @register("core.gcp_workload_identity_federation")
 @register("core.gcp_workload_identity")
 class GcpWorkloadIdentity:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
+        kit = Kit(ns, _TAGS)
+        shape = shape_of(params)
+        hops = draw_hops(
+            kit, rng, shape.extra_hops, GCP_HOP_ACCOUNTS, "sa", NodeType.GCP_SERVICE_ACCOUNT
+        )
+        for node in hops.nodes:
+            node.attributes["email"] = _email(node.name)
+        chain = [_HEAD, *hops.ids]
+        nodes = _nodes(kit) + hops.nodes
+        edges = _edges(kit, chain)
+        if shape.dead_end:
+            branch = _dead_end(kit, rng)
+            nodes, edges = nodes + branch.nodes, edges + branch.edges
+        names = [_HEAD, *hops.names]
         return FragmentBundle(
-            nodes=_nodes(ns), edges=_edges(ns), findings=_findings(ns), paths=[_critical(ns)]
+            nodes=nodes,
+            edges=edges,
+            findings=_findings(kit, chain[-1]),
+            paths=[_critical(kit, chain, names)],
         )
 
 
-def _nodes(ns: str) -> list[GraphNode]:
+def _nodes(kit: Kit) -> list[GraphNode]:
     return [
-        _node(
-            ns,
+        kit.node(
             "org-cloud-enterprise",
             NodeType.GCP_ORGANIZATION,
             "org-cloud-enterprise",
             "medium",
             org_id="123456789012",
         ),
-        _node(
-            ns,
+        kit.node(
             "prj-analytics-prod",
             NodeType.GCP_PROJECT,
             "prj-analytics-prod",
             "medium",
-            project_id="prj-analytics-prod-101",
+            project_id=_PROJECT_ID,
         ),
-        _node(
-            ns,
-            "pool-github-actions",
+        kit.node(
+            _ENTRY,
             NodeType.GCP_WORKLOAD_IDENTITY_POOL,
-            "pool-github-actions",
+            _ENTRY,
             "high",
             issuer_uri="https://token.actions.githubusercontent.com",
         ),
-        _node(
-            ns,
-            "sa-workload-deployer",
-            NodeType.GCP_SERVICE_ACCOUNT,
-            "sa-workload-deployer",
-            "critical",
-            email="sa-workload-deployer@prj-analytics-prod-101.iam.gserviceaccount.com",
-        ),
-        _node(
-            ns,
-            "bkt-enterprise-analytics",
-            NodeType.GCP_STORAGE_BUCKET,
-            "bkt-enterprise-analytics",
-            "critical",
-            bucket_name="bkt-enterprise-analytics",
-        ),
-        _node(
-            ns,
-            "enterprise-analytics",
-            NodeType.DATASET,
-            "enterprise-analytics",
-            "critical",
-            classification="restricted",
-        ),
+        kit.node(_HEAD, NodeType.GCP_SERVICE_ACCOUNT, _HEAD, "critical", email=_email(_HEAD)),
+        kit.node(_BUCKET, NodeType.GCP_STORAGE_BUCKET, _BUCKET, "critical", bucket_name=_BUCKET),
+        kit.node(_SINK, NodeType.DATASET, _SINK, "critical", classification="restricted"),
     ]
 
 
-def _edges(ns: str) -> list[GraphEdge]:
+def _edges(kit: Kit, chain: list[str]) -> list[GraphEdge]:
+    reader = chain[-1]
     return [
-        _edge(
-            ns,
-            "org-cloud-enterprise",
-            "prj-analytics-prod",
-            EdgeType.ORGANIZATIONAL_CHILD,
-            "none",
+        kit.edge(
+            "org-cloud-enterprise", "prj-analytics-prod", EdgeType.ORGANIZATIONAL_CHILD, "none"
         ),
-        _edge(
-            ns,
-            "prj-analytics-prod",
-            "pool-github-actions",
-            EdgeType.ORGANIZATIONAL_CHILD,
-            "none",
-        ),
-        _edge(
-            ns,
-            "pool-github-actions",
-            "sa-workload-deployer",
-            EdgeType.FEDERATES_TO,
-            "critical",
-        ),
-        _edge(
-            ns,
-            "sa-workload-deployer",
-            "bkt-enterprise-analytics",
-            EdgeType.CAN_READ,
-            "critical",
-        ),
-        _edge(
-            ns,
-            "bkt-enterprise-analytics",
-            "enterprise-analytics",
-            EdgeType.STORES_SENSITIVE_DATA,
-            "critical",
-        ),
+        kit.edge("prj-analytics-prod", _ENTRY, EdgeType.ORGANIZATIONAL_CHILD, "none"),
+        kit.edge(_ENTRY, _HEAD, EdgeType.FEDERATES_TO, "critical"),
+        *kit.chain(chain, EdgeType.IMPERSONATES, "critical"),
+        kit.edge(reader, _BUCKET, EdgeType.CAN_READ, "critical"),
+        kit.edge(_BUCKET, _SINK, EdgeType.STORES_SENSITIVE_DATA, "critical"),
     ]
 
 
-def _findings(ns: str) -> list[ExpectedFinding]:
+def _dead_end(kit: Kit, rng: Random) -> Piece:
+    """A second account the pool federates to, granted only a build bucket."""
+    sa_name, bucket_name = rng.choice(GCP_DEAD_ENDS)
+    return Piece(
+        nodes=[
+            kit.node(
+                sa_name,
+                NodeType.GCP_SERVICE_ACCOUNT,
+                sa_name,
+                "low",
+                email=_email(sa_name),
+                role="roles/storage.objectCreator",
+            ),
+            kit.node(
+                bucket_name,
+                NodeType.GCP_STORAGE_BUCKET,
+                bucket_name,
+                "low",
+                storage_class="STANDARD",
+            ),
+        ],
+        edges=[
+            kit.edge(_ENTRY, sa_name, EdgeType.FEDERATES_TO, "low"),
+            kit.edge(sa_name, bucket_name, EdgeType.CAN_READ, "low"),
+        ],
+    )
+
+
+def _findings(kit: Kit, reader: str) -> list[ExpectedFinding]:
+    resources = [kit.nid(_ENTRY), kit.nid(_HEAD), kit.nid(reader), kit.nid(_BUCKET)]
     return [
         ExpectedFinding(
-            id=_nid(ns, "finding-gcp-wif-01"),
+            id=kit.nid("finding-gcp-wif-01"),
             severity="critical",
             family=FindingFamily.GCP_WORKLOAD_IDENTITY_FEDERATION,
-            resource_ids=[
-                _nid(ns, "pool-github-actions"),
-                _nid(ns, "sa-workload-deployer"),
-                _nid(ns, "bkt-enterprise-analytics"),
-            ],
+            resource_ids=list(dict.fromkeys(resources)),
             expected_scanner_visibility="visible",
             ground_truth=(
                 "Workload Identity Pool lacks strict attribute condition enabling "
@@ -178,30 +155,27 @@ def _findings(ns: str) -> list[ExpectedFinding]:
     ]
 
 
-def _critical(ns: str) -> GroundTruthPath:
+def _critical(kit: Kit, chain: list[str], names: list[str]) -> GroundTruthPath:
+    reader = chain[-1]
     return GroundTruthPath(
-        id=_nid(ns, "path-critical-gcp-wif-01"),
+        id=kit.nid("path-critical-gcp-wif-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "pool-github-actions"),
-            _nid(ns, "sa-workload-deployer"),
-            _nid(ns, "bkt-enterprise-analytics"),
-            _nid(ns, "enterprise-analytics"),
-        ],
+        nodes=[kit.nid(n) for n in [_ENTRY, *chain, _BUCKET, _SINK]],
         edges=[
-            _ek(ns, "pool-github-actions", EdgeType.FEDERATES_TO, "sa-workload-deployer"),
-            _ek(ns, "sa-workload-deployer", EdgeType.CAN_READ, "bkt-enterprise-analytics"),
-            _ek(
-                ns,
-                "bkt-enterprise-analytics",
-                EdgeType.STORES_SENSITIVE_DATA,
-                "enterprise-analytics",
-            ),
+            kit.ek(_ENTRY, EdgeType.FEDERATES_TO, _HEAD),
+            *kit.chain_keys(chain, EdgeType.IMPERSONATES),
+            kit.ek(reader, EdgeType.CAN_READ, _BUCKET),
+            kit.ek(_BUCKET, EdgeType.STORES_SENSITIVE_DATA, _SINK),
         ],
         sink_kind=SinkKind.DATA,
-        target=_nid(ns, "enterprise-analytics"),
+        target=kit.nid(_SINK),
         explanation=(
-            "Unrestricted Workload Identity Pool federates into high-privilege service "
-            "account accessing enterprise storage bucket"
+            f"Unrestricted Workload Identity Pool federates into {_HEAD}"
+            + (
+                f"; {hop_lines(names, 'holds iam.serviceAccountTokenCreator on and impersonates')}"
+                if len(names) > 1
+                else ""
+            )
+            + f"; {names[-1]} reads the enterprise storage bucket"
         ),
     )
