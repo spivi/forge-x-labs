@@ -1,7 +1,9 @@
 # Scenario Families
 
-A **scenario family** is a named `scenario_type` with a registered builder
-in the template generator and the composer.
+A **scenario family** is a named `scenario_type` registered by a core fragment
+(`generate/fragments/core_*.py`, `@register_core`). The template generator
+only covers the families that also have a hand-written projection; every
+family the composer can build.
 
 Every path declares what the attacker reaches (`sink_kind` and `target` on
 the ground-truth path and in the grade key). The "reaches" column is that
@@ -93,12 +95,9 @@ intermediate roles between DeployRole and RuntimeRole.
 
 ## Adding a family
 
-1. Author a core fragment under `generate/fragments/` and a template projection.
-   Its path declares `sink_kind` and `target` (the last node); the composer
-   refuses a path whose target is not the last node or has another type.
-2. Register the builder in `template_generator.py` and the composer kind map.
-3. Add `examples/<type>.yaml`.
-4. Join the composer integrity net (seeds `{0,1,2,17,99}`, zero FAIL).
+See [Adding a Family](Adding-a-Family.md): a family is one core fragment
+module and one example spec, written from a scaffold
+(`cloudforge new-family`).
 
 Keep every family **self-consistent**: the ground truth must reference only
 nodes/edges present in the graph, and every broad grant must have a documenting
