@@ -103,9 +103,9 @@ cloudforge lab-cohort examples/ci_cd_iam_chain.yaml --students names.txt --out o
 cloudforge grade-cohort out/cohort --submissions out/subs
 ```
 
-### Roundtable (SOC tabletop, three clouds)
+### Roundtable (SOC tabletop, four clouds)
 
-Same identity-federation lesson, unique copies, three vendors. CPU only.
+Same identity-federation lesson, unique copies, four vendors. CPU only.
 
 ```bash
 cloudforge roundtable --students examples/roundtable/roster.txt --out out/rt
@@ -113,6 +113,7 @@ cloudforge roundtable --students examples/roundtable/roster.txt --out out/rt
 # out/rt/alice/          Kubernetes IRSA pack
 # out/rt/bob/            Azure managed-identity pack
 # out/rt/cara/           GCP Workload Identity pack
+# out/rt/dave/           AWS GitHub OIDC pack
 ```
 
 Open `student/estate.html`. Grade node-id guesses with `cloudforge grade`.

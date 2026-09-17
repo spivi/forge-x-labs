@@ -53,7 +53,7 @@ examples/*.yaml
   (see [Validation Pipeline](Validation-Pipeline.md)).
 - **report**: reload artifacts and write `report.md`.
 - **lab / grade / roundtable**: split student vs instructor, score a guessed
-  path, or write a three-cloud SOC tabletop pack.
+  path, or write a four-cloud SOC tabletop pack.
 
 ## Design principles
 

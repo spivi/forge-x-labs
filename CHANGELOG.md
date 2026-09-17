@@ -15,6 +15,10 @@
   vendor. The Azure and GCP emitters render the control attributes the new
   fragments carry (key vault network ACL and private access, storage account
   public-blob flag, bucket uniform access and public access prevention).
+- `cloudforge roundtable`: the `identity_federation` track has AWS as its
+  fourth dialect (`ci_cd_iam_chain`, a GitHub Actions OIDC identity federating
+  into an IAM role), so a four-name roster gets one estate per vendor and the
+  facilitator agenda speaks of four clouds.
 
 ## 1.3.1 (2026-09-17)
 

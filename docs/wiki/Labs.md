@@ -36,9 +36,10 @@ not Python `hash()`), writes `out/<name>/`, and `roster.json`.
 ## Roundtable
 
 `cloudforge roundtable` is a SOC tabletop pack. Default track
-`identity_federation` rotates three families (Kubernetes IRSA, Azure
-managed identity, GCP Workload Identity Pool) across the roster so the
-share-out is the same attack class on three vendors.
+`identity_federation` rotates four families (Kubernetes IRSA, Azure
+managed identity, GCP Workload Identity Pool, AWS GitHub Actions OIDC)
+across the roster so the share-out is the same attack class on four
+vendors.
 
 Writes `facilitator.md` (90-minute agenda), `roster.json`, and one
 student/instructor pack per name. Still never applied.
