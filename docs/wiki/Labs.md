@@ -27,6 +27,10 @@ Under `DIR/instructor/`: full `graph.json`, findings, paths, `report.md`,
 `grade` reads **only** `instructor/grade_key.json`. A student tree alone
 cannot score itself.
 
+`cloudforge judge` is optional. It sends the student writeup and the labeled
+chain to TypeSafe's Jev model and prints hop-level probabilities. It does not
+replace `grade`. Needs `TYPESAFE_API_KEY`.
+
 ## Cohort
 
 `lab-cohort` maps each name in a text file to a stable seed (`adler32`,

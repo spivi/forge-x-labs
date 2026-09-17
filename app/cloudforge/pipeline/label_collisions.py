@@ -42,6 +42,17 @@ _RESOURCE_TYPE_BY_NODE_TYPE: dict[NodeType, str] = {
     NodeType.RDS_INSTANCE: "aws_db_instance",
     NodeType.ECR_REPOSITORY: "aws_ecr_repository",
     NodeType.SQS_QUEUE: "aws_sqs_queue",
+    NodeType.AZURE_RESOURCE_GROUP: "azurerm_resource_group",
+    NodeType.AZURE_APP_SERVICE: "azurerm_linux_web_app",
+    NodeType.AZURE_MANAGED_IDENTITY: "azurerm_user_assigned_identity",
+    NodeType.AZURE_KEY_VAULT: "azurerm_key_vault",
+    NodeType.AZURE_STORAGE_CONTAINER: "azurerm_storage_container",
+    NodeType.GCP_SERVICE_ACCOUNT: "google_service_account",
+    NodeType.GCP_WORKLOAD_IDENTITY_POOL: "google_iam_workload_identity_pool",
+    NodeType.GCP_STORAGE_BUCKET: "google_storage_bucket",
+    NodeType.K8S_NAMESPACE: "kubernetes_namespace",
+    NodeType.K8S_SERVICE_ACCOUNT: "kubernetes_service_account",
+    NodeType.K8S_POD: "kubernetes_pod",
 }
 
 

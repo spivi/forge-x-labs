@@ -140,9 +140,21 @@ The workbench is a single HTML file with no CDN:
 
 Dummy account `000000000000`. Never applied.
 
-The last three families are **graph-only**. They generate a risk graph, workbench,
-and grade key. Terraform is still AWS-only: Azure, GCP, and Kubernetes nodes
-do not emit `.tf` resources yet. Use `--engine composer` (the `lab` default).
+The last three families emit Azure, GCP, or Kubernetes Terraform plus any AWS
+resources on the path. Still never applied. Use `--engine composer` (the `lab`
+default).
+
+### Optional: judge a writeup with Jev
+
+`cloudforge grade` is exact path matching. `cloudforge judge` asks TypeSafe's
+Jev model whether a free-text rationale names the same entry, identity hop,
+and sink as the labeled chain. Code owns the thresholds. Needs
+`TYPESAFE_API_KEY`. Missing key is a clean error, not a silent pass.
+
+```bash
+cloudforge lab examples/ci_cd_iam_chain.yaml --seed 17 --out out/alice
+cloudforge judge out/alice --rationale alice_writeup.txt
+```
 
 ## Safety
 

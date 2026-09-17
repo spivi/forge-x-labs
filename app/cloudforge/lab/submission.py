@@ -20,6 +20,7 @@ class LabSubmission(BaseModel):
 
     paths: list[PathGuess] = Field(default_factory=list)
     findings: list[str] = Field(default_factory=list)
+    rationale: str | None = None
 
 
 class GradeResult(BaseModel):
