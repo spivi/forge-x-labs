@@ -144,18 +144,6 @@ The last three families emit Azure, GCP, or Kubernetes Terraform plus any AWS
 resources on the path. Still never applied. Use `--engine composer` (the `lab`
 default).
 
-### Optional: judge a writeup with Jev
-
-`cloudforge grade` is exact path matching. `cloudforge judge` asks TypeSafe's
-Jev model whether a free-text rationale names the same entry, identity hop,
-and sink as the labeled chain. Code owns the thresholds. Needs
-`TYPESAFE_API_KEY`. Missing key is a clean error, not a silent pass.
-
-```bash
-cloudforge lab examples/ci_cd_iam_chain.yaml --seed 17 --out out/alice
-cloudforge judge out/alice --rationale alice_writeup.txt
-```
-
 ## Safety
 
 - **Never** `terraform apply`. No AWS credentials. `deployable: true` is rejected.

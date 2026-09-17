@@ -14,7 +14,7 @@
 ## Next
 
 Deeper Azure/GCP/K8s HCL (role assignments, IRSA trust policy conditions) and
-more families. `cloudforge judge` stays opt-in.
+more families.
 
 ## The extension seam
 

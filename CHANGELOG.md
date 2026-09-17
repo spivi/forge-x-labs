@@ -3,7 +3,6 @@
 ## 1.2.0
 
 - Terraform for the K8s, Azure, and GCP families. Still never applied.
-- `cloudforge judge`: optional Jev (TypeSafe) scoring of a student writeup against the labeled chain. Exact path matching stays in `cloudforge grade`. Requires `TYPESAFE_API_KEY`.
 
 ## 1.1.0 (2026-09-17)
 
