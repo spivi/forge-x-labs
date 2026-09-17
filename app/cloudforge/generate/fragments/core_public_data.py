@@ -19,7 +19,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -122,6 +127,8 @@ def _critical(ns: str) -> GroundTruthPath:
             f"{ns}/acct-main->{EdgeType.EXPOSED_TO_INTERNET.value}->{ns}/s3-public-data",
             f"{ns}/s3-public-data->{EdgeType.STORES_SENSITIVE_DATA.value}->{ns}/data-customer-pii",
         ],
+        sink_kind=SinkKind.DATA,
+        target=f"{ns}/data-customer-pii",
         explanation=(
             "The customer-pii bucket has public-read access with no compensating "
             "control, so it is reachable directly from the internet -> anonymous "

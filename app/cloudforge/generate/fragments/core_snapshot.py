@@ -1,4 +1,9 @@
-"""``core.public_ebs_snapshot`` — unencrypted public EBS snapshot of sensitive data."""
+"""``core.public_ebs_snapshot``: an unencrypted EBS snapshot shared with ``all``.
+
+What the attacker reaches is the snapshot itself (``sink_kind`` ``snapshot``):
+anyone can create a volume from it. The warehouse records the snapshot was cut
+from live in the estate behind the locked backups bucket, off the graded path.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +11,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -94,9 +104,9 @@ def _nodes(ns: str) -> list[GraphNode]:
 def _edges(ns: str) -> list[GraphEdge]:
     return [
         _edge(ns, "acct-main", "snap-public", EdgeType.EXPOSED_TO_INTERNET, "critical"),
-        _edge(ns, "snap-public", "data-warehouse", EdgeType.STORES_SENSITIVE_DATA, "critical"),
         _edge(ns, "snap-public", "app-warehouse", EdgeType.BELONGS_TO_APP, "low"),
         _edge(ns, "s3-locked-backups", "app-warehouse", EdgeType.BELONGS_TO_APP, "low"),
+        _edge(ns, "s3-locked-backups", "data-warehouse", EdgeType.STORES_SENSITIVE_DATA, "none"),
     ]
 
 
@@ -104,25 +114,19 @@ def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-snap-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "acct-main"),
-            _nid(ns, "snap-public"),
-            _nid(ns, "data-warehouse"),
-        ],
+        nodes=[_nid(ns, "acct-main"), _nid(ns, "snap-public")],
         edges=[
             (
                 f"{_nid(ns, 'acct-main')}->{EdgeType.EXPOSED_TO_INTERNET.value}"
                 f"->{_nid(ns, 'snap-public')}"
             ),
-            (
-                f"{_nid(ns, 'snap-public')}->{EdgeType.STORES_SENSITIVE_DATA.value}"
-                f"->{_nid(ns, 'data-warehouse')}"
-            ),
         ],
+        sink_kind=SinkKind.SNAPSHOT,
+        target=_nid(ns, "snap-public"),
         explanation=(
-            "An unencrypted EBS snapshot of warehouse-records is public "
-            "(create-volume permission group all), so anyone can create a volume "
-            "from the sensitive dataset."
+            "The warehouse snapshot is unencrypted and public (create-volume "
+            "permission group all), so anyone can create a volume from it and read "
+            "the warehouse records it was cut from."
         ),
     )
 
@@ -136,7 +140,7 @@ def _public_finding(ns: str) -> ExpectedFinding:
         id=_nid(ns, "find-snap-01"),
         severity="high",
         family=FindingFamily.EBS_SNAPSHOT_PUBLIC,
-        resource_ids=[_nid(ns, "snap-public"), _nid(ns, "data-warehouse")],
+        resource_ids=[_nid(ns, "snap-public")],
         expected_scanner_visibility="visible",
         ground_truth="The warehouse snapshot is public and unencrypted.",
         remediation="Remove group=all create-volume permission and encrypt snapshots.",

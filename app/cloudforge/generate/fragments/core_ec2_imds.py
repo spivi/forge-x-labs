@@ -6,7 +6,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -153,6 +158,8 @@ def _critical(ns: str) -> GroundTruthPath:
             _ek(ns, "role-web-app", EdgeType.CAN_READ, "s3-customer-pii"),
             _ek(ns, "s3-customer-pii", EdgeType.STORES_SENSITIVE_DATA, "data-customer-pii"),
         ],
+        sink_kind=SinkKind.DATA,
+        target=_nid(ns, "data-customer-pii"),
         explanation=(
             "Public web instance with IMDSv1 enables SSRF credential theft to access PII records"
         ),

@@ -1,4 +1,9 @@
-"""``core.sqs_queue_overbroad_policy`` — Publicly accessible SQS queue."""
+"""``core.sqs_queue_overbroad_policy``: a queue policy open to any principal.
+
+What the attacker reaches is the queue (``sink_kind`` ``queue``): the messages
+in flight, readable and writable by anyone. The transaction payloads the queue
+carries also land in a private archive bucket, off the graded path.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +11,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -71,6 +81,13 @@ def _nodes(ns: str) -> list[GraphNode]:
         ),
         _node(
             ns,
+            "s3-order-archive",
+            NodeType.S3_BUCKET,
+            "order-events-archive",
+            "high",
+        ),
+        _node(
+            ns,
             "data-order-events",
             NodeType.DATASET,
             "order-transaction-payloads",
@@ -85,7 +102,7 @@ def _edges(ns: str) -> list[GraphEdge]:
         _edge(ns, "acct-main", "sqs-order-events", EdgeType.EXPOSED_TO_INTERNET, "critical"),
         _edge(
             ns,
-            "sqs-order-events",
+            "s3-order-archive",
             "data-order-events",
             EdgeType.STORES_SENSITIVE_DATA,
             "none",
@@ -117,17 +134,13 @@ def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-sqs-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "acct-main"),
-            _nid(ns, "sqs-order-events"),
-            _nid(ns, "data-order-events"),
-        ],
-        edges=[
-            _ek(ns, "acct-main", EdgeType.EXPOSED_TO_INTERNET, "sqs-order-events"),
-            _ek(ns, "sqs-order-events", EdgeType.STORES_SENSITIVE_DATA, "data-order-events"),
-        ],
+        nodes=[_nid(ns, "acct-main"), _nid(ns, "sqs-order-events")],
+        edges=[_ek(ns, "acct-main", EdgeType.EXPOSED_TO_INTERNET, "sqs-order-events")],
+        sink_kind=SinkKind.QUEUE,
+        target=_nid(ns, "sqs-order-events"),
         explanation=(
-            "Wildcard queue policy allows external parties to consume "
-            "confidential order transaction payloads"
+            "The order-events-queue policy grants sqs:ReceiveMessage and "
+            "sqs:SendMessage to *, so any party can consume or inject the "
+            "transaction messages in flight"
         ),
     )

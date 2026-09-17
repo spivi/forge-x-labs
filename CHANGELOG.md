@@ -2,6 +2,22 @@
 
 ## 1.4.0 (2026-09-17)
 
+- Every story has its own ending. Each core fragment now declares what the
+  attacker reaches (`GroundTruthPath.sink_kind` and `target`, both in the
+  grade key and the instructor's `ground_truth_paths.json`): the payroll
+  escalation ends at the admin-capable role, the cross-account trust at the
+  role the external account lands in, the KMS family at the key (the path
+  walks role -> encrypted bucket -> key over a new `encrypted_with` edge),
+  the Secrets Manager family at the secret, ECR at the repository, SQS at the
+  queue, the snapshot family at the snapshot and the RDS family at the
+  database; the eight data families are unchanged. Where a role is reached,
+  the data it can read is a second, high-severity path; where a resource is
+  reached, the data it holds lives elsewhere in the estate with no edge from
+  the sink, so the data-set card next to the risky one is not the new tell.
+  The validator's critical-sink rule follows the declared target of every
+  path rather than only `stores_sensitive_data` edges. The eight prompts, the
+  brief and the report say what is reached. Packs written before the fields
+  existed still load (`data`, last node).
 - Noise, decoys, false positives and compensating controls now match the
   estate's vendor. The composer draws every non-core fragment from a pool
   keyed by `cloud`: `azure` gets storage containers, key vaults, managed

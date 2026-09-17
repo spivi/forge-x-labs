@@ -18,20 +18,20 @@ _PROMPTS: dict[str, str] = {
         "exposure. Not every public-looking bucket is a true positive."
     ),
     "cross_account_trust": (
-        "An external AWS account is trusted into this environment. Can it access "
-        "sensitive customer data?"
+        "An external AWS account is trusted into this environment. Which role does "
+        "it land in, and what can that role reach from there?"
     ),
     "kms_key_overbroad": (
-        "A customer data store is encrypted with KMS. Can unauthorized or external "
-        "principals decrypt the contents?"
+        "A customer data store is encrypted with a KMS key. Who can decrypt with "
+        "that key, and what does the key unlock?"
     ),
     "public_ebs_snapshot": (
-        "An EBS snapshot exists in this account. Can unauthorized external parties "
-        "create volumes and extract data?"
+        "An EBS snapshot in this account may be shared more widely than intended. "
+        "Which snapshot, and who can create a volume from it?"
     ),
     "iam_privesc_policy_version": (
         "An internal developer identity has been provisioned with limited scope. "
-        "Can it escalate privileges to access sensitive financial data?"
+        "Can it reach a role that administers the account, and how?"
     ),
     "ec2_imds_credential_exfil": (
         "A public-facing web server is accessible from the internet. Can an attacker "
@@ -43,19 +43,19 @@ _PROMPTS: dict[str, str] = {
     ),
     "secretsmanager_policy_overbroad": (
         "Production database credentials are stored in AWS Secrets Manager. "
-        "Does the resource policy allow external access?"
+        "Can a principal outside this account read the secret itself?"
     ),
     "public_rds_instance": (
-        "A production relational database has been deployed. Is it exposed to "
-        "internet traffic or properly isolated in private subnets?"
+        "A production relational database has been deployed. Can the database "
+        "itself be reached from the internet, or is it isolated in private subnets?"
     ),
     "ecr_repository_public_read": (
         "A container repository hosts application images. Can external parties "
-        "pull proprietary container layers?"
+        "pull the image, and what does it embed?"
     ),
     "sqs_queue_overbroad_policy": (
         "An event queue handles transaction messages. Can unauthorized external "
-        "parties read or inject messages?"
+        "parties read or inject the messages in flight?"
     ),
     "k8s_pod_irsa_exfil": (
         "A pod in this cluster can talk to cloud IAM. Can that workload identity "
@@ -72,8 +72,13 @@ _PROMPTS: dict[str, str] = {
 }
 
 _DEFAULT_PROMPT = (
-    "Investigate this estate. Find any identity-to-data risk path. "
-    "Not every finding-shaped resource is a true positive."
+    "Investigate this estate. Find any risk path from an entry point to what an "
+    "attacker reaches. Not every finding-shaped resource is a true positive."
+)
+_HOW_TO_ANSWER = (
+    "For each path, name where it starts, what opens the way, and what the "
+    "attacker reaches. That is not always data: it can be a role, a key, a "
+    "secret, an image, a queue, a snapshot or a database."
 )
 
 
@@ -89,6 +94,8 @@ def render_brief(spec: ScenarioSpec, graph: ScenarioGraph) -> str:
         "## Your job",
         "",
         _PROMPTS.get(spec.scenario_type, _DEFAULT_PROMPT),
+        "",
+        _HOW_TO_ANSWER,
         "",
         "## Resources",
         "",

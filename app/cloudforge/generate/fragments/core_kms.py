@@ -1,4 +1,11 @@
-"""``core.kms_key_overbroad`` — KMS key policy grants Decrypt to ``*``."""
+"""``core.kms_key_overbroad``: a KMS key policy grants Decrypt to ``*``.
+
+Story: SecretsReader can read the encrypted-exports bucket, and the customer-data-key
+that bucket is encrypted with lets any principal decrypt. What the attacker reaches
+is the key (``sink_kind`` ``key``): the decrypt capability over what the bucket
+holds. The path walks role -> bucket -> key, so the bucket is the resource the key
+unlocks, and the customer secrets the bucket stores stay off the graded path.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +13,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -112,9 +124,10 @@ def _nodes(ns: str) -> list[GraphNode]:
 def _edges(ns: str) -> list[GraphEdge]:
     return [
         _edge(ns, "role-reader", "pol-reader", EdgeType.ATTACHED_POLICY, "high"),
-        _edge(ns, "role-reader", "kms-data", EdgeType.CAN_DECRYPT, "high"),
+        _edge(ns, "role-reader", "kms-data", EdgeType.CAN_DECRYPT, "critical"),
         _edge(ns, "role-reader", "s3-encrypted", EdgeType.CAN_READ, "critical"),
-        _edge(ns, "s3-encrypted", "data-secrets", EdgeType.STORES_SENSITIVE_DATA, "critical"),
+        _edge(ns, "s3-encrypted", "kms-data", EdgeType.ENCRYPTED_WITH, "critical"),
+        _edge(ns, "s3-encrypted", "data-secrets", EdgeType.STORES_SENSITIVE_DATA, "none"),
         _edge(ns, "s3-encrypted", "app-secrets-store", EdgeType.BELONGS_TO_APP, "low"),
         _edge(ns, "s3-locked-backups", "app-secrets-store", EdgeType.BELONGS_TO_APP, "low"),
     ]
@@ -124,21 +137,17 @@ def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-kms-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "role-reader"),
-            _nid(ns, "s3-encrypted"),
-            _nid(ns, "data-secrets"),
-        ],
+        nodes=[_nid(ns, "role-reader"), _nid(ns, "s3-encrypted"), _nid(ns, "kms-data")],
         edges=[
             f"{_nid(ns, 'role-reader')}->{EdgeType.CAN_READ.value}->{_nid(ns, 's3-encrypted')}",
-            (
-                f"{_nid(ns, 's3-encrypted')}->{EdgeType.STORES_SENSITIVE_DATA.value}"
-                f"->{_nid(ns, 'data-secrets')}"
-            ),
+            f"{_nid(ns, 's3-encrypted')}->{EdgeType.ENCRYPTED_WITH.value}->{_nid(ns, 'kms-data')}",
         ],
+        sink_kind=SinkKind.KEY,
+        target=_nid(ns, "kms-data"),
         explanation=(
-            "The customer-data-key policy grants kms:Decrypt to *; SecretsReader "
-            "can decrypt and read encrypted-exports, which stores customer secrets."
+            "SecretsReader can read encrypted-exports; the bucket is encrypted with "
+            "customer-data-key, whose policy grants kms:Decrypt to *, so the reader "
+            "holds the decrypt capability over everything the bucket stores."
         ),
     )
 

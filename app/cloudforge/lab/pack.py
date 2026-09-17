@@ -85,7 +85,13 @@ def _write_student(out_dir: LabPaths, spec: ScenarioSpec, bundle: ScenarioBundle
 def _grade_key(bundle: ScenarioBundle) -> dict[str, object]:
     return {
         "paths": [
-            {"id": path.id, "nodes": list(path.nodes)} for path in bundle.ground_truth.paths
+            {
+                "id": path.id,
+                "nodes": list(path.nodes),
+                "sink_kind": path.sink_kind.value,
+                "target": path.target,
+            }
+            for path in bundle.ground_truth.paths
         ],
         "finding_families": sorted({f.family.value for f in bundle.findings.findings}),
     }

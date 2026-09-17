@@ -34,8 +34,8 @@ _ZONES_BLOCK = re.compile(r"const NETWORK_ZONES = \[(.*?)\n\];", re.DOTALL)
 _ZONE_TYPES = re.compile(r"types:\s*\[(.*?)\]", re.DOTALL)
 _VENDOR_PREFIXES = {"azure": "Azure", "gcp": "Gcp", "k8s": "K8s"}
 _VENDOR_FILES = {"azure": "azure.tf", "gcp": "gcp.tf", "k8s": "k8s.tf"}
-# ``DataSet`` is the generic sensitive-data sink every core fragment ends on,
-# whatever its cloud; it is not a vendor type and not something the pools mint.
+# ``DataSet`` is the generic labeled-data type every pool mints and the Azure and
+# GCP paths end on, whatever the cloud; it is not a vendor type.
 _GENERIC_SINK = "DataSet"
 
 

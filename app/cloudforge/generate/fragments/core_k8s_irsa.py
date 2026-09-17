@@ -6,7 +6,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -186,6 +191,8 @@ def _critical(ns: str) -> GroundTruthPath:
                 "customer-banking-records",
             ),
         ],
+        sink_kind=SinkKind.DATA,
+        target=_nid(ns, "customer-banking-records"),
         explanation=(
             "Pod backend-api-pod projects token federating to EksWorkloadRole to read "
             "customer-banking-records from corporate-vault-data"

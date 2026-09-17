@@ -21,7 +21,12 @@ from typing import Any
 
 from app.cloudforge.generate.fragments import core_ci_cd_nodes as parts
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import EdgeType
 
 _DEFAULT_HOPS = 3
@@ -66,6 +71,8 @@ def _critical(ns: str, extra: int) -> GroundTruthPath:
         severity="critical",
         nodes=[f"{ns}/{n}" for n in nodes],
         edges=edges,
+        sink_kind=SinkKind.DATA,
+        target=f"{ns}/data-customer-exports",
         explanation=(
             "GitHub Actions OIDC assumes DeployRole; DeployRole can iam:PassRole "
             "(via any intermediate hops) RuntimeRole; RuntimeRole holds broad "

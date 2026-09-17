@@ -28,8 +28,8 @@ nodes stay passive (no resource block).
 
 `assumes`, `can_pass_role`, `attached_policy`, `can_read`, `can_write`,
 `belongs_to_app`, `stores_sensitive_data`, `exposed_to_internet`, `logs_to`,
-`has_security_group`, `deployed_by`, `can_decrypt`, `can_invoke`,
-`organizational_child`, `applies_scp`, `in_namespace`,
+`has_security_group`, `deployed_by`, `can_decrypt`, `encrypted_with`,
+`can_invoke`, `organizational_child`, `applies_scp`, `in_namespace`,
 `binds_service_account`, `federates_to`, `impersonates`, `role_assigned_to`.
 
 ## Node shape
@@ -57,6 +57,25 @@ so the emitter and the risk engine read the same facts.
 The JSON key is `from` (a Python keyword). The model uses a `from_` field with
 a `from` alias. An edge's stable id is `from->type->to`. Ground-truth paths
 use that id.
+
+## Ground-truth path shape
+
+```json
+{
+  "id": "path-critical-kms-01",
+  "severity": "critical",
+  "nodes": ["role-reader", "s3-encrypted", "kms-data"],
+  "edges": ["role-reader->can_read->s3-encrypted", "s3-encrypted->encrypted_with->kms-data"],
+  "sink_kind": "key",
+  "target": "kms-data",
+  "explanation": "..."
+}
+```
+
+`target` is the node the attacker reaches, always the last node; `sink_kind`
+says what kind of thing that is (`data`, `secret`, `key`, `role`, `image`,
+`queue`, `snapshot`, `database`, `vault`). A path written without them loads
+as `data` ending at its last node.
 
 ## Invariants (enforced)
 

@@ -1,4 +1,11 @@
-"""``core.secretsmanager_policy_overbroad`` — Overbroad Secrets Manager resource policy."""
+"""``core.secretsmanager_policy_overbroad``: an overbroad Secrets Manager policy.
+
+What the attacker reaches is the secret itself (``sink_kind`` ``secret``): the
+resource policy lets an external account call GetSecretValue on the production
+database master credentials. The database those credentials open, and the
+records it holds, are in the estate with no edge from the secret, off the
+graded path.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +14,12 @@ from typing import Any
 
 from app.cloudforge import constants
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -80,9 +92,17 @@ def _nodes(ns: str) -> list[GraphNode]:
         ),
         _node(
             ns,
-            "data-prod-db-creds",
+            "rds-prod-primary",
+            NodeType.RDS_INSTANCE,
+            "prod-postgres-primary",
+            "high",
+            publicly_accessible="false",
+        ),
+        _node(
+            ns,
+            "data-prod-db-records",
             NodeType.DATASET,
-            "production-database-master-credentials",
+            "production-database-records",
             "critical",
             classification="restricted",
         ),
@@ -94,8 +114,8 @@ def _edges(ns: str) -> list[GraphEdge]:
         _edge(ns, "acct-external", "sec-db-creds", EdgeType.CAN_READ, "critical"),
         _edge(
             ns,
-            "sec-db-creds",
-            "data-prod-db-creds",
+            "rds-prod-primary",
+            "data-prod-db-records",
             EdgeType.STORES_SENSITIVE_DATA,
             "none",
         ),
@@ -127,16 +147,13 @@ def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-secrets-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "acct-external"),
-            _nid(ns, "sec-db-creds"),
-            _nid(ns, "data-prod-db-creds"),
-        ],
-        edges=[
-            _ek(ns, "acct-external", EdgeType.CAN_READ, "sec-db-creds"),
-            _ek(ns, "sec-db-creds", EdgeType.STORES_SENSITIVE_DATA, "data-prod-db-creds"),
-        ],
+        nodes=[_nid(ns, "acct-external"), _nid(ns, "sec-db-creds")],
+        edges=[_ek(ns, "acct-external", EdgeType.CAN_READ, "sec-db-creds")],
+        sink_kind=SinkKind.SECRET,
+        target=_nid(ns, "sec-db-creds"),
         explanation=(
-            "Untrusted external AWS account can directly decrypt master database credentials"
+            "The resource policy on prod-db-master-credentials grants "
+            "secretsmanager:GetSecretValue to an untrusted external account, which "
+            "reads the master credentials directly"
         ),
     )

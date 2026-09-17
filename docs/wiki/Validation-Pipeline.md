@@ -24,6 +24,7 @@ a `WARN` and is skipped. Only a real check failure produces a `FAIL`.
 | ground-truth nodes exist | a path names a node absent from the graph |
 | ground-truth edges exist | a path names an edge (`from->type->to`) absent from the graph |
 | ground-truth path exists | consecutive path nodes are not connected by a real edge |
+| critical-sink connectivity | no critical-risk edge reaches a path's declared `target` (the sink, whatever its type); with no paths declared, no critical edge reaches any `stores_sensitive_data` sink |
 | scenario constraints | node count exceeds `max_resources`, or too few critical paths |
 | no forbidden permissions | an `IAMPolicy` grants a destructive action |
 | broad grants documented | a broad `s3:Get*`/`s3:List*` grant has no matching expected finding |

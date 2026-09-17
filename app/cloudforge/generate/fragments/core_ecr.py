@@ -1,4 +1,9 @@
-"""``core.ecr_repository_public_read`` — Public container image repository."""
+"""``core.ecr_repository_public_read``: a public container image repository.
+
+What the attacker reaches is the repository (``sink_kind`` ``image``): the
+image and whatever it embeds. The proprietary source the image was built from
+also lives in a private archive bucket, off the graded path.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +11,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -71,6 +81,13 @@ def _nodes(ns: str) -> list[GraphNode]:
         ),
         _node(
             ns,
+            "s3-source-archive",
+            NodeType.S3_BUCKET,
+            "payment-gateway-source-archive",
+            "high",
+        ),
+        _node(
+            ns,
             "data-proprietary-source",
             NodeType.DATASET,
             "proprietary-payment-gateway-code",
@@ -85,7 +102,7 @@ def _edges(ns: str) -> list[GraphEdge]:
         _edge(ns, "acct-main", "ecr-payment-gateway", EdgeType.EXPOSED_TO_INTERNET, "critical"),
         _edge(
             ns,
-            "ecr-payment-gateway",
+            "s3-source-archive",
             "data-proprietary-source",
             EdgeType.STORES_SENSITIVE_DATA,
             "none",
@@ -118,22 +135,12 @@ def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-ecr-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "acct-main"),
-            _nid(ns, "ecr-payment-gateway"),
-            _nid(ns, "data-proprietary-source"),
-        ],
-        edges=[
-            _ek(ns, "acct-main", EdgeType.EXPOSED_TO_INTERNET, "ecr-payment-gateway"),
-            _ek(
-                ns,
-                "ecr-payment-gateway",
-                EdgeType.STORES_SENSITIVE_DATA,
-                "data-proprietary-source",
-            ),
-        ],
+        nodes=[_nid(ns, "acct-main"), _nid(ns, "ecr-payment-gateway")],
+        edges=[_ek(ns, "acct-main", EdgeType.EXPOSED_TO_INTERNET, "ecr-payment-gateway")],
+        sink_kind=SinkKind.IMAGE,
+        target=_nid(ns, "ecr-payment-gateway"),
         explanation=(
-            "Public container repository policy allows unauthenticated extraction "
-            "of proprietary payment gateway code"
+            "The payment-gateway-service repository policy grants pull to *, so anyone "
+            "can extract the image and whatever the layers embed"
         ),
     )

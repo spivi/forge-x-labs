@@ -6,7 +6,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -159,6 +164,8 @@ def _critical(ns: str) -> GroundTruthPath:
             _ek(ns, "role-lambda-exec", EdgeType.CAN_READ, "s3-customer-orders"),
             _ek(ns, "s3-customer-orders", EdgeType.STORES_SENSITIVE_DATA, "data-customer-orders"),
         ],
+        sink_kind=SinkKind.DATA,
+        target=_nid(ns, "data-customer-orders"),
         explanation=(
             "Public unauthenticated Lambda Function URL proxies "
             "directly to sensitive customer order history"

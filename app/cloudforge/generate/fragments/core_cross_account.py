@@ -1,8 +1,10 @@
-"""``core.cross_account_trust`` fragment — external account trusted into data.
+"""``core.cross_account_trust`` fragment: an external account trusted into a role.
 
-Story: a dummy partner account (``999999999999``) is trusted by a SharedRole
-that can ``s3:Get*/List*`` a sensitive partner-exchange bucket. The critical
-path is the cross-account assume, not a public bucket or a PassRole chain.
+Story: a dummy partner account (``999999999999``) is trusted by a SharedRole.
+What the attacker reaches is that role (``sink_kind`` ``role``): the critical
+path is the cross-account assume, not a public bucket or a PassRole chain. The
+role can also ``s3:Get*/List*`` a sensitive partner-exchange bucket; that is the
+second, high-severity path, what the role can read once it is held.
 """
 
 from __future__ import annotations
@@ -12,7 +14,12 @@ from typing import Any
 
 from app.cloudforge import constants
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -62,7 +69,7 @@ class CrossAccountTrust:
             nodes=_nodes(ns),
             edges=_edges(ns),
             findings=_findings(ns),
-            paths=[_critical(ns)],
+            paths=[_critical(ns), _data_path(ns)],
         )
 
 
@@ -128,28 +135,39 @@ def _edges(ns: str) -> list[GraphEdge]:
     ]
 
 
+def _ek(ns: str, src: str, edge_type: EdgeType, dst: str) -> str:
+    return f"{_nid(ns, src)}->{edge_type.value}->{_nid(ns, dst)}"
+
+
 def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-xacct-01"),
         severity="critical",
-        nodes=[
-            _nid(ns, "acct-external"),
-            _nid(ns, "role-shared"),
-            _nid(ns, "s3-partner-data"),
-            _nid(ns, "data-partner"),
-        ],
-        edges=[
-            f"{_nid(ns, 'acct-external')}->{EdgeType.ASSUMES.value}->{_nid(ns, 'role-shared')}",
-            f"{_nid(ns, 'role-shared')}->{EdgeType.CAN_READ.value}->{_nid(ns, 's3-partner-data')}",
-            (
-                f"{_nid(ns, 's3-partner-data')}->{EdgeType.STORES_SENSITIVE_DATA.value}"
-                f"->{_nid(ns, 'data-partner')}"
-            ),
-        ],
+        nodes=[_nid(ns, "acct-external"), _nid(ns, "role-shared")],
+        edges=[_ek(ns, "acct-external", EdgeType.ASSUMES, "role-shared")],
+        sink_kind=SinkKind.ROLE,
+        target=_nid(ns, "role-shared"),
         explanation=(
-            "Partner account 999999999999 is trusted to assume SharedRole; "
-            "SharedRole holds s3:Get*/List* on partner-exchange, which stores "
-            "sensitive partner records."
+            "Partner account 999999999999 is trusted to assume SharedRole, so an "
+            "external principal holds a role inside this account."
+        ),
+    )
+
+
+def _data_path(ns: str) -> GroundTruthPath:
+    return GroundTruthPath(
+        id=_nid(ns, "path-high-xacct-data-01"),
+        severity="high",
+        nodes=[_nid(ns, "role-shared"), _nid(ns, "s3-partner-data"), _nid(ns, "data-partner")],
+        edges=[
+            _ek(ns, "role-shared", EdgeType.CAN_READ, "s3-partner-data"),
+            _ek(ns, "s3-partner-data", EdgeType.STORES_SENSITIVE_DATA, "data-partner"),
+        ],
+        sink_kind=SinkKind.DATA,
+        target=_nid(ns, "data-partner"),
+        explanation=(
+            "SharedRole holds s3:Get*/List* on partner-exchange, which stores sensitive "
+            "partner records: what the trusted role can read once it is held."
         ),
     )
 

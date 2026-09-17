@@ -143,16 +143,16 @@ The workbench is a single HTML file with no CDN:
 |---|---|---|
 | `ci_cd_iam_chain` | CI OIDC identity -> PassRole -> sensitive data | `examples/ci_cd_iam_chain.yaml` |
 | `public_data_exposure` | Public-read S3 bucket with PII and decoys | `examples/public_data_exposure.yaml` |
-| `cross_account_trust` | External account trusted into sensitive data | `examples/cross_account_trust.yaml` |
-| `kms_key_overbroad` | Wildcard `kms:Decrypt` on a key policy | `examples/kms_key_overbroad.yaml` |
-| `public_ebs_snapshot` | Unencrypted snapshot shared with `all` | `examples/public_ebs_snapshot.yaml` |
-| `iam_privesc_policy_version` | `iam:CreatePolicyVersion` to admin | `examples/iam_privesc_policy_version.yaml` |
+| `cross_account_trust` | External account trusted into a role; the data it reads is a second path | `examples/cross_account_trust.yaml` |
+| `kms_key_overbroad` | Wildcard `kms:Decrypt` on a key policy; reaches the key | `examples/kms_key_overbroad.yaml` |
+| `public_ebs_snapshot` | Unencrypted snapshot shared with `all`; reaches the snapshot | `examples/public_ebs_snapshot.yaml` |
+| `iam_privesc_policy_version` | `iam:CreatePolicyVersion` to an admin-capable role; its payroll read is a second path | `examples/iam_privesc_policy_version.yaml` |
 | `ec2_imds_credential_exfil` | SSRF / IMDSv1 hop to instance role creds | `examples/ec2_imds_credential_exfil.yaml` |
 | `lambda_public_function_url` | Unauthenticated Function URL (`NONE`) | `examples/lambda_public_function_url.yaml` |
-| `secretsmanager_policy_overbroad` | Wildcard `secretsmanager:GetSecretValue` | `examples/secretsmanager_policy_overbroad.yaml` |
-| `public_rds_instance` | Public RDS with `0.0.0.0/0` ingress | `examples/public_rds_instance.yaml` |
-| `ecr_repository_public_read` | Public registry leaking deploy tokens | `examples/ecr_repository_public_read.yaml` |
-| `sqs_queue_overbroad_policy` | Wildcard SQS policy | `examples/sqs_queue_overbroad_policy.yaml` |
+| `secretsmanager_policy_overbroad` | External `secretsmanager:GetSecretValue`; reaches the secret | `examples/secretsmanager_policy_overbroad.yaml` |
+| `public_rds_instance` | Public RDS with `0.0.0.0/0` ingress; reaches the database | `examples/public_rds_instance.yaml` |
+| `ecr_repository_public_read` | Public registry; reaches the image and what it embeds | `examples/ecr_repository_public_read.yaml` |
+| `sqs_queue_overbroad_policy` | Wildcard SQS policy; reaches the messages in flight | `examples/sqs_queue_overbroad_policy.yaml` |
 | `k8s_pod_irsa_exfil` | Pod IRSA token -> IAM role -> sensitive S3 | `examples/k8s_pod_irsa_exfil.yaml` |
 | `azure_imds_keyvault_harvest` | App Service IMDS -> Key Vault | `examples/azure_imds_keyvault_harvest.yaml` |
 | `gcp_workload_identity_federation` | Workload Identity Pool -> GCS | `examples/gcp_workload_identity_federation.yaml` |

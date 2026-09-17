@@ -131,7 +131,11 @@ def build_critical_path(bundle: ScenarioBundle, *, integrity_failed: bool = Fals
     for path in bundle.ground_truth.paths:
         chain = " → ".join(path.nodes)
         status = " - NOT VERIFIED" if integrity_failed else ""
-        lines.append(f"### `{path.id}` ({path.severity}){status}\n\n{chain}\n\n{path.explanation}")
+        reaches = f"**Reaches:** {path.sink_kind.value} `{path.target}`"
+        lines.append(
+            f"### `{path.id}` ({path.severity}){status}\n\n{chain}\n\n{reaches}\n\n"
+            f"{path.explanation}"
+        )
     return "\n\n".join(lines)
 
 

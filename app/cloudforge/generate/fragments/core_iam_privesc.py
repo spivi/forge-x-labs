@@ -1,4 +1,12 @@
-"""``core.iam_privesc_policy_version`` — IAM policy editing privilege escalation."""
+"""``core.iam_privesc_policy_version``: IAM policy-version privilege escalation.
+
+Story: a developer role holds ``iam:CreatePolicyVersion`` and
+``iam:SetDefaultPolicyVersion`` on the managed policy attached to AppOperatorRole,
+a role it can also assume. Publishing a new default version makes that role
+admin-capable in the developer's hands. What the attacker reaches is the role
+(``sink_kind`` ``role``); the payroll data the role can read today is the second,
+high-severity path.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +14,12 @@ from random import Random
 from typing import Any
 
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.findings import ExpectedFinding, FindingFamily, GroundTruthPath
+from app.cloudforge.models.findings import (
+    ExpectedFinding,
+    FindingFamily,
+    GroundTruthPath,
+    SinkKind,
+)
 from app.cloudforge.models.graph import (
     EdgeSecurity,
     EdgeType,
@@ -18,6 +31,7 @@ from app.cloudforge.models.graph import (
 )
 
 _TAGS = NodeTags(env="prod", owner="identity-security", app="iam-lifecycle")
+_TARGET_POLICY_ARN = "arn:aws:iam::000000000000:policy/AppOperatorDataPolicy"
 
 
 def _nid(ns: str, node_id: str) -> str:
@@ -53,7 +67,7 @@ class IamPrivescPolicyVersion:
             nodes=_nodes(ns),
             edges=_edges(ns),
             findings=_findings(ns),
-            paths=[_critical(ns)],
+            paths=[_critical(ns), _data_path(ns)],
         )
 
 
@@ -68,6 +82,7 @@ def _nodes(ns: str) -> list[GraphNode]:
             "PolicyLifecycleManagementPolicy",
             "critical",
             actions=["iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion"],
+            resource=_TARGET_POLICY_ARN,
         ),
         _node(ns, "role-app-operator", NodeType.IAM_ROLE, "AppOperatorRole", "high"),
         _node(
@@ -146,19 +161,35 @@ def _critical(ns: str) -> GroundTruthPath:
     return GroundTruthPath(
         id=_nid(ns, "path-critical-privesc-01"),
         severity="critical",
+        nodes=[_nid(ns, "role-developer"), _nid(ns, "role-app-operator")],
+        edges=[_ek(ns, "role-developer", EdgeType.ASSUMES, "role-app-operator")],
+        sink_kind=SinkKind.ROLE,
+        target=_nid(ns, "role-app-operator"),
+        explanation=(
+            "DeveloperOperationsRole holds iam:CreatePolicyVersion and "
+            "iam:SetDefaultPolicyVersion on AppOperatorDataPolicy and can assume "
+            "AppOperatorRole: a new default version makes that role admin-capable"
+        ),
+    )
+
+
+def _data_path(ns: str) -> GroundTruthPath:
+    return GroundTruthPath(
+        id=_nid(ns, "path-high-privesc-data-01"),
+        severity="high",
         nodes=[
-            _nid(ns, "role-developer"),
             _nid(ns, "role-app-operator"),
             _nid(ns, "s3-payroll-records"),
             _nid(ns, "data-payroll-records"),
         ],
         edges=[
-            _ek(ns, "role-developer", EdgeType.ASSUMES, "role-app-operator"),
             _ek(ns, "role-app-operator", EdgeType.CAN_READ, "s3-payroll-records"),
             _ek(ns, "s3-payroll-records", EdgeType.STORES_SENSITIVE_DATA, "data-payroll-records"),
         ],
+        sink_kind=SinkKind.DATA,
+        target=_nid(ns, "data-payroll-records"),
         explanation=(
-            "Developer role with iam:CreatePolicyVersion escalates "
-            "to access sensitive payroll records"
+            "AppOperatorRole already reads payroll-records: what the escalated role "
+            "can read before any policy is rewritten"
         ),
     )

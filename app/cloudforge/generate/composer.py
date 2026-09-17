@@ -68,6 +68,7 @@ from app.cloudforge.generate.fragments import (
 from app.cloudforge.generate.fragments.base import FragmentBundle, get_fragment
 from app.cloudforge.generate.scale_profiles import get_profile
 from app.cloudforge.models.findings import (
+    SINK_NODE_TYPES,
     ExpectedFinding,
     ExpectedFindings,
     GroundTruthPath,
@@ -256,6 +257,7 @@ class GraphComposer:
             findings.extend(part.findings)
             paths.extend(part.paths)
         _assert_unique_ids(nodes)
+        _assert_sinks_declared(nodes, paths)
         blend_into_padding(nodes, paths, Random(self._seed + _BLEND_STREAM))
         _dedupe_names(nodes)
         if salt:
@@ -300,6 +302,19 @@ def _assert_unique_ids(nodes: list[GraphNode]) -> None:
         if node.id in seen:
             raise GraphIntegrityError(f"duplicate composed node id: {node.id}")
         seen.add(node.id)
+
+
+def _assert_sinks_declared(nodes: list[GraphNode], paths: list[GroundTruthPath]) -> None:
+    """Every path ends at its declared target, and the target has the type its
+    ``sink_kind`` names; a fragment that drifts fails here, before any artifact."""
+    types = {node.id: node.type for node in nodes}
+    for path in paths:
+        if path.target != path.nodes[-1]:
+            raise GraphIntegrityError(f"{path.id}: target {path.target} is not the last node")
+        if types.get(path.target) not in SINK_NODE_TYPES[path.sink_kind]:
+            raise GraphIntegrityError(
+                f"{path.id}: target {path.target} is not a {path.sink_kind.value} sink"
+            )
 
 
 def _dedupe_names(nodes: list[GraphNode]) -> None:
