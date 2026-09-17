@@ -9,6 +9,8 @@
   per student. No cloud account required.
 </p>
 
+Status: a local CLI. No hosted service, no accounts, nothing is ever applied to a cloud.
+
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
@@ -224,5 +226,7 @@ PYTHONPATH=. poetry run pytest tests/cloudforge tests/security tests/unit tests/
 
 ## Docs
 
-[`docs/wiki/`](docs/wiki/) covers architecture, the graph model, validation,
-scenario families, [labs](docs/wiki/Labs.md), and safety.
+[Labs](docs/wiki/Labs.md), [Scenario Families](docs/wiki/Scenario-Families.md), and
+[Adding a Family](docs/wiki/Adding-a-Family.md). The rest of
+[`docs/wiki/`](docs/wiki/) (architecture, the graph model, validation, the
+learning corpus) is there for contributors.
