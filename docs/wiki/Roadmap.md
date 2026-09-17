@@ -13,8 +13,8 @@
 
 ## Next
 
-Terraform emitters for Azure, GCP, and Kubernetes, so the graph-only families
-become dual-target (graph + HCL) like the AWS set.
+Deeper Azure/GCP/K8s HCL (role assignments, IRSA trust policy conditions) and
+more families.
 
 ## The extension seam
 

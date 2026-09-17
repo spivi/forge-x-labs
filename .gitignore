@@ -82,3 +82,6 @@ docs/plans/
 docs/project-management/
 docs/superpowers/
 docs/wiki/Template-Feedback.md
+
+.agents/
+skills-lock.json

@@ -20,8 +20,9 @@ Azure: `AzureManagementGroup`, `AzureSubscription`, `AzureEntraTenant`,
 GCP: `GcpOrganization`, `GcpFolder`, `GcpProject`, `GcpComputeInstance`,
 `GcpServiceAccount`, `GcpWorkloadIdentityPool`, `GcpStorageBucket`.
 
-Azure, GCP, and Kubernetes nodes are modeled in the graph and workbench.
-They do not emit Terraform yet.
+Azure, GCP, and Kubernetes nodes are modeled in the graph and emit never-applied
+Terraform (`azure.tf`, `gcp.tf`, `k8s.tf`). Org, subscription, and cluster
+nodes stay passive (no resource block).
 
 ## Edge types (v1)
 

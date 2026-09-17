@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Terraform for the K8s, Azure, and GCP families. Still never applied.
+
 ## 1.1.0 (2026-09-17)
 
 Three graph-only labs outside AWS Terraform:

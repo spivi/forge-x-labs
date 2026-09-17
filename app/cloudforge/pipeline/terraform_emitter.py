@@ -15,6 +15,9 @@ from pathlib import Path
 from app.cloudforge.io.loaders import write_text
 from app.cloudforge.models.graph import GraphNode, ScenarioGraph
 from app.cloudforge.pipeline import (
+    terraform_azure as azure,
+)
+from app.cloudforge.pipeline import (
     terraform_blocks as blocks,
 )
 from app.cloudforge.pipeline import (
@@ -22,6 +25,15 @@ from app.cloudforge.pipeline import (
 )
 from app.cloudforge.pipeline import (
     terraform_database as database,
+)
+from app.cloudforge.pipeline import (
+    terraform_gcp as gcp,
+)
+from app.cloudforge.pipeline import (
+    terraform_k8s as k8s,
+)
+from app.cloudforge.pipeline import (
+    terraform_providers as providers,
 )
 from app.cloudforge.pipeline import (
     terraform_serverless as serverless,
@@ -32,12 +44,11 @@ from app.cloudforge.pipeline import (
 from app.cloudforge.pipeline.label_collisions import check_label_collisions
 
 _STATIC_BUILDERS: dict[str, Callable[[], str]] = {
-    "providers.tf": blocks.build_providers_tf,
     "variables.tf": blocks.build_variables_tf,
 }
 
-# ``main.tf`` derives ``common_tags`` from the graph, so it is graph-aware, not static.
 _MAIN_FILENAME = "main.tf"
+_PROVIDERS_FILENAME = "providers.tf"
 
 _GRAPH_BUILDERS: dict[str, Callable[[list[GraphNode]], str]] = {
     "iam.tf": blocks.build_iam_tf,
@@ -49,6 +60,9 @@ _GRAPH_BUILDERS: dict[str, Callable[[list[GraphNode]], str]] = {
     "serverless.tf": serverless.build_serverless_tf,
     "database.tf": database.build_database_tf,
     "services.tf": services.build_services_tf,
+    "azure.tf": azure.build_azure_tf,
+    "gcp.tf": gcp.build_gcp_tf,
+    "k8s.tf": k8s.build_k8s_tf,
 }
 
 
@@ -64,6 +78,13 @@ class TerraformEmitter:
         # duplicate resource (FXL-N4).
         check_label_collisions(self._graph.nodes)
         written: list[Path] = []
+        written.append(
+            self._write(
+                terraform_dir,
+                _PROVIDERS_FILENAME,
+                providers.build_providers_tf(self._graph.nodes),
+            )
+        )
         for filename, static_builder in _STATIC_BUILDERS.items():
             written.append(self._write(terraform_dir, filename, static_builder()))
         tags = blocks.derive_common_tags(self._graph.nodes)

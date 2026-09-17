@@ -25,9 +25,8 @@ in the template generator and the composer.
 
 Examples live in `examples/<type>.yaml`.
 
-Graph-only families still run through `lab` / `grade` / the workbench. They do
-not emit Azure, GCP, or Kubernetes Terraform. The K8s family does emit the AWS
-IAM role and S3 bucket that sit at the end of the IRSA path.
+The K8s, Azure, and GCP families emit matching Terraform (`k8s.tf`, `azure.tf`,
+`gcp.tf`) plus any AWS resources on the path. Still never applied.
 
 ### `ci_cd_iam_chain` (detail)
 

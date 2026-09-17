@@ -34,6 +34,9 @@ TERRAFORM_FILES: Final = (
     "serverless.tf",
     "database.tf",
     "services.tf",
+    "azure.tf",
+    "gcp.tf",
+    "k8s.tf",
 )
 
 # --- safe fake values (never deployed) ---------------------------------------

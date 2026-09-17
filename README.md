@@ -140,9 +140,9 @@ The workbench is a single HTML file with no CDN:
 
 Dummy account `000000000000`. Never applied.
 
-The last three families are **graph-only**. They generate a risk graph, workbench,
-and grade key. Terraform is still AWS-only: Azure, GCP, and Kubernetes nodes
-do not emit `.tf` resources yet. Use `--engine composer` (the `lab` default).
+The last three families emit Azure, GCP, or Kubernetes Terraform plus any AWS
+resources on the path. Still never applied. Use `--engine composer` (the `lab`
+default).
 
 ## Safety
 
