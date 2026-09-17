@@ -64,7 +64,7 @@ class ScenarioSpec(BaseModel):
     cloud: Literal["aws", "azure", "gcp", "k8s", "multi_cloud"] = "aws"
     scenario_type: str
     environment: str
-    difficulty: str
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
     company_profile: CompanyProfile
     requirements: Requirements
     constraints: Constraints

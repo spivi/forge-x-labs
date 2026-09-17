@@ -109,6 +109,58 @@ def test_variation_axes_override_decoy_count() -> None:
     assert [n for n in g.nodes if n.origin == "decoy"] == []
 
 
+def _origin_counts(spec: ScenarioSpec, seed: int) -> dict[str, int]:
+    g = GraphComposer(spec, seed=seed).generate().graph
+    counts: dict[str, int] = {}
+    for n in g.nodes:
+        counts[n.origin or "?"] = counts.get(n.origin or "?", 0) + 1
+    return counts
+
+
+def test_easy_difficulty_yields_fewer_extras_than_hard() -> None:
+    """Same spec, same seed: easy must always under-shoot hard on every extra kind.
+
+    ``decoy.iam_role_dead_end`` mints 2 nodes per instance (role + policy),
+    ``false_positive.public_denied_bucket`` mints 1, ``compensating_control.explicit_deny``
+    mints 2 -- so a decoy count of 1 vs 3 shows up as 2 vs 6 nodes, not 1 vs 3.
+    """
+    for seed in (1, 7, 17):
+        easy = _origin_counts(_spec(scale_profile="small", difficulty="easy"), seed)
+        hard = _origin_counts(_spec(scale_profile="small", difficulty="hard"), seed)
+        assert easy.get("decoy", 0) == 2  # 1 instance
+        assert easy.get("false_positive", 0) == 0
+        assert easy.get("compensating_control", 0) == 0
+        assert hard.get("decoy", 0) == 6  # 3 instances
+        assert hard.get("false_positive", 0) == 2  # 2 instances
+        assert hard.get("compensating_control", 0) in (2, 4)  # 1..2 instances
+        assert easy.get("decoy", 0) < hard.get("decoy", 0)
+        assert easy.get("false_positive", 0) < hard.get("false_positive", 0)
+
+
+def test_difficulty_biases_the_noise_fill_toward_the_profile_ends() -> None:
+    """Easy stays near ``min_nodes``; hard stays near ``max_nodes``, over many seeds."""
+    easy_spec = _spec(scale_profile="medium", difficulty="easy")
+    hard_spec = _spec(scale_profile="medium", difficulty="hard")
+    easy_sizes = [len(GraphComposer(easy_spec, seed=s).generate().graph.nodes) for s in range(20)]
+    hard_sizes = [len(GraphComposer(hard_spec, seed=s).generate().graph.nodes) for s in range(20)]
+    assert sum(easy_sizes) / len(easy_sizes) < sum(hard_sizes) / len(hard_sizes)
+
+
+def test_variation_axes_override_wins_over_difficulty() -> None:
+    """A hard spec would otherwise mint 3 decoys; an explicit override still wins."""
+    spec = _spec(scale_profile="small", difficulty="hard", variation_axes={"decoy": "0"})
+    g = GraphComposer(spec, seed=1).generate().graph
+    assert [n for n in g.nodes if n.origin == "decoy"] == []
+
+
+def test_difficulty_is_deterministic_per_spec_and_seed() -> None:
+    for difficulty in ("easy", "medium", "hard"):
+        spec = _spec(scale_profile="small", difficulty=difficulty)
+        a = GraphComposer(spec, seed=5).generate()
+        b = GraphComposer(spec, seed=5).generate()
+        assert a.graph.model_dump(by_alias=True) == b.graph.model_dump(by_alias=True)
+
+
 def test_stays_within_max_nodes_for_tiny_profile() -> None:
     """The mandatory extras must not push a tight profile past its ``max_nodes``."""
     g = GraphComposer(_spec(scale_profile="tiny"), seed=1).generate().graph

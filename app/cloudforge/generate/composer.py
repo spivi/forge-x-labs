@@ -3,8 +3,10 @@
 A sibling of ``TemplateGenerator`` behind the ``ScenarioGenerator`` protocol.
 Given ``(spec, seed)`` it draws a deterministic *fragment plan* — one
 ``core.<family>`` fragment plus decoy / false-positive / compensating-control
-counts derived from ``spec.variation_axes`` — then fills with diverse ``benign_noise``
-until the scale profile's node band is met. Every fragment owns its own
+counts derived from ``spec.difficulty`` (``spec.variation_axes`` overrides win
+per kind) — then fills with diverse ``benign_noise``, biased toward the low or
+high end of the scale profile's node band by the same difficulty, until that
+band is met. Every fragment owns its own
 namespaced ids, so the assembled graph, findings, and ground truth cannot
 disagree; a globally-duplicate id raises ``GraphIntegrityError`` before any
 projection. The only randomness is ``Random(seed)``, so the same ``(spec, seed)``
@@ -71,6 +73,15 @@ _Draft = list[tuple[str, dict[str, Any]]]
 # Placeholder namespace used only to count a fragment's nodes while planning.
 _COUNT_NS = "plan"
 
+# Per-difficulty extra-fragment counts, keyed by the ``SHORT`` vocabulary
+# (``decoy``/``fp``/``ctrl``). A fixed int is used as-is; a ``(lo, hi)`` pair is
+# drawn with ``rng.randint``. "medium" is absent on purpose: it keeps today's
+# ``rng.randint(1, 3)`` for every kind, which ``_axis_count`` falls back to.
+_DIFFICULTY_EXTRA_COUNTS: dict[str, dict[str, int | tuple[int, int]]] = {
+    "easy": {"decoy": 1, "fp": 0, "ctrl": 0},
+    "hard": {"decoy": 3, "fp": 2, "ctrl": (1, 2)},
+}
+
 
 class GraphComposer:
     """Assembles one scenario from seeded fragments (deterministic per seed)."""
@@ -98,10 +109,14 @@ class GraphComposer:
         return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
 
     def _axis_count(self, kind: str, rng: Random) -> int:
-        override = self._spec.variation_axes.get(SHORT[kind])
+        short = SHORT[kind]
+        override = self._spec.variation_axes.get(short)
         if override is not None:
             return max(0, int(override))
-        return rng.randint(1, 3)
+        fixed = _DIFFICULTY_EXTRA_COUNTS.get(self._spec.difficulty, {}).get(short)
+        if fixed is None:
+            return rng.randint(1, 3)
+        return rng.randint(*fixed) if isinstance(fixed, tuple) else fixed
 
     def _add_extras(self, draft: _Draft, kind: str, count: int) -> None:
         """Append up to ``count`` instances of ``kind`` while the plan stays under
@@ -112,12 +127,26 @@ class GraphComposer:
             draft.append((kind, {}))
 
     def _fill_to_scale(self, draft: _Draft, rng: Random) -> _Draft:
-        target = rng.randint(self._profile.min_nodes, self._profile.max_nodes)
+        target = rng.randint(*self._noise_target_range())
         planned = self._planned_node_count(draft)
         while planned < target and planned < self._profile.max_nodes:
             draft.append((rng.choice(NOISE_KINDS), {}))
             planned += 1
         return draft
+
+    def _noise_target_range(self) -> tuple[int, int]:
+        """The ``rng.randint`` band ``_fill_to_scale`` draws its node target from.
+
+        "easy" biases toward the profile's low end, "hard" toward its high end;
+        "medium" draws from the whole band, same as before difficulty mattered.
+        """
+        lo, hi = self._profile.min_nodes, self._profile.max_nodes
+        third = (hi - lo) // 3
+        if self._spec.difficulty == "easy":
+            return lo, lo + third
+        if self._spec.difficulty == "hard":
+            return hi - third, hi
+        return lo, hi
 
     def _planned_node_count(self, draft: _Draft) -> int:
         rng = Random(0)

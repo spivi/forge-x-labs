@@ -32,7 +32,7 @@ constraints:
 | `cloud` | `"aws"` / `"azure"` / `"gcp"` / `"k8s"` / `"multi_cloud"` | AWS families emit Terraform. Azure, GCP, and K8s families are graph-only. |
 | `scenario_type` | string | Dispatches to a generator (for example `ci_cd_iam_chain`) |
 | `environment` | string | for example `staging` |
-| `difficulty` | string | for example `medium` |
+| `difficulty` | `"easy"` / `"medium"` / `"hard"` | Defaults to `medium`. Drives the composer's decoy, false-positive, and compensating-control counts and biases the noise fill toward the low or high end of the scale profile, when `variation_axes` does not override a kind |
 | `company_profile.type/size/app_name` | string | Narrative context |
 | `requirements.critical_chains` | int | Expected critical risk paths |
 | `requirements.medium_findings` | int | Expected medium findings |

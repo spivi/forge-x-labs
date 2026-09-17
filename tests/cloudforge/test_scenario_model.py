@@ -39,3 +39,22 @@ def test_scenario_extra_field_forbidden_raises() -> None:
 
     with pytest.raises(ValidationError):
         ScenarioSpec.model_validate(payload)
+
+
+def test_scenario_difficulty_defaults_to_medium() -> None:
+    payload = {k: v for k, v in _VALID.items() if k != "difficulty"}
+    spec = ScenarioSpec.model_validate(payload)
+    assert spec.difficulty == "medium"
+
+
+@pytest.mark.parametrize("difficulty", ["easy", "medium", "hard"])
+def test_scenario_accepts_the_three_valid_difficulties(difficulty: str) -> None:
+    payload = {**_VALID, "difficulty": difficulty}
+    assert ScenarioSpec.model_validate(payload).difficulty == difficulty
+
+
+def test_scenario_invalid_difficulty_raises() -> None:
+    payload = {**_VALID, "difficulty": "extreme"}
+
+    with pytest.raises(ValidationError):
+        ScenarioSpec.model_validate(payload)

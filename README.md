@@ -46,6 +46,11 @@ range.
 We lose on live console practice and catalog depth. We win on no account,
 per-student copies, and a machine-checkable key.
 
+Fifteen families, one attack story each. Seeds change the estate around the story (names,
+noise, decoys, hop count on the CI chain), not the story. `difficulty` sets how many decoys
+and false positives sit around it. The community is welcome to fork, add, and contribute
+more sophisticated scenarios; see CONTRIBUTING.md.
+
 ## Install
 
 Python **3.12+**. Contributors use Poetry; users can install the package:

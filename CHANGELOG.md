@@ -12,6 +12,15 @@
   cluster by fragment, and the non-core fragments draw operator-style names.
   The fragment kind is kept for the instructor in a new optional `origin`
   field on graph nodes, which the student strip never copies.
+- `difficulty` (`easy` / `medium` / `hard`, validated, defaults to `medium`)
+  now drives the composer: it sets the decoy, false-positive, and
+  compensating-control counts and biases the noise fill toward the low or
+  high end of the scale profile, unless `variation_axes` overrides a kind.
+  It was previously declared, echoed in the report, and used by nothing.
+- The two fake workbench tabs (Blue Defense, Forensics) are gone; both were
+  static decoration unrelated to the lab's actual findings.
+- The finding checklist is filtered to the vendors present in the estate, so
+  an Azure or GCP lab no longer lists AWS-only findings such as EC2 or RDS.
 
 ## 1.3.0 (2026-09-17)
 
