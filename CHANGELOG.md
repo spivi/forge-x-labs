@@ -1,8 +1,14 @@
 # Changelog
 
-## 1.2.0
+## 1.3.0 (2026-09-17)
 
-- Terraform for the K8s, Azure, and GCP families. Still never applied.
+SOC roundtable pack and multi-cloud labs.
+
+- `cloudforge roundtable`: unique student copies of the same identity-federation
+  lesson across Kubernetes (IRSA), Azure (managed identity), and GCP (Workload
+  Identity Pool). Writes `facilitator.md` with a 90-minute agenda.
+- Those three families emit never-applied Terraform (`k8s.tf`, `azure.tf`,
+  `gcp.tf`). AWS-only labs do not pull those providers.
 
 ## 1.1.0 (2026-09-17)
 

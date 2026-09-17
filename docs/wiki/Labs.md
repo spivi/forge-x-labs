@@ -33,6 +33,16 @@ cannot score itself.
 not Python `hash()`), writes `out/<name>/`, and `roster.json`.
 `grade-cohort` writes `results.md`.
 
+## Roundtable
+
+`cloudforge roundtable` is a SOC tabletop pack. Default track
+`identity_federation` rotates three families (Kubernetes IRSA, Azure
+managed identity, GCP Workload Identity Pool) across the roster so the
+share-out is the same attack class on three vendors.
+
+Writes `facilitator.md` (90-minute agenda), `roster.json`, and one
+student/instructor pack per name. Still never applied.
+
 ## Workbench
 
 `cloudforge challenge` writes a standalone `estate.html`. The in-browser

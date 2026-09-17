@@ -15,6 +15,7 @@ from app.cloudforge.lab.cohort import CohortRequest, grade_cohort, load_names, w
 from app.cloudforge.lab.grade import grade_submission
 from app.cloudforge.lab.pack import LabRequest, write_challenge_workbench, write_lab
 from app.cloudforge.lab.paths import LabPaths
+from app.cloudforge.lab.roundtable import RoundtableRequest, write_roundtable
 from app.cloudforge.lab.submission import GradeResult, LabSubmission
 from app.cloudforge.models.scenario import ScenarioSpec
 
@@ -29,6 +30,7 @@ def register_lab_commands(app: typer.Typer) -> None:
     app.command("grade")(grade)
     app.command("lab-cohort")(lab_cohort)
     app.command("grade-cohort")(grade_cohort_cmd)
+    app.command("roundtable")(roundtable)
 
 
 def challenge(
@@ -110,6 +112,22 @@ def grade_cohort_cmd(
         console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(code=1) from exc
     console.print(f"[green]results[/green] {results}")
+
+
+def roundtable(
+    students: Annotated[Path, typer.Option("--students", help="One name per line.")],
+    out: Annotated[Path, typer.Option("--out", help="Roundtable directory.")],
+    track: Annotated[str, typer.Option("--track")] = "identity_federation",
+    engine: Annotated[str, typer.Option("--engine")] = "composer",
+) -> None:
+    """Unique labs across clouds for a SOC roundtable. Writes facilitator.md."""
+    try:
+        names = load_names(students)
+        write_roundtable(RoundtableRequest(track=track, names=names, engine=engine), out)
+    except _CLI_ERRORS as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    console.print(f"[green]roundtable[/green] {out}  facilitator={out / 'facilitator.md'}")
 
 
 def _grade_lab(lab_dir: Path, submission_path: Path) -> GradeResult:

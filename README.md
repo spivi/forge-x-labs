@@ -5,7 +5,7 @@
 <h1 align="center">Forge X Labs: <code>cloudforge</code></h1>
 
 <p align="center">
-  Generate a unique, validated, <strong>never-applied</strong> AWS misconfig lab
+  Generate a unique, validated, <strong>never-applied</strong> cloud misconfig lab
   per student. No cloud account required.
 </p>
 
@@ -28,7 +28,7 @@
 
 A trainer, SOC lead, or detection-eng onboarding owner needs analysts to
 practice finding a **cloud-risk path**, and cannot hand everyone a sandbox
-AWS account.
+cloud account.
 
 `cloudforge` generates a labeled estate (risk graph + Terraform + ground
 truth), hides the answer key from the student, and auto-grades a guessed
@@ -99,6 +99,21 @@ cloudforge grade out/alice --submission alice_guess.yaml
 cloudforge lab-cohort examples/ci_cd_iam_chain.yaml --students names.txt --out out/cohort
 cloudforge grade-cohort out/cohort --submissions out/subs
 ```
+
+### Roundtable (SOC tabletop, three clouds)
+
+Same identity-federation lesson, unique copies, three vendors. CPU only.
+
+```bash
+cloudforge roundtable --students examples/roundtable/roster.txt --out out/rt
+# out/rt/facilitator.md  90-minute agenda
+# out/rt/alice/          Kubernetes IRSA pack
+# out/rt/bob/            Azure managed-identity pack
+# out/rt/cara/           GCP Workload Identity pack
+```
+
+Open `student/estate.html`. Grade node-id guesses with `cloudforge grade`.
+Do not `terraform apply`.
 
 The student pack strips `expected_findings.json`, ground-truth attack paths,
 and risk annotations (`security.risk` / `criticality`).
