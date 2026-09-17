@@ -87,7 +87,14 @@ def _nodes(ns: str) -> list[GraphNode]:
             compensating_control="true",
         ),
         _node(ns, "app-data-lake", NodeType.APPLICATION, "customer-data-lake", "high"),
-        _node(ns, "data-customer-pii", NodeType.DATASET, "customer-pii-records", "critical"),
+        _node(
+            ns,
+            "data-customer-pii",
+            NodeType.DATASET,
+            "customer-pii-records",
+            "critical",
+            classification="restricted",
+        ),
         _node(ns, "trail-main", NodeType.LOG_TRAIL, "main-trail", "medium"),
     ]
 

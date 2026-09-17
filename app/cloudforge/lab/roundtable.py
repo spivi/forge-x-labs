@@ -1,4 +1,4 @@
-"""Facilitator pack: one identity-federation lesson, three clouds, unique copies."""
+"""Facilitator pack: one identity-federation lesson, four clouds, unique copies."""
 
 from __future__ import annotations
 
@@ -13,11 +13,14 @@ from app.cloudforge.lab.pack import LabRequest, write_lab
 from app.cloudforge.lab.paths import LabPaths
 from app.cloudforge.models.scenario import ScenarioSpec
 
+# Families rotate in this order across the roster (index modulo the tuple
+# length), so a four-name roster gets one estate per vendor.
 TRACKS: dict[str, tuple[str, ...]] = {
     "identity_federation": (
         "k8s_pod_irsa_exfil",
         "azure_imds_keyvault_harvest",
         "gcp_workload_identity_federation",
+        "ci_cd_iam_chain",
     ),
 }
 
@@ -27,13 +30,15 @@ CPU-only. No cloud account. Never `terraform apply`.
 
 ## Why this track
 
-Same attack class on three vendors. A workload proves who it is to a cloud
+Same attack class on four vendors. A workload proves who it is to a cloud
 IAM system, then reaches data. Students do not all get the same estate.
 They get the same lesson.
 
 - Kubernetes: a pod federates into AWS IAM (IRSA) and reads a bucket.
 - Azure: an App Service managed identity reaches Key Vault.
 - GCP: a CI identity federates through a Workload Identity Pool into GCS.
+- AWS: a GitHub Actions OIDC identity assumes a deploy role, passes a
+  runtime role, and reads a bucket.
 
 ## 90 minutes
 
@@ -41,7 +46,7 @@ They get the same lesson.
    trusted into IAM.
 2. 40 min. Each person opens `student/estate.html`. Find a path from an
    identity to data. Write the path as node ids, then a short paragraph.
-3. 30 min. Share-out. What was common across the three clouds? What was
+3. 30 min. Share-out. What was common across the four clouds? What was
    vendor-specific? Do not open `instructor/` yet.
 4. 10 min. Grade the node-id guesses:
 

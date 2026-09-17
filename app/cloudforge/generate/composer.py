@@ -1,12 +1,15 @@
 """The seeded fragment-composition engine (``GraphComposer``).
 
 A sibling of ``TemplateGenerator`` behind the ``ScenarioGenerator`` protocol.
-Given ``(spec, seed)`` it draws a deterministic *fragment plan* — one
+Given ``(spec, seed)`` it draws a deterministic *fragment plan*: one
 ``core.<family>`` fragment plus decoy / false-positive / compensating-control
 counts derived from ``spec.difficulty`` (``spec.variation_axes`` overrides win
-per kind) — then fills with diverse ``benign_noise``, biased toward the low or
+per role), then fills with diverse ``benign_noise``, biased toward the low or
 high end of the scale profile's node band by the same difficulty, until that
-band is met. Every fragment owns its own
+band is met. Every non-core kind is drawn from the vendor pool
+``composer_kinds.POOLS[spec.cloud]``, so the padding matches the estate's own
+cloud (a Kubernetes estate also gets the AWS pool, since its path federates
+into AWS). Every fragment owns its own
 namespaced ids, so the assembled graph, findings, and ground truth cannot
 disagree; a globally-duplicate id raises ``GraphIntegrityError`` before any
 projection. The only randomness is ``Random(seed)``, so the same ``(spec, seed)``
@@ -23,17 +26,19 @@ provenance lives only in ``GraphNode.origin``, which the student strip never cop
 
 from __future__ import annotations
 
+from collections import Counter
 from random import Random
 from typing import Any
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.composer_blend import PEERS_WANTED, blend_into_padding
 from app.cloudforge.generate.composer_ids import node_ns, retoken
 from app.cloudforge.generate.composer_kinds import (
     CORE_KINDS,
-    EXTRA_KINDS,
-    NOISE_KINDS,
-    SHORT,
+    EXTRA_ROLES,
+    NOISE_ROLE,
+    kinds_for,
     origin_of,
 )
 from app.cloudforge.generate.fragments import (
@@ -56,6 +61,9 @@ from app.cloudforge.generate.fragments import (
     core_sqs,  # noqa: F401
     decoy,  # noqa: F401
     false_positive,  # noqa: F401
+    noncore_azure,  # noqa: F401
+    noncore_gcp,  # noqa: F401
+    noncore_k8s,  # noqa: F401
 )
 from app.cloudforge.generate.fragments.base import FragmentBundle, get_fragment
 from app.cloudforge.generate.scale_profiles import get_profile
@@ -65,7 +73,7 @@ from app.cloudforge.models.findings import (
     GroundTruthPath,
     GroundTruthPaths,
 )
-from app.cloudforge.models.graph import GraphEdge, GraphNode, ScenarioGraph
+from app.cloudforge.models.graph import GraphEdge, GraphNode, NodeType, ScenarioGraph
 from app.cloudforge.models.scenario import ScenarioSpec
 
 _Plan = list[tuple[str, str, dict[str, Any]]]
@@ -77,10 +85,14 @@ _COUNT_NS = "plan"
 # (``decoy``/``fp``/``ctrl``). A fixed int is used as-is; a ``(lo, hi)`` pair is
 # drawn with ``rng.randint``. "medium" is absent on purpose: it keeps today's
 # ``rng.randint(1, 3)`` for every kind, which ``_axis_count`` falls back to.
+# "easy" always plans one compensating control: every control guards a
+# ``restricted`` data set nobody reaches, so the sink is never the only one.
 _DIFFICULTY_EXTRA_COUNTS: dict[str, dict[str, int | tuple[int, int]]] = {
-    "easy": {"decoy": 1, "fp": 0, "ctrl": 0},
+    "easy": {"decoy": 1, "fp": 0, "ctrl": 1},
     "hard": {"decoy": 3, "fp": 2, "ctrl": (1, 2)},
 }
+# The stream the tag/attribute blend draws its off-path targets from.
+_BLEND_STREAM = 523
 
 
 class GraphComposer:
@@ -100,38 +112,100 @@ class GraphComposer:
         )
 
     def _plan(self, rng: Random) -> _Plan:
-        draft: _Draft = [(self._core_kind(), {"path_hops": rng.randint(3, 5)})]
-        for kind in EXTRA_KINDS:
-            self._add_extras(draft, kind, self._axis_count(kind, rng))
-        return self._namespace(self._fill_to_scale(draft, rng))
+        core_params: dict[str, Any] = {"path_hops": rng.randint(3, 5)}
+        draft: _Draft = [(self._core_kind(), core_params)]
+        # Every non-core fragment learns the core's tag set so its own draws can
+        # share the core's owner and app (see ``_noncore.draw_tags``).
+        padding_params = {"core_tags": _core_tags(self._core_kind(), core_params)}
+        for role in EXTRA_ROLES:
+            count = self._axis_count(role, rng)
+            self._add_extras(draft, self._pool(role), count, rng, padding_params)
+        self._ensure_peers(draft, rng, padding_params)
+        return self._namespace(self._fill_to_scale(draft, rng, padding_params))
 
     def _core_kind(self) -> str:
         return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
 
-    def _axis_count(self, kind: str, rng: Random) -> int:
-        short = SHORT[kind]
-        override = self._spec.variation_axes.get(short)
+    def _pool(self, role: str) -> tuple[str, ...]:
+        """The kinds of ``role`` in the spec's vendor pool (``POOLS[spec.cloud]``)."""
+        return kinds_for(self._spec.cloud, role)
+
+    def _axis_count(self, role: str, rng: Random) -> int:
+        """How many instances of ``role`` to plan: the ``variation_axes`` override,
+        else the difficulty table, else ``rng.randint(1, 3)``. Counted per role, so
+        the vendor of the kind that fills a slot never changes the count."""
+        override = self._spec.variation_axes.get(role)
         if override is not None:
             return max(0, int(override))
-        fixed = _DIFFICULTY_EXTRA_COUNTS.get(self._spec.difficulty, {}).get(short)
+        fixed = _DIFFICULTY_EXTRA_COUNTS.get(self._spec.difficulty, {}).get(role)
         if fixed is None:
             return rng.randint(1, 3)
         return rng.randint(*fixed) if isinstance(fixed, tuple) else fixed
 
-    def _add_extras(self, draft: _Draft, kind: str, count: int) -> None:
-        """Append up to ``count`` instances of ``kind`` while the plan stays under
-        the profile's ``max_nodes`` ceiling (reserving one slot for scale fill)."""
+    def _add_extras(
+        self,
+        draft: _Draft,
+        kinds: tuple[str, ...],
+        count: int,
+        rng: Random,
+        params: dict[str, Any],
+    ) -> None:
+        """Append up to ``count`` instances drawn from ``kinds`` while the plan stays
+        under the profile's ``max_nodes`` ceiling (reserving one slot for scale fill).
+        Counts the drawn kind's real size: a control mints three nodes."""
         for _ in range(count):
-            if self._planned_node_count(draft) >= self._profile.max_nodes - 1:
+            kind = _pick(rng, kinds)
+            planned = self._planned_node_count(draft) + _fragment_size(kind)
+            if planned > self._profile.max_nodes - 1:
                 return
-            draft.append((kind, {}))
+            draft.append((kind, dict(params)))
 
-    def _fill_to_scale(self, draft: _Draft, rng: Random) -> _Draft:
+    def _ensure_peers(self, draft: _Draft, rng: Random, params: dict[str, Any]) -> None:
+        """Plan at least ``PEERS_WANTED`` off-path nodes of every path node type the
+        pool's noise can mint, so the blend has peers to copy the path's tag values
+        and benign configuration onto. A path type the pool cannot mint (an EC2
+        instance, a CI identity) is left alone: it is unique in its estate and
+        may only carry the risk and identifier attributes the blend exempts."""
+        core_kind, core_params = draft[0]
+        core = get_fragment(core_kind).build(_COUNT_NS, Random(0), core_params)
+        on_path = {nid for path in core.paths for nid in path.nodes}
+        path_types = {n.type for n in core.nodes if n.id in on_path}
+        counts = Counter(n.type for n in core.nodes if n.id not in on_path)
+        for kind, kind_params in draft[1:]:
+            counts.update(_fragment_types(kind, kind_params))
+        minters = self._noise_minters()
+        for ntype in sorted(path_types, key=lambda t: t.value):
+            kinds = minters.get(ntype, ())
+            while kinds and counts[ntype] < PEERS_WANTED:
+                kind = _pick(rng, kinds)
+                planned = self._planned_node_count(draft) + _fragment_size(kind)
+                if planned > self._profile.max_nodes:
+                    break
+                draft.append((kind, dict(params)))
+                counts.update(_fragment_types(kind, params))
+
+    def _noise_minters(self) -> dict[NodeType, tuple[str, ...]]:
+        """Node type -> the pool's noise kinds that mint it, in pool order."""
+        minters: dict[NodeType, list[str]] = {}
+        for kind in self._pool(NOISE_ROLE):
+            for ntype in set(_fragment_types(kind)):
+                minters.setdefault(ntype, []).append(kind)
+        return {ntype: tuple(kinds) for ntype, kinds in minters.items()}
+
+    def _fill_to_scale(self, draft: _Draft, rng: Random, params: dict[str, Any]) -> _Draft:
+        """Pad with noise kinds until the seeded target is met. A noise kind may
+        mint more than one node (a namespace with its pod), so the fill counts the
+        kind's real size and stops rather than overshoot ``max_nodes``."""
         target = rng.randint(*self._noise_target_range())
+        noise = self._pool(NOISE_ROLE)
         planned = self._planned_node_count(draft)
-        while planned < target and planned < self._profile.max_nodes:
-            draft.append((rng.choice(NOISE_KINDS), {}))
-            planned += 1
+        while planned < target:
+            kind = _pick(rng, noise)
+            size = _fragment_size(kind)
+            if planned + size > self._profile.max_nodes:
+                break
+            draft.append((kind, dict(params)))
+            planned += size
         return draft
 
     def _noise_target_range(self) -> tuple[int, int]:
@@ -149,8 +223,7 @@ class GraphComposer:
         return lo, hi
 
     def _planned_node_count(self, draft: _Draft) -> int:
-        rng = Random(0)
-        return sum(len(get_fragment(k).build(_COUNT_NS, rng, p).nodes) for k, p in draft)
+        return sum(_fragment_size(kind, params) for kind, params in draft)
 
     def _namespace(self, draft: _Draft) -> _Plan:
         """Mint one private namespace per planned fragment.
@@ -183,6 +256,7 @@ class GraphComposer:
             findings.extend(part.findings)
             paths.extend(part.paths)
         _assert_unique_ids(nodes)
+        blend_into_padding(nodes, paths, Random(self._seed + _BLEND_STREAM))
         _dedupe_names(nodes)
         if salt:
             for node in nodes:
@@ -194,6 +268,30 @@ class GraphComposer:
         if self._seed == 0:
             return ""
         return f"{Random(self._seed + 101).randint(0x1000, 0xFFFF):04x}"
+
+
+def _fragment_size(kind: str, params: dict[str, Any] | None = None) -> int:
+    """How many nodes ``kind`` mints; counted under a throwaway namespace and rng."""
+    return len(_fragment_types(kind, params))
+
+
+def _fragment_types(kind: str, params: dict[str, Any] | None = None) -> list[NodeType]:
+    """The node types ``kind`` mints, one per node, under a throwaway namespace and rng."""
+    return [n.type for n in get_fragment(kind).build(_COUNT_NS, Random(0), params or {}).nodes]
+
+
+def _core_tags(kind: str, params: dict[str, Any]) -> dict[str, str]:
+    """The one tag set a core fragment stamps on all its nodes, as plain values."""
+    nodes = get_fragment(kind).build(_COUNT_NS, Random(0), params).nodes
+    return nodes[0].tags.model_dump()
+
+
+def _pick(rng: Random, kinds: tuple[str, ...]) -> str:
+    """One kind from a pool. A one-kind pool spends no rng draw, so a pool with a
+    single kind per extra role (the AWS pool) keeps the plan's draw order."""
+    if len(kinds) == 1:
+        return kinds[0]
+    return rng.choice(kinds)
 
 
 def _assert_unique_ids(nodes: list[GraphNode]) -> None:

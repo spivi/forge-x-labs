@@ -53,20 +53,36 @@ def key_vault_block(node: GraphNode) -> str:
     loc = hcl_str(_attr(node, "location", "eastus"))
     sku = hcl_str(_attr(node, "sku", "standard"))
     purge = "true" if _attr(node, "purge_protection", "false") == "true" else "false"
-    return "\n".join(
-        [
-            f'resource "azurerm_key_vault" "{ref}" {{',
-            f"  name                       = {hcl_str(node.name)}",
-            f"  location                   = {loc}",
-            f"  resource_group_name        = {rg}",
-            f'  tenant_id                  = "{_TENANT}"',
-            f"  sku_name                   = {sku}",
-            f"  purge_protection_enabled   = {purge}",
-            "  soft_delete_retention_days = 7",
-            "}",
-            "",
+    lines = [
+        f'resource "azurerm_key_vault" "{ref}" {{',
+        f"  name                       = {hcl_str(node.name)}",
+        f"  location                   = {loc}",
+        f"  resource_group_name        = {rg}",
+        f'  tenant_id                  = "{_TENANT}"',
+        f"  sku_name                   = {sku}",
+        f"  purge_protection_enabled   = {purge}",
+        "  soft_delete_retention_days = 7",
+    ]
+    lines += _key_vault_network_lines(node)
+    return "\n".join([*lines, "}", ""])
+
+
+def _key_vault_network_lines(node: GraphNode) -> list[str]:
+    """The network rule a vault declares in its attributes, if any: a vault with
+    public access disabled and a ``Deny`` default action is reachable only through
+    its private endpoint, which is the compensating control the graph models."""
+    lines: list[str] = []
+    if _attr(node, "public_network_access", "Enabled") == "Disabled":
+        lines.append("  public_network_access_enabled = false")
+    action = _attr(node, "network_default_action", "")
+    if action in ("Allow", "Deny"):
+        lines += [
+            "  network_acls {",
+            f"    default_action = {hcl_str(action)}",
+            '    bypass         = "AzureServices"',
+            "  }",
         ]
-    )
+    return lines
 
 
 def storage_container_block(node: GraphNode) -> str:
@@ -74,14 +90,21 @@ def storage_container_block(node: GraphNode) -> str:
     account = _attr(node, "storage_account", "stcloudforge")
     access = _attr(node, "access_type", "private")
     acct_ref = f"{ref}_acct"
+    account_lines = [
+        f'resource "azurerm_storage_account" "{acct_ref}" {{',
+        f"  name                     = {hcl_str(account)}",
+        '  resource_group_name      = "rg-workloads"',
+        '  location                 = "eastus"',
+        '  account_tier             = "Standard"',
+        '  account_replication_type = "LRS"',
+    ]
+    # A container that disallows blob public access at the account level is the
+    # false-positive shape: public-looking name, no anonymous read possible.
+    if _attr(node, "allow_blob_public_access", "true") == "false":
+        account_lines.append("  allow_nested_items_to_be_public = false")
     return "\n".join(
         [
-            f'resource "azurerm_storage_account" "{acct_ref}" {{',
-            f"  name                     = {hcl_str(account)}",
-            '  resource_group_name      = "rg-workloads"',
-            '  location                 = "eastus"',
-            '  account_tier             = "Standard"',
-            '  account_replication_type = "LRS"',
+            *account_lines,
             "}",
             f'resource "azurerm_storage_container" "{ref}" {{',
             f"  name                  = {hcl_str(node.name)}",

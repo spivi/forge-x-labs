@@ -23,12 +23,8 @@ from __future__ import annotations
 from random import Random
 from typing import Any
 
-from app.cloudforge.generate.fragments._vocab import (
-    APP_VALUES,
-    DECOY_IDENTITIES,
-    ENV_VALUES,
-    OWNER_VALUES,
-)
+from app.cloudforge.generate.fragments._noncore import draw_tags
+from app.cloudforge.generate.fragments._vocab import DECOY_IDENTITIES
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
 from app.cloudforge.models.findings import ExpectedFinding, FindingFamily
 from app.cloudforge.models.graph import (
@@ -37,7 +33,6 @@ from app.cloudforge.models.graph import (
     GraphEdge,
     GraphNode,
     NodeSecurity,
-    NodeTags,
     NodeType,
 )
 
@@ -45,9 +40,7 @@ from app.cloudforge.models.graph import (
 @register("decoy.iam_role_dead_end")
 class DecoyIamRoleDeadEnd:
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
-        tags = NodeTags(
-            env=rng.choice(ENV_VALUES), owner=rng.choice(OWNER_VALUES), app=rng.choice(APP_VALUES)
-        )
+        tags = draw_tags(rng, params)
         stem, role_name, policy_name, bucket = rng.choice(DECOY_IDENTITIES)
         role_id = f"{ns}/role-{stem}"
         policy_id = f"{ns}/pol-{stem}-read"

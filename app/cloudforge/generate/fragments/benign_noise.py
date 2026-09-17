@@ -15,29 +15,22 @@ import re
 from random import Random
 from typing import Any
 
+from app.cloudforge.generate.fragments._noncore import draw_tags
 from app.cloudforge.generate.fragments._vocab import (
-    APP_VALUES,
     BUCKET_NAMES,
+    CLASSIFICATIONS,
     DATA_NAMES,
     ECR_NAMES,
-    ENV_VALUES,
     KMS_NAMES,
-    OWNER_VALUES,
     QUEUE_NAMES,
     ROLE_NAMES,
     TRAIL_NAMES,
 )
 from app.cloudforge.generate.fragments.base import FragmentBundle, register
-from app.cloudforge.models.graph import GraphNode, NodeSecurity, NodeTags, NodeType
+from app.cloudforge.models.graph import GraphNode, NodeSecurity, NodeType
 
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _TYPE_PREFIXES = ("kms-", "trail-", "data-", "repo-")
-
-
-def _tags(rng: Random) -> NodeTags:
-    return NodeTags(
-        env=rng.choice(ENV_VALUES), owner=rng.choice(OWNER_VALUES), app=rng.choice(APP_VALUES)
-    )
 
 
 def _bundle(node: GraphNode) -> FragmentBundle:
@@ -63,7 +56,7 @@ class BenignNoiseUnrelatedBucket:
                 id=f"{ns}/{_slug('s3', name)}",
                 type=NodeType.S3_BUCKET,
                 name=name,
-                tags=_tags(rng),
+                tags=draw_tags(rng, params),
                 security=NodeSecurity(criticality="low"),
             )
         )
@@ -78,7 +71,7 @@ class BenignNoiseSqsQueue:
                 id=f"{ns}/{_slug('sqs', name)}",
                 type=NodeType.SQS_QUEUE,
                 name=name,
-                tags=_tags(rng),
+                tags=draw_tags(rng, params),
                 security=NodeSecurity(criticality="low"),
                 attributes={"visibility_timeout_seconds": "30"},
             )
@@ -94,7 +87,7 @@ class BenignNoiseKmsKey:
                 id=f"{ns}/{_slug('kms', name)}",
                 type=NodeType.KMS_KEY,
                 name=name,
-                tags=_tags(rng),
+                tags=draw_tags(rng, params),
                 security=NodeSecurity(criticality="low"),
                 attributes={"description": "internal storage key"},
             )
@@ -110,7 +103,7 @@ class BenignNoiseIamRole:
                 id=f"{ns}/{_slug('role', name)}",
                 type=NodeType.IAM_ROLE,
                 name=name,
-                tags=_tags(rng),
+                tags=draw_tags(rng, params),
                 security=NodeSecurity(criticality="low"),
                 attributes={"principal_service": "ec2.amazonaws.com"},
             )
@@ -126,7 +119,7 @@ class BenignNoiseEcrRepo:
                 id=f"{ns}/{_slug('ecr', name)}",
                 type=NodeType.ECR_REPOSITORY,
                 name=name,
-                tags=_tags(rng),
+                tags=draw_tags(rng, params),
                 security=NodeSecurity(criticality="low"),
                 attributes={"image_tag_mutability": "MUTABLE"},
             )
@@ -135,16 +128,20 @@ class BenignNoiseEcrRepo:
 
 @register("benign_noise.data_set")
 class BenignNoiseDataSet:
+    """A data set at any classification level: the label alone says nothing
+    about whether a path reaches it."""
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         name = rng.choice(DATA_NAMES)
+        tags = draw_tags(rng, params)
         return _bundle(
             GraphNode(
                 id=f"{ns}/{_slug('data', name)}",
                 type=NodeType.DATASET,
                 name=name,
-                tags=_tags(rng),
+                tags=tags,
                 security=NodeSecurity(criticality="low"),
-                attributes={"classification": "internal"},
+                attributes={"classification": rng.choice(CLASSIFICATIONS)},
             )
         )
 
@@ -158,7 +155,7 @@ class BenignNoiseLogTrail:
                 id=f"{ns}/{_slug('trail', name)}",
                 type=NodeType.LOG_TRAIL,
                 name=name,
-                tags=_tags(rng),
+                tags=draw_tags(rng, params),
                 security=NodeSecurity(criticality="low"),
             )
         )

@@ -1,4 +1,5 @@
 import re
+from fnmatch import fnmatch
 from random import Random
 
 import pytest
@@ -7,9 +8,15 @@ import app.cloudforge.generate.fragments.benign_noise  # noqa: F401
 import app.cloudforge.generate.fragments.compensating_control  # noqa: F401
 import app.cloudforge.generate.fragments.decoy  # noqa: F401
 import app.cloudforge.generate.fragments.false_positive  # noqa: F401
+import app.cloudforge.generate.fragments.noncore_azure  # noqa: F401
+import app.cloudforge.generate.fragments.noncore_gcp  # noqa: F401
+import app.cloudforge.generate.fragments.noncore_k8s  # noqa: F401
+from app.cloudforge import constants
+from app.cloudforge.generate.composer_kinds import AZURE_KINDS, GCP_KINDS, K8S_KINDS, SHORT
+from app.cloudforge.generate.fragments._vocab import CLASSIFICATIONS, SINK_CLASSIFICATION
 from app.cloudforge.generate.fragments.base import get_fragment
 from app.cloudforge.models.findings import FindingFamily
-from app.cloudforge.models.graph import NodeType
+from app.cloudforge.models.graph import EdgeType, NodeType
 
 
 def test_decoy_has_no_ground_truth_path():
@@ -26,7 +33,7 @@ def test_decoy_documents_its_own_broad_grant():
 
 
 _ROLE_WORDS = re.compile(r"decoy|noise|false.?positive|fp0|honeypot|compensat|control", re.I)
-_NONCORE_KINDS = (
+_AWS_KINDS = (
     "decoy.iam_role_dead_end",
     "false_positive.public_denied_bucket",
     "compensating_control.explicit_deny",
@@ -38,6 +45,8 @@ _NONCORE_KINDS = (
     "benign_noise.data_set",
     "benign_noise.log_trail",
 )
+_VENDOR_KINDS = AZURE_KINDS + GCP_KINDS + K8S_KINDS
+_NONCORE_KINDS = _AWS_KINDS + _VENDOR_KINDS
 
 
 @pytest.mark.parametrize("kind", _NONCORE_KINDS)
@@ -82,3 +91,190 @@ def test_benign_noise_has_no_findings_no_paths():
 def test_compensating_control_has_no_finding():
     b = get_fragment("compensating_control.explicit_deny").build("cc0", Random(0), {})
     assert b.findings == []
+
+
+# --- vendor pools: Azure, GCP, Kubernetes ---------------------------------------
+
+
+def _vendor_prefix(kind: str) -> str:
+    return {"azure": "Azure", "gcp": "Gcp", "k8s": "K8s"}[kind.split(".", 1)[1].split("_", 1)[0]]
+
+
+@pytest.mark.parametrize("kind", AZURE_KINDS + GCP_KINDS)
+def test_azure_and_gcp_fragments_mint_only_their_vendor_types(kind: str) -> None:
+    """Vendor types only, plus the generic data set a container or bucket holds."""
+    prefix = _vendor_prefix(kind)
+    for seed in range(6):
+        b = get_fragment(kind).build("x0", Random(seed), {})
+        assert b.nodes
+        for n in b.nodes:
+            assert n.type.value.startswith(prefix) or n.type is NodeType.DATASET, (kind, n.type)
+
+
+@pytest.mark.parametrize("kind", K8S_KINDS)
+def test_k8s_fragments_mint_k8s_types_plus_the_iam_role_they_federate_to(kind: str) -> None:
+    allowed = (NodeType.IAM_ROLE, NodeType.DATASET)
+    for seed in range(6):
+        b = get_fragment(kind).build("x0", Random(seed), {})
+        assert b.nodes
+        for n in b.nodes:
+            assert n.type.value.startswith("K8s") or n.type in allowed, (kind, n.type)
+
+
+@pytest.mark.parametrize("kind", _VENDOR_KINDS)
+def test_vendor_fragments_never_own_a_path_and_keep_their_edges_benign(kind: str) -> None:
+    for seed in range(6):
+        b = get_fragment(kind).build("x0", Random(seed), {})
+        assert b.paths == []
+        for e in b.edges:
+            assert e.security.risk in ("none", "low"), (kind, e.key)
+        for n in b.nodes:
+            assert n.security.criticality in ("low", "medium"), (kind, n.id)
+
+
+@pytest.mark.parametrize("kind", [k for k in _VENDOR_KINDS if SHORT[k] == "noise"])
+def test_vendor_noise_has_no_findings(kind: str) -> None:
+    b = get_fragment(kind).build("b0", Random(0), {})
+    assert b.findings == []
+
+
+@pytest.mark.parametrize("kind", [k for k in _VENDOR_KINDS if SHORT[k] == "decoy"])
+def test_vendor_decoys_dead_end_without_a_sensitive_sink(kind: str) -> None:
+    for seed in range(6):
+        b = get_fragment(kind).build("d0", Random(seed), {})
+        assert len(b.nodes) == 2 and len(b.edges) == 1
+        assert all(e.type.value != "stores_sensitive_data" for e in b.edges)
+        assert all(n.type is not NodeType.DATASET for n in b.nodes)
+
+
+def test_k8s_decoy_role_has_no_data_access_and_needs_no_finding() -> None:
+    for seed in range(8):
+        b = get_fragment("decoy.k8s_irsa_dead_end").build("d0", Random(seed), {})
+        role = next(n for n in b.nodes if n.type is NodeType.IAM_ROLE)
+        actions = role.attributes["actions"]
+        assert isinstance(actions, list) and actions
+        for action in actions:
+            assert not action.startswith(("s3:", "secretsmanager:", "kms:", "dynamodb:")), action
+            assert not any(
+                fnmatch(action, pattern) for pattern in constants.ALLOWED_BROAD_PATTERNS
+            ), action
+        account = next(n for n in b.nodes if n.type is NodeType.K8S_SERVICE_ACCOUNT)
+        assert account.attributes["role_arn"] == f"arn:aws:iam::123456789012:role/{role.name}"
+        assert b.findings == []
+
+
+@pytest.mark.parametrize("kind", [k for k in _VENDOR_KINDS if SHORT[k] == "fp"])
+def test_vendor_false_positives_own_one_benign_visible_finding(kind: str) -> None:
+    b = get_fragment(kind).build("f0", Random(0), {})
+    assert len(b.nodes) == 1 and b.edges == []
+    assert len(b.findings) == 1
+    finding = b.findings[0]
+    assert finding.family == FindingFamily.PUBLIC_LOOKING_BUCKET_WITH_COMPENSATING_CONTROL
+    assert finding.ground_truth == "benign"
+    assert finding.severity == "low"
+    assert finding.expected_scanner_visibility == "visible"
+    assert finding.resource_ids == [b.nodes[0].id]
+
+
+def test_azure_false_positive_container_is_private_despite_its_name() -> None:
+    b = get_fragment("false_positive.azure_private_container").build("f0", Random(2), {})
+    attrs = b.nodes[0].attributes
+    assert attrs["access_type"] == "private"
+    assert attrs["allow_blob_public_access"] == "false"
+
+
+def test_gcp_false_positive_bucket_has_uniform_access_and_no_all_users() -> None:
+    b = get_fragment("false_positive.gcp_uniform_access_bucket").build("f0", Random(2), {})
+    attrs = b.nodes[0].attributes
+    assert attrs["uniform_bucket_level_access"] == "true"
+    assert attrs["all_users_binding"] == "false"
+
+
+@pytest.mark.parametrize("kind", [k for k in _VENDOR_KINDS if SHORT[k] == "ctrl"])
+def test_vendor_compensating_controls_have_no_finding(kind: str) -> None:
+    b = get_fragment(kind).build("cc0", Random(0), {})
+    assert b.findings == [] and b.paths == []
+
+
+@pytest.mark.parametrize("kind", [k for k in _NONCORE_KINDS if SHORT[k] == "ctrl"])
+def test_every_compensating_control_guards_a_restricted_data_set_nobody_reaches(
+    kind: str,
+) -> None:
+    """The control's data set is the sink's shape (restricted, held behind a
+    stores_sensitive_data edge) with no identity able to walk to it."""
+    for seed in range(6):
+        b = get_fragment(kind).build("cc0", Random(seed), {})
+        data = [n for n in b.nodes if n.type is NodeType.DATASET]
+        assert len(data) == 1, kind
+        assert data[0].attributes["classification"] == SINK_CLASSIFICATION
+        holders = [e for e in b.edges if e.to == data[0].id]
+        assert len(holders) == 1 and holders[0].type is EdgeType.STORES_SENSITIVE_DATA
+        assert holders[0].security.risk == "none"
+        identity_types = (
+            NodeType.IAM_ROLE,
+            NodeType.CICD_IDENTITY,
+            NodeType.AZURE_MANAGED_IDENTITY,
+            NodeType.GCP_SERVICE_ACCOUNT,
+            NodeType.K8S_SERVICE_ACCOUNT,
+        )
+        assert not [n for n in b.nodes if n.type in identity_types], kind
+
+
+@pytest.mark.parametrize("kind", [k for k in _NONCORE_KINDS if "data_set" in k])
+def test_data_set_noise_draws_its_classification_from_the_spread(kind: str) -> None:
+    seen = set()
+    for seed in range(40):
+        b = get_fragment(kind).build("n0", Random(seed), {})
+        data = [n for n in b.nodes if n.type is NodeType.DATASET]
+        assert len(data) == 1
+        level = data[0].attributes["classification"]
+        assert level in CLASSIFICATIONS
+        seen.add(level)
+    assert seen == set(CLASSIFICATIONS), (kind, seen)
+
+
+def test_azure_compensating_control_blocks_public_reach() -> None:
+    b = get_fragment("compensating_control.azure_vault_network_rule").build("c0", Random(1), {})
+    attrs = b.nodes[0].attributes
+    assert b.nodes[0].type is NodeType.AZURE_KEY_VAULT
+    assert attrs["public_network_access"] == "Disabled"
+    assert attrs["network_default_action"] == "Deny"
+    assert attrs["private_endpoint"] == "true"
+
+
+def test_gcp_compensating_control_enforces_public_access_prevention() -> None:
+    b = get_fragment("compensating_control.gcp_public_access_prevention").build(
+        "c0", Random(1), {}
+    )
+    assert b.nodes[0].type is NodeType.GCP_STORAGE_BUCKET
+    assert b.nodes[0].attributes["public_access_prevention"] == "enforced"
+
+
+@pytest.mark.parametrize("kind", _VENDOR_KINDS)
+def test_vendor_fragment_names_vary_with_the_rng_and_ids_follow_names(kind: str) -> None:
+    names = set()
+    for seed in range(20):
+        b = get_fragment(kind).build("v0", Random(seed), {})
+        names.add(b.nodes[0].name)
+        for n in b.nodes:
+            assert n.id == f"v0/{n.name}"
+    assert len(names) > 1
+
+
+@pytest.mark.parametrize("kind", _VENDOR_KINDS)
+def test_vendor_fragment_node_count_does_not_depend_on_the_rng(kind: str) -> None:
+    """The composer sizes its plan by building each kind once under ``Random(0)``."""
+    sizes = {len(get_fragment(kind).build("s0", Random(seed), {}).nodes) for seed in range(10)}
+    assert len(sizes) == 1
+
+
+def test_vendor_names_fit_the_provider_limits() -> None:
+    """Key vault names must stay under 24 chars after ``-N`` dedupe and ``-<salt>``."""
+    vault_kinds = (
+        "benign_noise.azure_config_vault",
+        "compensating_control.azure_vault_network_rule",
+    )
+    for kind in vault_kinds:
+        for seed in range(10):
+            b = get_fragment(kind).build("l0", Random(seed), {})
+            assert len(b.nodes[0].name) + len("-2") + len("-abcd") <= 24, b.nodes[0].name

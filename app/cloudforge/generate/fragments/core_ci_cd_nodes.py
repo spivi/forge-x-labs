@@ -93,7 +93,14 @@ def fixed_nodes(ns: str) -> list[GraphNode]:
             compensating_control="true",
         ),
         node(ns, "app-analytics-exporter", NodeType.APPLICATION, "analytics-exporter", "medium"),
-        node(ns, "data-customer-exports", NodeType.DATASET, "customer-export-data", "critical"),
+        node(
+            ns,
+            "data-customer-exports",
+            NodeType.DATASET,
+            "customer-export-data",
+            "critical",
+            classification="restricted",
+        ),
         node(ns, "trail-main", NodeType.LOG_TRAIL, "main-trail", "medium"),
     ]
 

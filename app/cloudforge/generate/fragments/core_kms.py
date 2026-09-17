@@ -97,7 +97,14 @@ def _nodes(ns: str) -> list[GraphNode]:
             compensating_control="true",
         ),
         _node(ns, "app-secrets-store", NodeType.APPLICATION, "secrets-store", "medium"),
-        _node(ns, "data-secrets", NodeType.DATASET, "customer-secrets", "critical"),
+        _node(
+            ns,
+            "data-secrets",
+            NodeType.DATASET,
+            "customer-secrets",
+            "critical",
+            classification="restricted",
+        ),
         _node(ns, "trail-main", NodeType.LOG_TRAIL, "main-trail", "medium"),
     ]
 

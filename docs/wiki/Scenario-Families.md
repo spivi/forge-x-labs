@@ -34,6 +34,35 @@ The last three families emit matching Terraform (`k8s.tf`, `azure.tf`,
 `gcp.tf`) plus any AWS resources on the path. Still never applied. AWS-only
 labs do not pull those providers.
 
+### Vendor pools (v1.4)
+
+The composer pads every family from a pool of non-core fragments keyed by the
+spec's `cloud` (`generate/composer_kinds.py`, `POOLS`). Each pool carries its
+own noise, one decoy, one false positive and one compensating control, built
+from node types the vendor's emitter and the workbench zones already cover:
+`aws` is the original S3 / SQS / KMS / IAM / ECR / trail set, `azure` is
+containers, key vaults, managed identities, app services and resource groups,
+`gcp` is buckets, service accounts, projects, folders and workload identity
+pools, and `k8s` is namespaces, pods, service accounts and a second cluster
+on top of the whole AWS pool, because that family's path federates into AWS
+IAM. `variation_axes` (`decoy` / `fp` / `ctrl`) and `difficulty` count
+instances per role, whatever vendor kind fills the slot.
+
+Every pool also mints data sets, so the sink is never the only `DataSet` on
+the board: noise data sets are held by a container, bucket or pod and carry a
+classification drawn from `public` / `internal` / `confidential` /
+`restricted`; every compensating control guards a `restricted` data set that
+no identity can reach; every core sink carries its true `restricted` label.
+
+Nothing a path node carries is rare among its peers: pool nodes draw `env`
+with `prod` as the common value and the core's owner and app weighted in, the
+composer plans at least two off-path nodes of every path node type the pool
+can mint, and after assembly it copies each path node's tag values and benign
+attributes onto seeded off-path peers (`generate/composer_blend.py`). The
+modeled-risk attributes and per-resource identifiers are the only values that
+may exist on a path node alone; `tests/cloudforge/lab/test_path_tells.py`
+prints that allowlist and holds every example to the rule.
+
 ### `ci_cd_iam_chain` (detail)
 
 **Critical path:** `github-actions-oidc -> DeployRole -> RuntimeRole ->
