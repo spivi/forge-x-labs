@@ -44,6 +44,17 @@
   in. The scale profile still bounds the estate: a shape that does not fit is
   clamped and the clamp is recorded in the instructor's ground truth notes and
   report. Estates change for the same `(spec, seed)`.
+- The click-path grade speaks the same language as the essay grade.
+  `cloudforge grade` called a path a hit when the guessed node ids were an
+  ordered subsequence of it, so two correct cards on a ten-node path passed.
+  A hit now needs the entry, the access-granting hop (the first identity
+  after the entry, or the exposed resource when there is none) and the
+  target, in that order; the other nodes are optional and reported as
+  coverage (`found 5 of 8`), with `full path yes` when every node was named
+  in order; wrong nodes are extras. `GroundTruthPath` and the grade key
+  carry `hop` next to `target`; an old key without it grades with the second
+  node, which is the type-aware hop on every family. The CLI prints one line
+  per path and the workbench's in-browser evaluator applies the same rule.
 - Noise, decoys, false positives and compensating controls now match the
   estate's vendor. The composer draws every non-core fragment from a pool
   keyed by `cloud`: `azure` gets storage containers, key vaults, managed

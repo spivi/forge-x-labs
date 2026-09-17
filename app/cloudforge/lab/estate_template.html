@@ -1527,7 +1527,7 @@ function setupEventListeners() {
     }
   }
 
-  // In-Browser Deterministic Evaluator (Matches app/cloudforge/lab/grade.py exactly)
+  // In-Browser Deterministic Evaluator (the entry-hop-target rule of app/cloudforge/lab/grade.py)
   document.getElementById("btn-evaluate").addEventListener("click", () => {
     const keyRaw = document.getElementById("key-input").value.trim();
     const resultBox = document.getElementById("eval-result");
@@ -1542,15 +1542,28 @@ function setupEventListeners() {
       const submittedNodes = selectedPath;
       const submittedFindings = selectedFindings;
 
-      // Grade Paths (Subsequence matching)
+      // Grade Paths: a path is a hit when the guess names its entry, its
+      // access-granting hop and its target in that order (the other nodes are
+      // optional); coverage counts the path nodes the guess named; full path
+      // means every path node was named in order. Same rule as grade.py.
       let pathHits = [];
       let pathMisses = [];
+      const pathLines = [];
       (key.paths || []).forEach(p => {
-        if (isSubsequence(p.nodes, submittedNodes)) {
+        const nodes = p.nodes || [];
+        if (nodes.length === 0) return;
+        const target = p.target || nodes[nodes.length - 1];
+        const hop = p.hop || (nodes.length > 1 ? nodes[1] : nodes[0]);
+        const triple = [...new Set([nodes[0], hop, target])];
+        const hit = isSubsequence(triple, submittedNodes);
+        const found = nodes.filter(n => submittedNodes.includes(n)).length;
+        const full = isSubsequence(nodes, submittedNodes);
+        if (hit) {
           pathHits.push(p.id);
         } else {
           pathMisses.push(p.id);
         }
+        pathLines.push(`${p.id}: ${hit ? "hit" : "miss"}, found ${found} of ${nodes.length}, full path ${full ? "yes" : "no"}`);
       });
 
       // Grade Findings
@@ -1584,6 +1597,7 @@ function setupEventListeners() {
           ${isPass ? 'EVALUATION PASSED' : 'EVALUATION INCOMPLETE'} - ${scorePct}% SCORE
         </div>
         <div><strong>Path Coverage:</strong> ${pathHits.length}/${pathHits.length + pathMisses.length} paths identified</div>
+        ${pathLines.map(line => `<div style="font-size:11px; opacity:0.9;">${line}</div>`).join("")}
         <div><strong>Finding Hits:</strong> ${findingHits.length}/${expectedFamilies.size} (${findingHits.join(", ") || "none"})</div>
         ${findingMisses.length > 0 ? `<div><strong>Missing Findings:</strong> ${findingMisses.join(", ")}</div>` : ""}
         ${extras.length > 0 ? `<div style="color:var(--stop);"><strong>False Positives (Extras):</strong> ${extras.join(", ")}</div>` : ""}

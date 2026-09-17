@@ -100,6 +100,8 @@ cloudforge lab examples/ci_cd_iam_chain.yaml --seed 17 --out out/alice
 # instructor/ report.md, expected_findings.json, grade_key.json
 
 cloudforge grade out/alice --submission alice_guess.yaml
+# paths hit 1 miss 0  findings hit 2 miss 1  extras 0
+#   n07_9f2c/path-critical-01: hit, found 5 of 8, full path no
 
 # Unique labs for a class
 cloudforge lab-cohort examples/ci_cd_iam_chain.yaml --students names.txt --out out/cohort
@@ -121,6 +123,15 @@ cloudforge roundtable --students examples/roundtable/roster.txt --out out/rt
 
 Open `student/estate.html`. Grade node-id guesses with `cloudforge grade`.
 Do not `terraform apply`.
+
+A guessed path is a hit when it names, in order, where the path starts (the
+entry), what opens the way (the access-granting hop: the first identity after
+the entry, or the exposed resource when there is none) and what the attacker
+reaches (the target); the other nodes are optional. The grade also reports how
+many path nodes the guess found (`found 5 of 8`) and whether the whole path was
+named in order (`full path yes`). Wrong nodes and wrong finding families are
+extras. The grade key carries `hop` and `target` per path; a key written before
+they existed grades the same way, with the second and the last node.
 
 The student pack strips `expected_findings.json`, ground-truth attack paths,
 and risk annotations (`security.risk` / `criticality`).

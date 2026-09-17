@@ -6,7 +6,7 @@ fragment, and the grouping is itself an answer: sort the ids and the core path
 is the one big cluster. So once a scenario is assembled every node is re-keyed
 to ``n<k>_<salt>/<slug>`` where ``k`` comes from a seeded permutation over ALL
 nodes (its own stream, ``seed + 307``), and every reference (edge endpoints,
-path node ids, path edge keys, path target, finding resource ids) is
+path node ids, path edge keys, path target and hop, finding resource ids) is
 rewritten through the same map. The map must be total and unique; a dangling reference raises
 ``GraphIntegrityError`` before any artifact is written. Path ids and finding
 ids keep the fragment prefix: they name no node and never reach the student.
@@ -47,6 +47,8 @@ def retoken(bundle: FragmentBundle, seed: int, salt: str) -> FragmentBundle:
         path.nodes = [_renamed(mapping, nid) for nid in path.nodes]
         path.edges = [_renamed_edge_key(mapping, key) for key in path.edges]
         path.target = _renamed(mapping, path.target)
+        if path.hop is not None:
+            path.hop = _renamed(mapping, path.hop)
     return bundle
 
 

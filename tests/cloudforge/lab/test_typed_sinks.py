@@ -80,12 +80,14 @@ def test_grade_key_round_trips_sink_kind_and_target(tmp_path: Path) -> None:
         path = by_id[entry["id"]]
         assert entry["sink_kind"] == path.sink_kind.value == "key"
         assert entry["target"] == path.target == entry["nodes"][-1]
+        assert entry["hop"] == path.hop == entry["nodes"][1]
     # The instructor's ground truth loads back with the same fields.
     truth = json.loads((out.instructor / "ground_truth_paths.json").read_text(encoding="utf-8"))
     for item in truth["paths"]:
         loaded = GroundTruthPath.model_validate(item)
         assert loaded.sink_kind is by_id[loaded.id].sink_kind
         assert loaded.target == by_id[loaded.id].target
+        assert loaded.hop == by_id[loaded.id].hop
 
 
 def test_a_key_without_the_new_fields_still_grades() -> None:

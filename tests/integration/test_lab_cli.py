@@ -74,7 +74,22 @@ def test_grade_exits_zero_on_a_partial_guess(tmp_path: Path) -> None:
     guess.write_text(f"paths:\n  - nodes: {nodes}\nfindings: []\n")
     result = runner.invoke(app, ["grade", str(out), "--submission", str(guess)])
     assert result.exit_code == 0, result.output
-    assert "paths hit" in result.output
+    assert "paths hit 0 miss 1" in result.output
+    assert "found 3 of" in result.output
+    assert "full path no" in result.output
+
+
+def test_grade_prints_a_hit_with_coverage_for_the_true_path(tmp_path: Path) -> None:
+    out = _lab(tmp_path)
+    key = json.loads((out / "instructor" / "grade_key.json").read_text())
+    nodes = key["paths"][0]["nodes"]
+    guess = tmp_path / "guess.yaml"
+    guess.write_text(f"paths:\n  - nodes: {nodes}\nfindings: []\n")
+    result = runner.invoke(app, ["grade", str(out), "--submission", str(guess)])
+    assert result.exit_code == 0, result.output
+    assert "paths hit 1 miss 0" in result.output
+    assert f"found {len(nodes)} of {len(nodes)}" in result.output
+    assert "full path yes" in result.output
 
 
 def test_grade_missing_key_exits_one(tmp_path: Path) -> None:

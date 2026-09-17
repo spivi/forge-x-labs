@@ -17,6 +17,7 @@ from app.cloudforge.lab.brief import _DEFAULT_PROMPT, _PROMPTS, render_brief
 from app.cloudforge.lab.estate import render_estate_html
 from app.cloudforge.lab.paths import LabPaths
 from app.cloudforge.lab.strip import strip_graph
+from app.cloudforge.models.hops import access_hop
 from app.cloudforge.models.scenario import ScenarioSpec
 from app.cloudforge.pipeline.artifacts import ScenarioArtifacts
 from app.cloudforge.report.renderer import ReportRenderer
@@ -83,6 +84,8 @@ def _write_student(out_dir: LabPaths, spec: ScenarioSpec, bundle: ScenarioBundle
 
 
 def _grade_key(bundle: ScenarioBundle) -> dict[str, object]:
+    """The instructor key: every path with its entry-hop-target triple spelled out."""
+    types = {node.id: node.type for node in bundle.graph.nodes}
     return {
         "paths": [
             {
@@ -90,6 +93,7 @@ def _grade_key(bundle: ScenarioBundle) -> dict[str, object]:
                 "nodes": list(path.nodes),
                 "sink_kind": path.sink_kind.value,
                 "target": path.target,
+                "hop": path.hop or access_hop(path.nodes, types),
             }
             for path in bundle.ground_truth.paths
         ],

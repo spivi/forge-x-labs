@@ -76,6 +76,7 @@ from app.cloudforge.models.findings import (
     GroundTruthPaths,
 )
 from app.cloudforge.models.graph import GraphEdge, GraphNode, NodeType, ScenarioGraph
+from app.cloudforge.models.hops import access_hop
 from app.cloudforge.models.scenario import ScenarioSpec
 
 _Plan = list[tuple[str, str, dict[str, Any]]]
@@ -332,6 +333,7 @@ class GraphComposer:
             paths.extend(part.paths)
         _assert_unique_ids(nodes)
         _assert_sinks_declared(nodes, paths)
+        _declare_hops(nodes, paths)
         blend_into_padding(nodes, paths, Random(self._seed + _BLEND_STREAM))
         _dedupe_names(nodes)
         if salt:
@@ -389,6 +391,15 @@ def _assert_sinks_declared(nodes: list[GraphNode], paths: list[GroundTruthPath])
             raise GraphIntegrityError(
                 f"{path.id}: target {path.target} is not a {path.sink_kind.value} sink"
             )
+
+
+def _declare_hops(nodes: list[GraphNode], paths: list[GroundTruthPath]) -> None:
+    """Record each path's access-granting hop from node types (``models.hops``)
+    so the grade key carries it next to the target."""
+    types = {node.id: node.type for node in nodes}
+    for path in paths:
+        if path.hop is None:
+            path.hop = access_hop(path.nodes, types)
 
 
 def _dedupe_names(nodes: list[GraphNode]) -> None:

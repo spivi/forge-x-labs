@@ -2,8 +2,24 @@
 
 `cloudforge lab` splits a generated scenario into a **student pack** (no
 answer key) and an **instructor pack** (grade key). `cloudforge grade`
-scores a guessed path as a subsequence of a ground-truth path's node
-list. A wrong answer exits 0. A missing instructor key exits 1.
+scores a guessed path against every labeled path. A wrong answer exits 0.
+A missing instructor key exits 1.
+
+## Grade rule
+
+A labeled path is a hit when the guess names its entry (the first node),
+its access-granting hop and its target (the sink), in that order; every
+other path node is optional. The hop is the first identity after the entry,
+or the exposed resource when the path has none (a public bucket, a shared
+snapshot, a wildcard queue); on a two-node path the sink itself opens the
+way. The grade also reports coverage, the path nodes the guess named over
+the path length (`found 5 of 8`), and `full path yes` when every path node
+was named in order. Guessed nodes on no labeled path are extras, as are
+wrong finding families. The grade key records `hop`, `target` and
+`sink_kind` per path; a key written before those fields existed grades with
+the second node as the hop and the last as the target, which is where the
+type-aware rule lands on every family. The workbench's in-browser evaluator
+applies the same rule.
 
 ## Difficulty
 

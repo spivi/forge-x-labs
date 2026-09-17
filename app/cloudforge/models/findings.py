@@ -94,8 +94,11 @@ class GroundTruthPath(BaseModel):
     """An intended risk path through the graph (node + edge id sequence).
 
     ``target`` is the node the attacker reaches (the sink) and ``sink_kind`` says
-    what kind of thing that is. A pack written before these fields existed still
-    loads: ``target`` defaults to the last node and ``sink_kind`` to ``data``.
+    what kind of thing that is; ``hop`` is the access-granting node the grade
+    requires next to the entry and the target (see ``models.hops``). A pack
+    written before these fields existed still loads: ``target`` defaults to the
+    last node, ``sink_kind`` to ``data``, and ``hop`` stays unset so the reader
+    derives it (from node types when it has them, else the second node).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -107,6 +110,7 @@ class GroundTruthPath(BaseModel):
     explanation: str
     sink_kind: SinkKind = SinkKind.DATA
     target: str = ""
+    hop: str | None = None
 
     @model_validator(mode="after")
     def _target_defaults_to_the_last_node(self) -> GroundTruthPath:
