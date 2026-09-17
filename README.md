@@ -150,7 +150,7 @@ The workbench is a single HTML file with no CDN:
 - Seven zones, from perimeter and network ingress to governance and telemetry
 - Mission briefing on the board
 - Click nodes to draft an attack path
-- Finding checklist filtered to the vendors in the estate
+- Findings checklist filtered to the vendors in the estate
 - YAML export for `cloudforge grade`
 - Client-side scoring against the same math as `grade`
 
