@@ -645,7 +645,7 @@
 <header>
   <div class="brand">
     <span class="wordmark">CLOUDFORG<span class="wordmark__glitch">E</span></span>
-    <span class="version-tag">v1.3.0</span>
+    <span class="version-tag">v1.3.1</span>
     <h1 class="header-title"><span id="title-slot">Challenge · ci_cd_iam_chain</span></h1>
     <span class="header-sub">/ INTERACTIVE WORKBENCH</span>
   </div>
@@ -815,6 +815,9 @@ n08_c602/s3-partner-uploads --logs_to--&gt; n00_c602/trail-partner-uploads</pre>
 <script id="estate-json-data" type="application/json">
 {"nodes": [{"id": "n18_c602/acct-main", "type": "Account", "name": "staging-account-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n21_c602/vpc-staging", "type": "VPC", "name": "staging-vpc-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"cidr": "10.0.0.0/16"}}, {"id": "n23_c602/subnet-public-a", "type": "Subnet", "name": "public-a-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"cidr": "10.0.1.0/24"}}, {"id": "n24_c602/sg-web", "type": "SecurityGroup", "name": "web-sg-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"ingress_cidr": "0.0.0.0/0"}}, {"id": "n14_c602/cicd-github", "type": "CICDIdentity", "name": "github-actions-oidc-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n27_c602/role-deploy", "type": "IAMRole", "name": "DeployRole-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n22_c602/role-runtime", "type": "IAMRole", "name": "RuntimeRole-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n25_c602/pol-deploy-passrole", "type": "IAMPolicy", "name": "DeployPassRolePolicy-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"actions": ["iam:PassRole"], "resource": "arn:aws:iam::000000000000:role/RuntimeRole"}}, {"id": "n29_c602/pol-runtime-s3read", "type": "IAMPolicy", "name": "RuntimeS3ReadPolicy-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"actions": ["s3:Get*", "s3:List*", "iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "sqs:ReceiveMessage", "sqs:SendMessage", "secretsmanager:GetSecretValue"], "resource": "arn:aws:s3:::customer-exports/*"}}, {"id": "n19_c602/s3-customer-exports", "type": "S3Bucket", "name": "customer-exports-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"logging": "disabled"}}, {"id": "n28_c602/s3-public-assets", "type": "S3Bucket", "name": "public-assets-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"compensating_control": "true"}}, {"id": "n15_c602/app-analytics-exporter", "type": "Application", "name": "analytics-exporter-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n01_c602/data-customer-exports", "type": "DataSet", "name": "customer-export-data-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n03_c602/trail-main", "type": "LogTrail", "name": "main-trail-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n32_c602/role-hop-0", "type": "IAMRole", "name": "IntermediateRole0-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n07_c602/role-hop-1", "type": "IAMRole", "name": "IntermediateRole1-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n09_c602/role-qa-automation", "type": "IAMRole", "name": "QaAutomationRole-c602", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {}}, {"id": "n12_c602/pol-qa-automation-read", "type": "IAMPolicy", "name": "QaAutomationReadPolicy-c602", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {"actions": ["s3:GetObject", "s3:ListBucket"], "resource": "arn:aws:s3:::qa-automation-fixtures/*"}}, {"id": "n04_c602/role-release-audit", "type": "IAMRole", "name": "ReleaseAuditRole-c602", "tags": {"env": "preprod", "owner": "infra-team", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n20_c602/pol-release-audit-read", "type": "IAMPolicy", "name": "ReleaseAuditReadPolicy-c602", "tags": {"env": "preprod", "owner": "infra-team", "app": "telemetry-worker"}, "attributes": {"actions": ["s3:GetObject", "s3:ListBucket"], "resource": "arn:aws:s3:::release-audit-archive/*"}}, {"id": "n11_c602/s3-static-site", "type": "S3Bucket", "name": "static-site-assets-c602", "tags": {"env": "sandbox", "owner": "secops-team", "app": "report-pipeline"}, "attributes": {"public_access": "enabled", "compensating_control": "true"}}, {"id": "n06_c602/s3-release-downloads", "type": "S3Bucket", "name": "release-downloads-c602", "tags": {"env": "staging", "owner": "infra-team", "app": "etl-runner"}, "attributes": {"public_access": "enabled", "compensating_control": "true"}}, {"id": "n31_c602/s3-billing-exports", "type": "S3Bucket", "name": "billing-exports-archive-c602", "tags": {"env": "test", "owner": "sre-team", "app": "billing-sync"}, "attributes": {}}, {"id": "n16_c602/trail-billing-exports", "type": "LogTrail", "name": "trail-billing-exports-c602", "tags": {"env": "test", "owner": "sre-team", "app": "billing-sync"}, "attributes": {}}, {"id": "n08_c602/s3-partner-uploads", "type": "S3Bucket", "name": "partner-uploads-c602", "tags": {"env": "internal", "owner": "data-eng", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n00_c602/trail-partner-uploads", "type": "LogTrail", "name": "trail-partner-uploads-c602", "tags": {"env": "internal", "owner": "data-eng", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n02_c602/sqs-ingest-pipeline", "type": "SqsQueue", "name": "ingest-pipeline-c602", "tags": {"env": "stage", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {"visibility_timeout_seconds": "30"}}, {"id": "n33_c602/trail-security-secondary", "type": "LogTrail", "name": "trail-security-secondary-c602", "tags": {"env": "stage", "owner": "infra-team", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n26_c602/data-operational-metrics", "type": "DataSet", "name": "data-operational-metrics-c602", "tags": {"env": "preprod", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {"classification": "internal"}}, {"id": "n13_c602/data-analytics-cache", "type": "DataSet", "name": "data-analytics-cache-c602", "tags": {"env": "preprod", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {"classification": "internal"}}, {"id": "n17_c602/ecr-utility-image", "type": "EcrRepository", "name": "repo-utility-image-c602", "tags": {"env": "internal", "owner": "cloud-eng", "app": "data-exporter"}, "attributes": {"image_tag_mutability": "MUTABLE"}}, {"id": "n05_c602/data-reporting-store", "type": "DataSet", "name": "data-reporting-store-c602", "tags": {"env": "sandbox", "owner": "sre-team", "app": "analytics-exporter"}, "attributes": {"classification": "internal"}}, {"id": "n30_c602/kms-app-configs", "type": "KmsKey", "name": "kms-app-configs-c602", "tags": {"env": "preprod", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {"description": "internal storage key"}}, {"id": "n10_c602/s3-backup-vault", "type": "S3Bucket", "name": "backup-vault-c602", "tags": {"env": "preprod", "owner": "platform-team", "app": "etl-runner"}, "attributes": {}}], "edges": [{"from": "n14_c602/cicd-github", "to": "n27_c602/role-deploy", "type": "assumes"}, {"from": "n27_c602/role-deploy", "to": "n25_c602/pol-deploy-passrole", "type": "attached_policy"}, {"from": "n22_c602/role-runtime", "to": "n29_c602/pol-runtime-s3read", "type": "attached_policy"}, {"from": "n22_c602/role-runtime", "to": "n19_c602/s3-customer-exports", "type": "can_read"}, {"from": "n19_c602/s3-customer-exports", "to": "n01_c602/data-customer-exports", "type": "stores_sensitive_data"}, {"from": "n15_c602/app-analytics-exporter", "to": "n14_c602/cicd-github", "type": "deployed_by"}, {"from": "n19_c602/s3-customer-exports", "to": "n15_c602/app-analytics-exporter", "type": "belongs_to_app"}, {"from": "n24_c602/sg-web", "to": "n23_c602/subnet-public-a", "type": "exposed_to_internet"}, {"from": "n23_c602/subnet-public-a", "to": "n15_c602/app-analytics-exporter", "type": "belongs_to_app"}, {"from": "n28_c602/s3-public-assets", "to": "n23_c602/subnet-public-a", "type": "exposed_to_internet"}, {"from": "n27_c602/role-deploy", "to": "n32_c602/role-hop-0", "type": "can_pass_role"}, {"from": "n32_c602/role-hop-0", "to": "n07_c602/role-hop-1", "type": "can_pass_role"}, {"from": "n07_c602/role-hop-1", "to": "n22_c602/role-runtime", "type": "can_pass_role"}, {"from": "n09_c602/role-qa-automation", "to": "n12_c602/pol-qa-automation-read", "type": "attached_policy"}, {"from": "n04_c602/role-release-audit", "to": "n20_c602/pol-release-audit-read", "type": "attached_policy"}, {"from": "n31_c602/s3-billing-exports", "to": "n16_c602/trail-billing-exports", "type": "logs_to"}, {"from": "n08_c602/s3-partner-uploads", "to": "n00_c602/trail-partner-uploads", "type": "logs_to"}]}
 </script>
+<script id="canonical-findings-data" type="application/json">
+[{"id": "iam_privesc_policy_version", "label": "IAM: CreatePolicyVersion Escalation"}, {"id": "ec2_imdsv1_enabled", "label": "Compute: EC2 IMDSv1 Credential Exfiltration"}, {"id": "lambda_function_url_unauthenticated", "label": "Serverless: Lambda Public Unauthenticated Function URL"}, {"id": "secretsmanager_policy_overbroad", "label": "Secrets: Secrets Manager Overbroad Resource Policy"}, {"id": "rds_instance_public", "label": "Database: Publicly Accessible RDS Instance"}, {"id": "ecr_repository_public_read", "label": "Containers: Public Read ECR Repository Policy"}, {"id": "sqs_queue_policy_overbroad", "label": "Queues: SQS Queue Overbroad Access Policy"}, {"id": "kms_key_policy_overbroad", "label": "Cryptography: KMS Key Wildcard Decrypt Policy"}, {"id": "ebs_snapshot_public", "label": "Storage: Unencrypted Public EBS Snapshot"}, {"id": "iam_passrole_risk", "label": "IAM: PassRole Escalation Chain"}, {"id": "iam_cross_account_trust", "label": "IAM: External Cross-Account Trust"}, {"id": "iam_excessive_privilege", "label": "IAM: Overly Broad Permissions (s3:Get*/List*)"}, {"id": "s3_public_exposure", "label": "Storage: Public S3 Bucket Read/Write"}, {"id": "s3_logging_missing", "label": "Governance: S3 Server Access Logging Missing"}, {"id": "security_group_overexposed", "label": "Network: Security Group Ingress 0.0.0.0/0"}, {"id": "public_looking_bucket_with_compensating_control", "label": "Benign/Decoy: Public-Looking Bucket with Control"}]
+</script>
 <script>
 let ESTATE_DATA = null;
 try {
@@ -891,27 +894,43 @@ const ICONS = {
   GcpStorageBucket: `<svg viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M21 6v12c0 1.66-4 3-9 3s-9-1.34-9-3V6"/></svg>`
 };
 
-const CANONICAL_FINDINGS = [
-  { id: "iam_privesc_policy_version", label: "IAM: CreatePolicyVersion Escalation" },
-  { id: "ec2_imdsv1_enabled", label: "Compute: EC2 IMDSv1 Credential Exfiltration" },
-  { id: "lambda_function_url_unauthenticated", label: "Serverless: Lambda Public Unauthenticated Function URL" },
-  { id: "secretsmanager_policy_overbroad", label: "Secrets: Secrets Manager Overbroad Resource Policy" },
-  { id: "rds_instance_public", label: "Database: Publicly Accessible RDS Instance" },
-  { id: "ecr_repository_public_read", label: "Containers: Public Read ECR Repository Policy" },
-  { id: "sqs_queue_policy_overbroad", label: "Queues: SQS Queue Overbroad Access Policy" },
-  { id: "kms_key_policy_overbroad", label: "Cryptography: KMS Key Wildcard Decrypt Policy" },
-  { id: "ebs_snapshot_public", label: "Storage: Unencrypted Public EBS Snapshot" },
-  { id: "iam_passrole_risk", label: "IAM: PassRole Escalation Chain" },
-  { id: "iam_cross_account_trust", label: "IAM: External Cross-Account Trust" },
-  { id: "iam_excessive_privilege", label: "IAM: Overly Broad Permissions (s3:Get*/List*)" },
-  { id: "s3_public_exposure", label: "Storage: Public S3 Bucket Read/Write" },
-  { id: "s3_logging_missing", label: "Governance: S3 Server Access Logging Missing" },
-  { id: "security_group_overexposed", label: "Network: Security Group Ingress 0.0.0.0/0" },
-  { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" },
-  { id: "k8s_pod_irsa_exfil", label: "Kubernetes: Pod IRSA Exfiltration" },
-  { id: "azure_imds_keyvault_harvest", label: "Azure: App Service Key Vault Harvest" },
-  { id: "gcp_workload_identity_federation", label: "GCP: Workload Identity Federation Exfil" }
-];
+let CANONICAL_FINDINGS = null;
+try {
+  const el = document.getElementById("canonical-findings-data");
+  const raw = el ? el.textContent.trim() : "";
+  if (raw && !raw.startsWith("<!--")) {
+    CANONICAL_FINDINGS = JSON.parse(raw);
+  }
+} catch (e) {
+  CANONICAL_FINDINGS = null;
+}
+
+if (!CANONICAL_FINDINGS) {
+  // Full, unfiltered catalog (renders when opened directly as raw template in any
+  // browser). A real page gets the vendor-filtered list computed server-side by
+  // render_estate_html from the estate's own node types; see app/cloudforge/lab/estate.py.
+  CANONICAL_FINDINGS = [
+    { id: "iam_privesc_policy_version", label: "IAM: CreatePolicyVersion Escalation" },
+    { id: "ec2_imdsv1_enabled", label: "Compute: EC2 IMDSv1 Credential Exfiltration" },
+    { id: "lambda_function_url_unauthenticated", label: "Serverless: Lambda Public Unauthenticated Function URL" },
+    { id: "secretsmanager_policy_overbroad", label: "Secrets: Secrets Manager Overbroad Resource Policy" },
+    { id: "rds_instance_public", label: "Database: Publicly Accessible RDS Instance" },
+    { id: "ecr_repository_public_read", label: "Containers: Public Read ECR Repository Policy" },
+    { id: "sqs_queue_policy_overbroad", label: "Queues: SQS Queue Overbroad Access Policy" },
+    { id: "kms_key_policy_overbroad", label: "Cryptography: KMS Key Wildcard Decrypt Policy" },
+    { id: "ebs_snapshot_public", label: "Storage: Unencrypted Public EBS Snapshot" },
+    { id: "iam_passrole_risk", label: "IAM: PassRole Escalation Chain" },
+    { id: "iam_cross_account_trust", label: "IAM: External Cross-Account Trust" },
+    { id: "iam_excessive_privilege", label: "IAM: Overly Broad Permissions (s3:Get*/List*)" },
+    { id: "s3_public_exposure", label: "Storage: Public S3 Bucket Read/Write" },
+    { id: "s3_logging_missing", label: "Governance: S3 Server Access Logging Missing" },
+    { id: "security_group_overexposed", label: "Network: Security Group Ingress 0.0.0.0/0" },
+    { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" },
+    { id: "k8s_pod_irsa_exfil", label: "Kubernetes: Pod IRSA Exfiltration" },
+    { id: "azure_imds_keyvault_harvest", label: "Azure: App Service Key Vault Harvest" },
+    { id: "gcp_workload_identity_federation", label: "GCP: Workload Identity Federation Exfil" }
+  ];
+}
 
 // Network Architecture Zones (Multi-Tier Enterprise Cloud Topology)
 const NETWORK_ZONES = [

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.cloudforge import __version__
+
 _TEMPLATE_PATH = Path(__file__).parent / "estate_template.html"
 
 # The full finding catalog the workbench checklist offers, one entry per row the
@@ -182,6 +184,7 @@ def render_estate_html(
         .replace("<!-- RAW_EDGES_PLACEHOLDER -->", _esc(edge_lines))
         .replace("<!-- BRIEF_PROMPT_PLACEHOLDER -->", safe_prompt)
         .replace("<!-- SCENARIO_TITLE_PLACEHOLDER -->", safe_title)
+        .replace("<!-- VERSION_PLACEHOLDER -->", _esc(__version__))
     )
 
 
