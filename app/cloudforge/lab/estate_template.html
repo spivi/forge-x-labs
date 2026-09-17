@@ -684,8 +684,6 @@
       <div class="panel-tab active" data-tab="submission">Your Submission</div>
       <div class="panel-tab" data-tab="evaluator">Deterministic Evaluator</div>
       <div class="panel-tab" data-tab="edges">Relationships (<span id="edge-count">0</span>)</div>
-      <div class="panel-tab" data-tab="defense">Blue Defense</div>
-      <div class="panel-tab" data-tab="telemetry">Forensics</div>
     </div>
 
     <div class="panel-content" id="tab-submission">
@@ -753,43 +751,6 @@ findings: []</div>
       </div>
     </div>
 
-    <div class="panel-content" id="tab-defense" style="display:none;">
-      <div class="panel-section">
-        <div class="panel-section-title">Autonomous Blue Defense Rules</div>
-        <p style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">
-          Generated Sigma, Splunk SPL, Elastic KQL, and Terraform hardening patches for findings.
-        </p>
-        <div id="defense-rules-container" style="font-family:var(--font-mono); font-size:11px; display:flex; flex-direction:column; gap:8px;">
-          <div class="yaml-preview" style="max-height:120px;">title: Cloudforge Autonomous Detection
-status: experimental
-logsource:
-  product: aws
-  service: cloudtrail
-detection:
-  selection:
-    eventName:
-      - AssumeRole
-      - GetObject
-  condition: selection</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel-content" id="tab-telemetry" style="display:none;">
-      <div class="panel-section">
-        <div class="panel-section-title">Forensic Shell Telemetry</div>
-        <p style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">
-          Engine C synthetic adversary command history and drop file artifacts.
-        </p>
-        <div id="telemetry-log" class="yaml-preview" style="max-height:280px; overflow-y:auto;">$ whoami
-$ id
-$ uname -a
-$ env | grep -iE 'aws|azure|gcp|token|key'
-$ cat /etc/resolv.conf
-$ curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/
-$ history -w /tmp/.hist_bak</div>
-      </div>
-    </div>
   </aside>
 </div>
 
@@ -830,7 +791,7 @@ if (!ESTATE_DATA || !ESTATE_DATA.nodes) {
       { id: "s3-customer-pii", type: "S3Bucket", name: "customer-pii-records-000000000000", attributes: { public: "false" } },
       { id: "data-customer-pii", type: "DataSet", name: "CustomerIdentityAndPII", attributes: { classification: "restricted" } },
       { id: "kms-prod-data", type: "KmsKey", name: "key-prod-data", attributes: { key_policy: "overbroad" } },
-      { id: "s3-decoy-bucket", type: "S3Bucket", name: "public-looking-decoy", attributes: { public: "true" } }
+      { id: "s3-open-bucket", type: "S3Bucket", name: "public-looking-bucket", attributes: { public: "true" } }
     ],
     edges: [
       { from: "acct-main", to: "ec2-web-frontend", type: "exposed_to_internet" },
@@ -1481,8 +1442,6 @@ function setupEventListeners() {
       document.getElementById("tab-submission").style.display = tabId === "submission" ? "flex" : "none";
       document.getElementById("tab-evaluator").style.display = tabId === "evaluator" ? "flex" : "none";
       document.getElementById("tab-edges").style.display = tabId === "edges" ? "flex" : "none";
-      document.getElementById("tab-defense").style.display = tabId === "defense" ? "flex" : "none";
-      document.getElementById("tab-telemetry").style.display = tabId === "telemetry" ? "flex" : "none";
     });
   });
 

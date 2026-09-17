@@ -143,6 +143,25 @@
       flex-direction: column;
       gap: 20px;
       background: var(--color-bg);
+      position: relative;
+    }
+
+    .topology-wires-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .layers-root {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
     .layer-container {
@@ -169,6 +188,13 @@
       align-items: center;
       gap: 8px;
     }
+    .layer-desc {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--color-muted);
+      margin-left: 8px;
+      font-weight: 400;
+    }
     .layer-count {
       font-family: var(--font-mono);
       font-size: 10px;
@@ -178,8 +204,8 @@
 
     .nodes-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
     }
 
     .node-card {
@@ -194,6 +220,7 @@
     }
     .node-card:hover {
       border-color: var(--color-border-dark);
+      background: #ffffff;
     }
     .node-card.selected {
       border: 2px solid var(--color-accent);
@@ -251,6 +278,53 @@
       display: inline-block;
       margin-bottom: 6px;
     }
+
+    /* Network / Interface Details */
+    .interfaces-box {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .iface-label {
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-muted);
+      font-weight: 700;
+    }
+    .iface-chip {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      padding: 2px 6px;
+      border-radius: var(--radius);
+      background: var(--color-code-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .iface-chip.net {
+      border-color: var(--color-glitch-cyan);
+      color: var(--color-glitch-cyan);
+      background: rgba(0, 108, 122, 0.04);
+    }
+    .iface-chip.iam {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      background: rgba(47, 93, 58, 0.04);
+    }
+    .iface-chip.alert {
+      border-color: var(--color-glitch-red);
+      color: var(--color-glitch-red);
+      background: rgba(179, 18, 42, 0.05);
+      font-weight: 600;
+    }
+
     .node-attrs {
       display: flex;
       flex-wrap: wrap;
@@ -258,10 +332,10 @@
       margin-top: 4px;
     }
     .attr-chip {
-      font-size: 10px;
+      font-size: 9.5px;
       background: var(--color-code-bg);
       border: 1px solid var(--color-border);
-      padding: 1px 6px;
+      padding: 1px 5px;
       border-radius: var(--radius);
       color: var(--color-muted);
       font-family: var(--font-mono);
@@ -271,6 +345,38 @@
       border-color: var(--color-glitch-red);
       color: var(--color-glitch-red);
       font-weight: 600;
+    }
+
+    /* SVG Routing Wires */
+    .wire-path {
+      fill: none;
+      stroke-width: 1.5;
+      opacity: 0.55;
+      transition: stroke-width 0.2s, opacity 0.2s, stroke 0.2s;
+    }
+    .wire-path.network {
+      stroke: var(--color-glitch-cyan);
+      stroke-dasharray: 4, 3;
+    }
+    .wire-path.iam {
+      stroke: var(--color-accent);
+    }
+    .wire-path.data {
+      stroke: #63635e;
+      stroke-dasharray: 2, 2;
+    }
+    .wire-path.active-attack {
+      stroke: var(--color-glitch-red) !important;
+      stroke-width: 2.5px !important;
+      stroke-dasharray: 5, 3 !important;
+      opacity: 1 !important;
+    }
+    .wire-path.wire-dimmed {
+      opacity: 0.1 !important;
+    }
+    .wire-path.wire-highlight {
+      stroke-width: 2.5px !important;
+      opacity: 1 !important;
     }
 
     .step-badge {
@@ -540,7 +646,7 @@
   <div class="brand">
     <span class="wordmark">CLOUDFORG<span class="wordmark__glitch">E</span></span>
     <span class="version-tag">v1.3.0</span>
-    <h1 class="header-title"><span id="title-slot">Challenge · ec2_imds_credential_exfil</span></h1>
+    <h1 class="header-title"><span id="title-slot">Challenge · ci_cd_iam_chain</span></h1>
     <span class="header-sub">/ INTERACTIVE WORKBENCH</span>
   </div>
   <div class="header-actions">
@@ -551,9 +657,25 @@
 </header>
 
 <div class="workbench">
-  <!-- Architecture Layers View -->
+  <!-- Network & Service Architecture View -->
   <main class="arch-canvas" id="arch-canvas">
-    <div id="layers-root"></div>
+    <svg class="topology-wires-overlay" id="topology-wires-svg">
+      <defs>
+        <marker id="arrow-default" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#63635e" />
+        </marker>
+        <marker id="arrow-net" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#006c7a" />
+        </marker>
+        <marker id="arrow-iam" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#2f5d3a" />
+        </marker>
+        <marker id="arrow-attack" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#b3122a" />
+        </marker>
+      </defs>
+    </svg>
+    <div id="layers-root" class="layers-root"></div>
   </main>
 
   <!-- Side Panel: Interactive Submissions & Evaluator -->
@@ -571,7 +693,7 @@
           <span>Mission Objective</span>
         </div>
         <div class="mission-brief-box">
-          <span id="brief-slot">A public-facing web server is accessible from the internet. Can an attacker leverage server-side requests to steal credentials and access internal data?</span>
+          <span id="brief-slot">A CI identity deploys into this account. Can it reach sensitive customer data? Which issues are real, and which look worse than they are?</span>
         </div>
       </div>
 
@@ -613,6 +735,7 @@ findings: []</div>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">
           Paste the contents of <code>instructor/grade_key.json</code> below to grade your submission against ground truth using the exact same deterministic math as <code>cloudforge grade</code>.
         </p>
+        <button class="btn" id="btn-load-demo-key" style="width:100%; justify-content:center; font-size:11px; margin-bottom:10px; display:none;">Load Demo Grade Key</button>
         <label style="font-size:11px; font-weight:700; color:var(--ink-faint);">GRADE_KEY.JSON</label>
         <textarea class="eval-input" id="key-input" placeholder='{"paths": [...], "finding_families": [...]}'></textarea>
         <button class="btn primary" id="btn-evaluate" style="width:100%; justify-content:center;">Score Submission</button>
@@ -627,6 +750,7 @@ findings: []</div>
         <div id="relationships-list" style="font-family:var(--font-mono); font-size:11px; display:flex; flex-direction:column; gap:6px;"></div>
       </div>
     </div>
+
   </aside>
 </div>
 
@@ -634,53 +758,62 @@ findings: []</div>
 <div class="compat-table-wrap">
   <table>
     <tr><th>id</th><th>type</th><th>name</th></tr>
-    <tr><td><code>core0/acct-main</code></td><td>Account</td><td>prod-account</td></tr>
-    <tr><td><code>core0/ec2-web-frontend</code></td><td>EC2Instance</td><td>WebFrontendServer</td></tr>
-    <tr><td><code>core0/role-web-app</code></td><td>IAMRole</td><td>WebAppInstanceRole</td></tr>
-    <tr><td><code>core0/pol-app-data</code></td><td>IAMPolicy</td><td>WebAppCustomerDataPolicy</td></tr>
-    <tr><td><code>core0/s3-customer-pii</code></td><td>S3Bucket</td><td>customer-pii-records-000000000000</td></tr>
-    <tr><td><code>core0/data-customer-pii</code></td><td>DataSet</td><td>CustomerIdentityAndPII</td></tr>
-    <tr><td><code>decoy0/role-decoy</code></td><td>IAMRole</td><td>DecoyRole</td></tr>
-    <tr><td><code>decoy0/pol-decoy-broad</code></td><td>IAMPolicy</td><td>DecoyBroadPolicy</td></tr>
-    <tr><td><code>fp0/s3-public-denied</code></td><td>S3Bucket</td><td>public-looking-denied</td></tr>
-    <tr><td><code>ctrl0/s3-controlled</code></td><td>S3Bucket</td><td>controlled-bucket</td></tr>
-    <tr><td><code>ctrl0/trail-control</code></td><td>LogTrail</td><td>control-trail</td></tr>
-    <tr><td><code>ctrl1/s3-controlled</code></td><td>S3Bucket</td><td>controlled-bucket</td></tr>
-    <tr><td><code>ctrl1/trail-control</code></td><td>LogTrail</td><td>control-trail</td></tr>
-    <tr><td><code>ctrl2/s3-controlled</code></td><td>S3Bucket</td><td>controlled-bucket</td></tr>
-    <tr><td><code>ctrl2/trail-control</code></td><td>LogTrail</td><td>control-trail</td></tr>
-    <tr><td><code>noise0/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise1/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise2/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise3/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise4/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise5/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise6/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise7/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise8/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise9/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise10/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise11/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise12/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise13/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise14/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise15/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise16/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
-    <tr><td><code>noise17/s3-noise</code></td><td>S3Bucket</td><td>unrelated-bucket</td></tr>
+    <tr><td><code>n18_c602/acct-main</code></td><td>Account</td><td>staging-account-c602</td></tr>
+    <tr><td><code>n21_c602/vpc-staging</code></td><td>VPC</td><td>staging-vpc-c602</td></tr>
+    <tr><td><code>n23_c602/subnet-public-a</code></td><td>Subnet</td><td>public-a-c602</td></tr>
+    <tr><td><code>n24_c602/sg-web</code></td><td>SecurityGroup</td><td>web-sg-c602</td></tr>
+    <tr><td><code>n14_c602/cicd-github</code></td><td>CICDIdentity</td><td>github-actions-oidc-c602</td></tr>
+    <tr><td><code>n27_c602/role-deploy</code></td><td>IAMRole</td><td>DeployRole-c602</td></tr>
+    <tr><td><code>n22_c602/role-runtime</code></td><td>IAMRole</td><td>RuntimeRole-c602</td></tr>
+    <tr><td><code>n25_c602/pol-deploy-passrole</code></td><td>IAMPolicy</td><td>DeployPassRolePolicy-c602</td></tr>
+    <tr><td><code>n29_c602/pol-runtime-s3read</code></td><td>IAMPolicy</td><td>RuntimeS3ReadPolicy-c602</td></tr>
+    <tr><td><code>n19_c602/s3-customer-exports</code></td><td>S3Bucket</td><td>customer-exports-c602</td></tr>
+    <tr><td><code>n28_c602/s3-public-assets</code></td><td>S3Bucket</td><td>public-assets-c602</td></tr>
+    <tr><td><code>n15_c602/app-analytics-exporter</code></td><td>Application</td><td>analytics-exporter-c602</td></tr>
+    <tr><td><code>n01_c602/data-customer-exports</code></td><td>DataSet</td><td>customer-export-data-c602</td></tr>
+    <tr><td><code>n03_c602/trail-main</code></td><td>LogTrail</td><td>main-trail-c602</td></tr>
+    <tr><td><code>n32_c602/role-hop-0</code></td><td>IAMRole</td><td>IntermediateRole0-c602</td></tr>
+    <tr><td><code>n07_c602/role-hop-1</code></td><td>IAMRole</td><td>IntermediateRole1-c602</td></tr>
+    <tr><td><code>n09_c602/role-qa-automation</code></td><td>IAMRole</td><td>QaAutomationRole-c602</td></tr>
+    <tr><td><code>n12_c602/pol-qa-automation-read</code></td><td>IAMPolicy</td><td>QaAutomationReadPolicy-c602</td></tr>
+    <tr><td><code>n04_c602/role-release-audit</code></td><td>IAMRole</td><td>ReleaseAuditRole-c602</td></tr>
+    <tr><td><code>n20_c602/pol-release-audit-read</code></td><td>IAMPolicy</td><td>ReleaseAuditReadPolicy-c602</td></tr>
+    <tr><td><code>n11_c602/s3-static-site</code></td><td>S3Bucket</td><td>static-site-assets-c602</td></tr>
+    <tr><td><code>n06_c602/s3-release-downloads</code></td><td>S3Bucket</td><td>release-downloads-c602</td></tr>
+    <tr><td><code>n31_c602/s3-billing-exports</code></td><td>S3Bucket</td><td>billing-exports-archive-c602</td></tr>
+    <tr><td><code>n16_c602/trail-billing-exports</code></td><td>LogTrail</td><td>trail-billing-exports-c602</td></tr>
+    <tr><td><code>n08_c602/s3-partner-uploads</code></td><td>S3Bucket</td><td>partner-uploads-c602</td></tr>
+    <tr><td><code>n00_c602/trail-partner-uploads</code></td><td>LogTrail</td><td>trail-partner-uploads-c602</td></tr>
+    <tr><td><code>n02_c602/sqs-ingest-pipeline</code></td><td>SqsQueue</td><td>ingest-pipeline-c602</td></tr>
+    <tr><td><code>n33_c602/trail-security-secondary</code></td><td>LogTrail</td><td>trail-security-secondary-c602</td></tr>
+    <tr><td><code>n26_c602/data-operational-metrics</code></td><td>DataSet</td><td>data-operational-metrics-c602</td></tr>
+    <tr><td><code>n13_c602/data-analytics-cache</code></td><td>DataSet</td><td>data-analytics-cache-c602</td></tr>
+    <tr><td><code>n17_c602/ecr-utility-image</code></td><td>EcrRepository</td><td>repo-utility-image-c602</td></tr>
+    <tr><td><code>n05_c602/data-reporting-store</code></td><td>DataSet</td><td>data-reporting-store-c602</td></tr>
+    <tr><td><code>n30_c602/kms-app-configs</code></td><td>KmsKey</td><td>kms-app-configs-c602</td></tr>
+    <tr><td><code>n10_c602/s3-backup-vault</code></td><td>S3Bucket</td><td>backup-vault-c602</td></tr>
   </table>
-  <pre id="raw-edges-pre">core0/acct-main --exposed_to_internet--&gt; core0/ec2-web-frontend
-core0/ec2-web-frontend --assumes--&gt; core0/role-web-app
-core0/role-web-app --attached_policy--&gt; core0/pol-app-data
-core0/role-web-app --can_read--&gt; core0/s3-customer-pii
-core0/s3-customer-pii --stores_sensitive_data--&gt; core0/data-customer-pii
-decoy0/role-decoy --attached_policy--&gt; decoy0/pol-decoy-broad
-ctrl0/s3-controlled --logs_to--&gt; ctrl0/trail-control
-ctrl1/s3-controlled --logs_to--&gt; ctrl1/trail-control
-ctrl2/s3-controlled --logs_to--&gt; ctrl2/trail-control</pre>
+  <pre id="raw-edges-pre">n14_c602/cicd-github --assumes--&gt; n27_c602/role-deploy
+n27_c602/role-deploy --attached_policy--&gt; n25_c602/pol-deploy-passrole
+n22_c602/role-runtime --attached_policy--&gt; n29_c602/pol-runtime-s3read
+n22_c602/role-runtime --can_read--&gt; n19_c602/s3-customer-exports
+n19_c602/s3-customer-exports --stores_sensitive_data--&gt; n01_c602/data-customer-exports
+n15_c602/app-analytics-exporter --deployed_by--&gt; n14_c602/cicd-github
+n19_c602/s3-customer-exports --belongs_to_app--&gt; n15_c602/app-analytics-exporter
+n24_c602/sg-web --exposed_to_internet--&gt; n23_c602/subnet-public-a
+n23_c602/subnet-public-a --belongs_to_app--&gt; n15_c602/app-analytics-exporter
+n28_c602/s3-public-assets --exposed_to_internet--&gt; n23_c602/subnet-public-a
+n27_c602/role-deploy --can_pass_role--&gt; n32_c602/role-hop-0
+n32_c602/role-hop-0 --can_pass_role--&gt; n07_c602/role-hop-1
+n07_c602/role-hop-1 --can_pass_role--&gt; n22_c602/role-runtime
+n09_c602/role-qa-automation --attached_policy--&gt; n12_c602/pol-qa-automation-read
+n04_c602/role-release-audit --attached_policy--&gt; n20_c602/pol-release-audit-read
+n31_c602/s3-billing-exports --logs_to--&gt; n16_c602/trail-billing-exports
+n08_c602/s3-partner-uploads --logs_to--&gt; n00_c602/trail-partner-uploads</pre>
 </div>
 
 <script id="estate-json-data" type="application/json">
-{"nodes": [{"id": "core0/acct-main", "type": "Account", "name": "prod-account", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "core0/ec2-web-frontend", "type": "EC2Instance", "name": "WebFrontendServer", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {"imds_version": "v1"}}, {"id": "core0/role-web-app", "type": "IAMRole", "name": "WebAppInstanceRole", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "core0/pol-app-data", "type": "IAMPolicy", "name": "WebAppCustomerDataPolicy", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {"actions": ["s3:Get*", "s3:List*"]}}, {"id": "core0/s3-customer-pii", "type": "S3Bucket", "name": "customer-pii-records-000000000000", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "core0/data-customer-pii", "type": "DataSet", "name": "CustomerIdentityAndPII", "tags": {"env": "prod", "owner": "web-platform-team", "app": "customer-portal"}, "attributes": {}}, {"id": "decoy0/role-decoy", "type": "IAMRole", "name": "DecoyRole", "tags": {"env": "staging", "owner": "platform-team", "app": "report-pipeline"}, "attributes": {}}, {"id": "decoy0/pol-decoy-broad", "type": "IAMPolicy", "name": "DecoyBroadPolicy", "tags": {"env": "staging", "owner": "platform-team", "app": "report-pipeline"}, "attributes": {"actions": ["s3:GetObject", "s3:ListBucket"], "resource": "arn:aws:s3:::decoy-scratch-bucket/*"}}, {"id": "fp0/s3-public-denied", "type": "S3Bucket", "name": "public-looking-denied", "tags": {"env": "stage", "owner": "infra-team", "app": "data-exporter"}, "attributes": {"public_access": "enabled", "compensating_control": "true"}}, {"id": "ctrl0/s3-controlled", "type": "S3Bucket", "name": "controlled-bucket", "tags": {"env": "staging", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl0/trail-control", "type": "LogTrail", "name": "control-trail", "tags": {"env": "staging", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl1/s3-controlled", "type": "S3Bucket", "name": "controlled-bucket", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl1/trail-control", "type": "LogTrail", "name": "control-trail", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "ctrl2/s3-controlled", "type": "S3Bucket", "name": "controlled-bucket", "tags": {"env": "staging", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "ctrl2/trail-control", "type": "LogTrail", "name": "control-trail", "tags": {"env": "staging", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise0/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "stage", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise1/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "sandbox", "owner": "infra-team", "app": "etl-runner"}, "attributes": {}}, {"id": "noise2/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "stage", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise3/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "infra-team", "app": "etl-runner"}, "attributes": {}}, {"id": "noise4/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise5/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "stage", "owner": "sre-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise6/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise7/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "sre-team", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise8/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {}}, {"id": "noise9/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "test", "owner": "platform-team", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise10/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "sandbox", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise11/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise12/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise13/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "staging", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {}}, {"id": "noise14/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "test", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise15/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "sre-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise16/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "preprod", "owner": "platform-team", "app": "data-exporter"}, "attributes": {}}, {"id": "noise17/s3-noise", "type": "S3Bucket", "name": "unrelated-bucket", "tags": {"env": "sandbox", "owner": "infra-team", "app": "data-exporter"}, "attributes": {}}], "edges": [{"from": "core0/acct-main", "to": "core0/ec2-web-frontend", "type": "exposed_to_internet"}, {"from": "core0/ec2-web-frontend", "to": "core0/role-web-app", "type": "assumes"}, {"from": "core0/role-web-app", "to": "core0/pol-app-data", "type": "attached_policy"}, {"from": "core0/role-web-app", "to": "core0/s3-customer-pii", "type": "can_read"}, {"from": "core0/s3-customer-pii", "to": "core0/data-customer-pii", "type": "stores_sensitive_data"}, {"from": "decoy0/role-decoy", "to": "decoy0/pol-decoy-broad", "type": "attached_policy"}, {"from": "ctrl0/s3-controlled", "to": "ctrl0/trail-control", "type": "logs_to"}, {"from": "ctrl1/s3-controlled", "to": "ctrl1/trail-control", "type": "logs_to"}, {"from": "ctrl2/s3-controlled", "to": "ctrl2/trail-control", "type": "logs_to"}]}
+{"nodes": [{"id": "n18_c602/acct-main", "type": "Account", "name": "staging-account-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n21_c602/vpc-staging", "type": "VPC", "name": "staging-vpc-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"cidr": "10.0.0.0/16"}}, {"id": "n23_c602/subnet-public-a", "type": "Subnet", "name": "public-a-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"cidr": "10.0.1.0/24"}}, {"id": "n24_c602/sg-web", "type": "SecurityGroup", "name": "web-sg-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"ingress_cidr": "0.0.0.0/0"}}, {"id": "n14_c602/cicd-github", "type": "CICDIdentity", "name": "github-actions-oidc-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n27_c602/role-deploy", "type": "IAMRole", "name": "DeployRole-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n22_c602/role-runtime", "type": "IAMRole", "name": "RuntimeRole-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n25_c602/pol-deploy-passrole", "type": "IAMPolicy", "name": "DeployPassRolePolicy-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"actions": ["iam:PassRole"], "resource": "arn:aws:iam::000000000000:role/RuntimeRole"}}, {"id": "n29_c602/pol-runtime-s3read", "type": "IAMPolicy", "name": "RuntimeS3ReadPolicy-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"actions": ["s3:Get*", "s3:List*", "iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "sqs:ReceiveMessage", "sqs:SendMessage", "secretsmanager:GetSecretValue"], "resource": "arn:aws:s3:::customer-exports/*"}}, {"id": "n19_c602/s3-customer-exports", "type": "S3Bucket", "name": "customer-exports-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"logging": "disabled"}}, {"id": "n28_c602/s3-public-assets", "type": "S3Bucket", "name": "public-assets-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {"compensating_control": "true"}}, {"id": "n15_c602/app-analytics-exporter", "type": "Application", "name": "analytics-exporter-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n01_c602/data-customer-exports", "type": "DataSet", "name": "customer-export-data-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n03_c602/trail-main", "type": "LogTrail", "name": "main-trail-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n32_c602/role-hop-0", "type": "IAMRole", "name": "IntermediateRole0-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n07_c602/role-hop-1", "type": "IAMRole", "name": "IntermediateRole1-c602", "tags": {"env": "staging", "owner": "platform-team", "app": "analytics-exporter"}, "attributes": {}}, {"id": "n09_c602/role-qa-automation", "type": "IAMRole", "name": "QaAutomationRole-c602", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {}}, {"id": "n12_c602/pol-qa-automation-read", "type": "IAMPolicy", "name": "QaAutomationReadPolicy-c602", "tags": {"env": "sandbox", "owner": "devops-crew", "app": "report-pipeline"}, "attributes": {"actions": ["s3:GetObject", "s3:ListBucket"], "resource": "arn:aws:s3:::qa-automation-fixtures/*"}}, {"id": "n04_c602/role-release-audit", "type": "IAMRole", "name": "ReleaseAuditRole-c602", "tags": {"env": "preprod", "owner": "infra-team", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n20_c602/pol-release-audit-read", "type": "IAMPolicy", "name": "ReleaseAuditReadPolicy-c602", "tags": {"env": "preprod", "owner": "infra-team", "app": "telemetry-worker"}, "attributes": {"actions": ["s3:GetObject", "s3:ListBucket"], "resource": "arn:aws:s3:::release-audit-archive/*"}}, {"id": "n11_c602/s3-static-site", "type": "S3Bucket", "name": "static-site-assets-c602", "tags": {"env": "sandbox", "owner": "secops-team", "app": "report-pipeline"}, "attributes": {"public_access": "enabled", "compensating_control": "true"}}, {"id": "n06_c602/s3-release-downloads", "type": "S3Bucket", "name": "release-downloads-c602", "tags": {"env": "staging", "owner": "infra-team", "app": "etl-runner"}, "attributes": {"public_access": "enabled", "compensating_control": "true"}}, {"id": "n31_c602/s3-billing-exports", "type": "S3Bucket", "name": "billing-exports-archive-c602", "tags": {"env": "test", "owner": "sre-team", "app": "billing-sync"}, "attributes": {}}, {"id": "n16_c602/trail-billing-exports", "type": "LogTrail", "name": "trail-billing-exports-c602", "tags": {"env": "test", "owner": "sre-team", "app": "billing-sync"}, "attributes": {}}, {"id": "n08_c602/s3-partner-uploads", "type": "S3Bucket", "name": "partner-uploads-c602", "tags": {"env": "internal", "owner": "data-eng", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n00_c602/trail-partner-uploads", "type": "LogTrail", "name": "trail-partner-uploads-c602", "tags": {"env": "internal", "owner": "data-eng", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n02_c602/sqs-ingest-pipeline", "type": "SqsQueue", "name": "ingest-pipeline-c602", "tags": {"env": "stage", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {"visibility_timeout_seconds": "30"}}, {"id": "n33_c602/trail-security-secondary", "type": "LogTrail", "name": "trail-security-secondary-c602", "tags": {"env": "stage", "owner": "infra-team", "app": "telemetry-worker"}, "attributes": {}}, {"id": "n26_c602/data-operational-metrics", "type": "DataSet", "name": "data-operational-metrics-c602", "tags": {"env": "preprod", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {"classification": "internal"}}, {"id": "n13_c602/data-analytics-cache", "type": "DataSet", "name": "data-analytics-cache-c602", "tags": {"env": "preprod", "owner": "devops-crew", "app": "analytics-exporter"}, "attributes": {"classification": "internal"}}, {"id": "n17_c602/ecr-utility-image", "type": "EcrRepository", "name": "repo-utility-image-c602", "tags": {"env": "internal", "owner": "cloud-eng", "app": "data-exporter"}, "attributes": {"image_tag_mutability": "MUTABLE"}}, {"id": "n05_c602/data-reporting-store", "type": "DataSet", "name": "data-reporting-store-c602", "tags": {"env": "sandbox", "owner": "sre-team", "app": "analytics-exporter"}, "attributes": {"classification": "internal"}}, {"id": "n30_c602/kms-app-configs", "type": "KmsKey", "name": "kms-app-configs-c602", "tags": {"env": "preprod", "owner": "cloud-eng", "app": "analytics-exporter"}, "attributes": {"description": "internal storage key"}}, {"id": "n10_c602/s3-backup-vault", "type": "S3Bucket", "name": "backup-vault-c602", "tags": {"env": "preprod", "owner": "platform-team", "app": "etl-runner"}, "attributes": {}}], "edges": [{"from": "n14_c602/cicd-github", "to": "n27_c602/role-deploy", "type": "assumes"}, {"from": "n27_c602/role-deploy", "to": "n25_c602/pol-deploy-passrole", "type": "attached_policy"}, {"from": "n22_c602/role-runtime", "to": "n29_c602/pol-runtime-s3read", "type": "attached_policy"}, {"from": "n22_c602/role-runtime", "to": "n19_c602/s3-customer-exports", "type": "can_read"}, {"from": "n19_c602/s3-customer-exports", "to": "n01_c602/data-customer-exports", "type": "stores_sensitive_data"}, {"from": "n15_c602/app-analytics-exporter", "to": "n14_c602/cicd-github", "type": "deployed_by"}, {"from": "n19_c602/s3-customer-exports", "to": "n15_c602/app-analytics-exporter", "type": "belongs_to_app"}, {"from": "n24_c602/sg-web", "to": "n23_c602/subnet-public-a", "type": "exposed_to_internet"}, {"from": "n23_c602/subnet-public-a", "to": "n15_c602/app-analytics-exporter", "type": "belongs_to_app"}, {"from": "n28_c602/s3-public-assets", "to": "n23_c602/subnet-public-a", "type": "exposed_to_internet"}, {"from": "n27_c602/role-deploy", "to": "n32_c602/role-hop-0", "type": "can_pass_role"}, {"from": "n32_c602/role-hop-0", "to": "n07_c602/role-hop-1", "type": "can_pass_role"}, {"from": "n07_c602/role-hop-1", "to": "n22_c602/role-runtime", "type": "can_pass_role"}, {"from": "n09_c602/role-qa-automation", "to": "n12_c602/pol-qa-automation-read", "type": "attached_policy"}, {"from": "n04_c602/role-release-audit", "to": "n20_c602/pol-release-audit-read", "type": "attached_policy"}, {"from": "n31_c602/s3-billing-exports", "to": "n16_c602/trail-billing-exports", "type": "logs_to"}, {"from": "n08_c602/s3-partner-uploads", "to": "n00_c602/trail-partner-uploads", "type": "logs_to"}]}
 </script>
 <script>
 let ESTATE_DATA = null;
@@ -707,7 +840,7 @@ if (!ESTATE_DATA || !ESTATE_DATA.nodes) {
       { id: "s3-customer-pii", type: "S3Bucket", name: "customer-pii-records-000000000000", attributes: { public: "false" } },
       { id: "data-customer-pii", type: "DataSet", name: "CustomerIdentityAndPII", attributes: { classification: "restricted" } },
       { id: "kms-prod-data", type: "KmsKey", name: "key-prod-data", attributes: { key_policy: "overbroad" } },
-      { id: "s3-decoy-bucket", type: "S3Bucket", name: "public-looking-decoy", attributes: { public: "true" } }
+      { id: "s3-open-bucket", type: "S3Bucket", name: "public-looking-bucket", attributes: { public: "true" } }
     ],
     edges: [
       { from: "acct-main", to: "ec2-web-frontend", type: "exposed_to_internet" },
@@ -740,7 +873,22 @@ const ICONS = {
   LogTrail: `<svg viewBox="0 0 24 24" fill="none" stroke="#63635e" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
   IAMRole: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
   IAMPolicy: `<svg viewBox="0 0 24 24" fill="none" stroke="#b3122a" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-  Application: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`
+  Application: `<svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  K8sCluster: `<svg viewBox="0 0 24 24" fill="none" stroke="#326ce5" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M6 6l12 12M6 18L18 6"/></svg>`,
+  K8sPod: `<svg viewBox="0 0 24 24" fill="none" stroke="#326ce5" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="2"/><circle cx="15" cy="15" r="2"/></svg>`,
+  K8sNamespace: `<svg viewBox="0 0 24 24" fill="none" stroke="#326ce5" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 2"/></svg>`,
+  K8sServiceAccount: `<svg viewBox="0 0 24 24" fill="none" stroke="#326ce5" stroke-width="2"><circle cx="12" cy="8" r="4"/><rect x="6" y="14" width="12" height="7" rx="2"/></svg>`,
+  AzureSubscription: `<svg viewBox="0 0 24 24" fill="none" stroke="#0078d4" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>`,
+  AzureResourceGroup: `<svg viewBox="0 0 24 24" fill="none" stroke="#0078d4" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+  AzureAppService: `<svg viewBox="0 0 24 24" fill="none" stroke="#0078d4" stroke-width="2"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>`,
+  AzureKeyVault: `<svg viewBox="0 0 24 24" fill="none" stroke="#0078d4" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><circle cx="12" cy="16" r="1.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  AzureStorageContainer: `<svg viewBox="0 0 24 24" fill="none" stroke="#0078d4" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+  AzureManagedIdentity: `<svg viewBox="0 0 24 24" fill="none" stroke="#0078d4" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>`,
+  GcpOrganization: `<svg viewBox="0 0 24 24" fill="none" stroke="#ea4335" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>`,
+  GcpProject: `<svg viewBox="0 0 24 24" fill="none" stroke="#4285f4" stroke-width="2"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"/></svg>`,
+  GcpWorkloadIdentityPool: `<svg viewBox="0 0 24 24" fill="none" stroke="#fbbc05" stroke-width="2"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg>`,
+  GcpServiceAccount: `<svg viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/><line x1="9" y1="15" x2="15" y2="15"/></svg>`,
+  GcpStorageBucket: `<svg viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M21 6v12c0 1.66-4 3-9 3s-9-1.34-9-3V6"/></svg>`
 };
 
 const CANONICAL_FINDINGS = [
@@ -759,16 +907,56 @@ const CANONICAL_FINDINGS = [
   { id: "s3_public_exposure", label: "Storage: Public S3 Bucket Read/Write" },
   { id: "s3_logging_missing", label: "Governance: S3 Server Access Logging Missing" },
   { id: "security_group_overexposed", label: "Network: Security Group Ingress 0.0.0.0/0" },
-  { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" }
+  { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" },
+  { id: "k8s_pod_irsa_exfil", label: "Kubernetes: Pod IRSA Exfiltration" },
+  { id: "azure_imds_keyvault_harvest", label: "Azure: App Service Key Vault Harvest" },
+  { id: "gcp_workload_identity_federation", label: "GCP: Workload Identity Federation Exfil" }
 ];
 
-// Layer Definitions
-const LAYERS = [
-  { id: "perimeter", title: "Perimeter & Network Ingress", types: ["Account", "VPC", "Subnet", "SecurityGroup"] },
-  { id: "compute", title: "Compute & Serverless Runtime", types: ["EC2Instance", "LambdaFunction", "CICDIdentity", "Application"] },
-  { id: "storage", title: "Data Assets & Storage", types: ["S3Bucket", "RdsInstance", "EbsSnapshot", "DataSet"] },
-  { id: "services", title: "Application Services & Messaging", types: ["SecretsManagerSecret", "EcrRepository", "SqsQueue", "KmsKey", "LogTrail"] },
-  { id: "identity", title: "Identity & Access Management", types: ["IAMRole", "IAMPolicy"] },
+// Network Architecture Zones (Multi-Tier Enterprise Cloud Topology)
+const NETWORK_ZONES = [
+  { 
+    id: "perimeter", 
+    title: "Zone 0 · Perimeter & Network Ingress", 
+    desc: "Internet-facing entry points, route tables, security groups, and VPC perimeters",
+    types: ["Account", "VPC", "Subnet", "SecurityGroup", "AwsOrganization", "AzureSubscription", "AzureResourceGroup", "AzureManagementGroup", "GcpOrganization", "GcpProject", "GcpFolder", "K8sCluster", "K8sNamespace"] 
+  },
+  { 
+    id: "compute", 
+    title: "Zone 1 · Compute Runtime & Service Workloads", 
+    desc: "Application instances, serverless handlers, containers, and pipeline runners",
+    types: ["EC2Instance", "LambdaFunction", "CICDIdentity", "Application", "K8sPod", "AzureAppService"] 
+  },
+  { 
+    id: "messaging", 
+    title: "Zone 2 · Application Integration & Messaging", 
+    desc: "Message queues, event streaming, container registries, and microservice middleware",
+    types: ["SqsQueue", "EcrRepository"] 
+  },
+  { 
+    id: "storage", 
+    title: "Zone 3 · Data Plane & Storage Endpoints", 
+    desc: "S3 object storage, relational databases, persistent volumes, and data classifications",
+    types: ["S3Bucket", "RdsInstance", "EbsSnapshot", "DataSet", "AzureStorageContainer", "GcpStorageBucket"] 
+  },
+  { 
+    id: "crypto", 
+    title: "Zone 4 · Cryptography & Secrets Management", 
+    desc: "KMS customer master keys, Secrets Manager secrets, and cryptographic policies",
+    types: ["KmsKey", "SecretsManagerSecret", "AzureKeyVault"] 
+  },
+  { 
+    id: "identity", 
+    title: "Zone 5 · IAM Control Plane & Trust Boundaries", 
+    desc: "Execution roles, instance profiles, trust relationships, and IAM policies",
+    types: ["IAMRole", "IAMPolicy", "K8sServiceAccount", "AzureManagedIdentity", "GcpWorkloadIdentityPool", "GcpServiceAccount"] 
+  },
+  { 
+    id: "audit", 
+    title: "Zone 6 · Governance, Audit & Telemetry", 
+    desc: "Multi-region CloudTrail audit logging and security event collectors",
+    types: ["LogTrail"] 
+  },
 ];
 
 let selectedPath = [];
@@ -788,33 +976,187 @@ function init() {
   renderRelationships();
   setupEventListeners();
   updateYaml();
+  setTimeout(drawTopologyWires, 60);
 }
 
 function renderLayers() {
   const root = document.getElementById("layers-root");
   root.innerHTML = "";
 
-  LAYERS.forEach(layer => {
-    const matchingNodes = ESTATE_DATA.nodes.filter(n => layer.types.includes(n.type));
+  NETWORK_ZONES.forEach(zone => {
+    const matchingNodes = ESTATE_DATA.nodes.filter(n => zone.types.includes(n.type));
     if (matchingNodes.length === 0) return;
 
     const container = document.createElement("div");
     container.className = "layer-container";
     container.innerHTML = `
       <div class="layer-header">
-        <div class="layer-title">${layer.title}</div>
+        <div>
+          <div class="layer-title">${zone.title}</div>
+          <div class="layer-desc">${zone.desc}</div>
+        </div>
         <div class="layer-count">${matchingNodes.length} resources</div>
       </div>
-      <div class="nodes-grid" id="layer-${layer.id}"></div>
+      <div class="nodes-grid" id="layer-${zone.id}"></div>
     `;
     root.appendChild(container);
 
-    const grid = container.querySelector(`#layer-${layer.id}`);
+    const grid = container.querySelector(`#layer-${zone.id}`);
     matchingNodes.forEach(node => {
       const card = createNodeCard(node);
       grid.appendChild(card);
     });
   });
+}
+
+function getNodeInterfaces(node) {
+  const ifaces = [];
+  const attrs = node.attributes || {};
+  const edges = ESTATE_DATA.edges || [];
+  const inEdges = edges.filter(e => e.to === node.id);
+  const outEdges = edges.filter(e => e.from === node.id);
+
+  if (node.type === "EC2Instance") {
+    const isPublic = attrs.public === "true" || inEdges.some(e => e.type === "exposed_to_internet");
+    if (isPublic) {
+      ifaces.push({ label: "Network Ingress", val: "Internet (0.0.0.0/0) -> eth0 (54.214.18.92:443)", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Network Ingress", val: "VPC Internal -> eth0 (10.0.1.42)", alert: false, kind: "net" });
+    }
+
+    if (attrs.imds_version === "v1") {
+      ifaces.push({ label: "Metadata Interface", val: "IMDSv1 (169.254.169.254:80) · No Token Enforced", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Metadata Interface", val: "IMDSv2 (169.254.169.254) · Token Enforced", alert: false, kind: "net" });
+    }
+
+    const assumesEdge = outEdges.find(e => e.type === "assumes");
+    if (assumesEdge) {
+      ifaces.push({ label: "Credential Scope", val: `InstanceProfile -> AssumeRole [${assumesEdge.to}]`, alert: false, kind: "iam" });
+    }
+  } else if (node.type === "SecurityGroup") {
+    const ingress = attrs.ingress || attrs.ingress_cidr || "0.0.0.0/0:all";
+    const isPublic = ingress.includes("0.0.0.0/0");
+    ifaces.push({ label: "Inbound Scope", val: ingress, alert: isPublic, kind: isPublic ? "alert" : "net" });
+    ifaces.push({ label: "Outbound Scope", val: "0.0.0.0/0:all (ALLOW ALL EGRESS)", alert: false, kind: "net" });
+  } else if (node.type === "VPC") {
+    ifaces.push({ label: "CIDR Scope", val: attrs.cidr || "10.0.0.0/16", alert: false, kind: "net" });
+    ifaces.push({ label: "DNS Resolution", val: "10.0.0.2:53 (AmazonProvidedDNS)", alert: false, kind: "net" });
+  } else if (node.type === "Subnet") {
+    ifaces.push({ label: "Subnet Scope", val: attrs.cidr || "10.0.1.0/24", alert: false, kind: "net" });
+    if (attrs.public === "true" || attrs.route_to_igw) {
+      ifaces.push({ label: "Route Table Scope", val: "0.0.0.0/0 -> igw-default (PUBLIC)", alert: true, kind: "alert" });
+    }
+  } else if (node.type === "S3Bucket") {
+    const isPublic = attrs.public === "true" || attrs.public_access === "enabled";
+    const hasCompControl = attrs.compensating_control === "true";
+    if (isPublic && !hasCompControl) {
+      ifaces.push({ label: "Access Scope", val: "Public Read/Write (0.0.0.0/0) · S3 Block Public Access Disabled", alert: true, kind: "alert" });
+    } else if (isPublic && hasCompControl) {
+      ifaces.push({ label: "Access Scope", val: "Public-Facing with Compensating Control (Scoped Deny Policy)", alert: false, kind: "net" });
+    } else {
+      ifaces.push({ label: "Access Scope", val: "Private S3 Bucket · Internal Account Principals Only", alert: false, kind: "net" });
+    }
+
+    const kmsEdge = outEdges.find(e => e.type === "encrypted_with");
+    if (kmsEdge) {
+      ifaces.push({ label: "Encryption Scope", val: `SSE-KMS via Customer Key [${kmsEdge.to}]`, alert: false, kind: "iam" });
+    }
+
+    const dataEdge = outEdges.find(e => e.type === "stores_sensitive_data");
+    if (dataEdge) {
+      ifaces.push({ label: "Payload Scope", val: `Stores Sensitive Asset: ${dataEdge.to}`, alert: true, kind: "alert" });
+    }
+
+    const trailEdge = outEdges.find(e => e.type === "logs_to");
+    if (trailEdge) {
+      ifaces.push({ label: "Audit Scope", val: `CloudTrail Active -> [${trailEdge.to}]`, alert: false, kind: "net" });
+    } else if (attrs.logging === "disabled") {
+      ifaces.push({ label: "Audit Scope", val: "S3 Server Access / CloudTrail Logging MISSING", alert: true, kind: "alert" });
+    }
+  } else if (node.type === "IAMRole") {
+    const callerEdge = inEdges.find(e => e.type === "assumes" || e.type === "can_pass_role");
+    const trust = attrs.trust_principal || (callerEdge ? callerEdge.from : "ec2.amazonaws.com");
+    const isExternal = trust.includes("999999999999") || trust === "*";
+    ifaces.push({
+      label: "Trust Principal Scope",
+      val: `Principal: ${trust}${callerEdge ? ` (Bound to ${callerEdge.from})` : ""}`,
+      alert: isExternal,
+      kind: isExternal ? "alert" : "iam"
+    });
+
+    const polEdges = outEdges.filter(e => e.type === "attached_policy");
+    if (polEdges.length > 0) {
+      ifaces.push({ label: "Attached Policies", val: polEdges.map(e => e.to).join(", "), alert: false, kind: "iam" });
+    }
+
+    const readEdges = outEdges.filter(e => e.type === "can_read" || e.type === "can_write");
+    if (readEdges.length > 0) {
+      readEdges.forEach(re => {
+        ifaces.push({ label: "Data Access Scope", val: `${re.type} -> ${re.to}`, alert: true, kind: "iam" });
+      });
+    }
+  } else if (node.type === "IAMPolicy") {
+    const actions = attrs.actions || ["s3:GetObject"];
+    const actionsStr = Array.isArray(actions) ? actions.join(", ") : actions;
+    const isWildcard = actionsStr.includes("*");
+    const res = attrs.resource || "*";
+    const isOverbroadRes = res === "*" || res.endsWith("/*");
+    ifaces.push({ label: "Action Scope", val: actionsStr, alert: isWildcard, kind: isWildcard ? "alert" : "iam" });
+    ifaces.push({ label: "Resource ARN Scope", val: res, alert: isOverbroadRes, kind: isOverbroadRes ? "alert" : "iam" });
+  } else if (node.type === "LambdaFunction") {
+    if (attrs.auth_type === "NONE") {
+      ifaces.push({ label: "Function URL Scope", val: "Public Ingress (Auth: NONE) · Unauthenticated HTTP", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Execution Environment", val: "AWS_IAM Authentication Enforced", alert: false, kind: "iam" });
+    }
+  } else if (node.type === "RdsInstance") {
+    ifaces.push({ label: "TCP Listener", val: "0.0.0.0:3306 (MySQL)", alert: attrs.publicly_accessible === "true", kind: "net" });
+    if (attrs.publicly_accessible === "true") {
+      ifaces.push({ label: "Public Network Route", val: "Publicly Accessible: YES (Internet Gateway Route)", alert: true, kind: "alert" });
+    }
+  } else if (node.type === "KmsKey") {
+    const isOverbroad = attrs.key_policy === "overbroad";
+    if (isOverbroad) {
+      ifaces.push({ label: "Key Policy Scope", val: "kms:Decrypt -> Principal: * (Wildcard Decrypt)", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Key Policy Scope", val: "kms:* -> Principal: Scoped Account Roles", alert: false, kind: "iam" });
+    }
+    const protectedEdges = inEdges.filter(e => e.type === "encrypted_with");
+    if (protectedEdges.length > 0) {
+      ifaces.push({ label: "Protected Targets", val: protectedEdges.map(e => e.from).join(", "), alert: false, kind: "iam" });
+    }
+  } else if (node.type === "SecretsManagerSecret") {
+    if (attrs.public_access === "true") {
+      ifaces.push({ label: "Resource Policy Scope", val: "Principal: * (Public Read / Cross-Account)", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Secret API Access", val: "secretsmanager:GetSecretValue (Account Scoped)", alert: false, kind: "iam" });
+    }
+  } else if (node.type === "EbsSnapshot") {
+    if (attrs.public === "true") {
+      ifaces.push({ label: "Snapshot Sharing Scope", val: "createVolumePermission: All (PUBLIC)", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Snapshot Sharing Scope", val: "Private to AWS Account", alert: false, kind: "net" });
+    }
+  } else if (node.type === "SqsQueue") {
+    if (attrs.policy === "overbroad") {
+      ifaces.push({ label: "Queue Access Policy Scope", val: "sqs:SendMessage / sqs:ReceiveMessage (*)", alert: true, kind: "alert" });
+    } else {
+      ifaces.push({ label: "Queue Endpoint", val: "sqs.us-east-1.amazonaws.com (Scoped IAM)", alert: false, kind: "net" });
+    }
+  } else if (node.type === "CICDIdentity") {
+    const assumesEdge = outEdges.find(e => e.type === "assumes");
+    ifaces.push({ label: "Federation Scope", val: "OIDC Federation (token.actions.githubusercontent.com)", alert: false, kind: "iam" });
+    if (assumesEdge) {
+      ifaces.push({ label: "Role Assumption Scope", val: `sts:AssumeRoleWithWebIdentity -> ${assumesEdge.to}`, alert: true, kind: "alert" });
+    }
+  } else if (node.type === "DataSet") {
+    ifaces.push({ label: "Data Sensitivity Scope", val: `Classification: ${(attrs.classification || "RESTRICTED").toUpperCase()}`, alert: true, kind: "alert" });
+  } else if (node.type === "LogTrail") {
+    ifaces.push({ label: "Telemetry Scope", val: "Multi-Region CloudTrail · Management & Data Events Active", alert: false, kind: "net" });
+  }
+
+  return ifaces;
 }
 
 function createNodeCard(node) {
@@ -824,6 +1166,17 @@ function createNodeCard(node) {
 
   const iconSvg = ICONS[node.type] || ICONS.Account;
   
+  const ifaces = getNodeInterfaces(node);
+  let ifaceHtml = "";
+  if (ifaces.length > 0) {
+    ifaceHtml = `
+      <div class="interfaces-box">
+        <div class="iface-label">Service Interfaces & Bindings</div>
+        ${ifaces.map(i => `<div class="iface-chip ${i.alert ? 'alert' : i.kind}">${i.label}: <strong>${i.val}</strong></div>`).join("")}
+      </div>
+    `;
+  }
+
   let attrHtml = "";
   if (node.attributes) {
     Object.entries(node.attributes).forEach(([k, v]) => {
@@ -846,11 +1199,156 @@ function createNodeCard(node) {
       </div>
     </div>
     <div class="node-id">${node.id}</div>
+    ${ifaceHtml}
     <div class="node-attrs">${attrHtml}</div>
   `;
 
   card.addEventListener("click", () => toggleNodeSelection(node.id));
+  card.addEventListener("mouseenter", () => highlightIncidentWires(node.id));
+  card.addEventListener("mouseleave", clearWireHighlight);
   return card;
+}
+
+function highlightIncidentWires(nodeId) {
+  const wires = document.querySelectorAll(".wire-path");
+  const connectedNodes = new Set([nodeId]);
+  wires.forEach(w => {
+    if (w.dataset.from === nodeId || w.dataset.to === nodeId) {
+      w.classList.add("wire-highlight");
+      w.classList.remove("wire-dimmed");
+      connectedNodes.add(w.dataset.from);
+      connectedNodes.add(w.dataset.to);
+    } else {
+      w.classList.add("wire-dimmed");
+      w.classList.remove("wire-highlight");
+    }
+  });
+
+  document.querySelectorAll(".node-card").forEach(c => {
+    if (connectedNodes.has(c.dataset.id)) {
+      c.classList.add("active-hover");
+    } else {
+      c.classList.remove("active-hover");
+    }
+  });
+}
+
+function clearWireHighlight() {
+  document.querySelectorAll(".wire-path").forEach(w => {
+    w.classList.remove("wire-highlight", "wire-dimmed");
+  });
+  document.querySelectorAll(".node-card").forEach(c => {
+    c.classList.remove("active-hover");
+  });
+}
+
+function drawTopologyWires() {
+  const svg = document.getElementById("topology-wires-svg");
+  const canvas = document.getElementById("arch-canvas");
+  if (!svg || !canvas || !ESTATE_DATA || !ESTATE_DATA.edges) return;
+
+  // Clear existing paths, keep <defs>
+  const defs = svg.querySelector("defs");
+  svg.innerHTML = "";
+  if (defs) svg.appendChild(defs);
+
+  // Resize SVG overlay to match full scroll area of arch-canvas
+  const scrollW = Math.max(canvas.scrollWidth, canvas.clientWidth);
+  const scrollH = Math.max(canvas.scrollHeight, canvas.clientHeight);
+  svg.setAttribute("width", scrollW);
+  svg.setAttribute("height", scrollH);
+  svg.style.width = scrollW + "px";
+  svg.style.height = scrollH + "px";
+
+  const canvasRect = canvas.getBoundingClientRect();
+
+  const cardMap = new Map();
+  document.querySelectorAll(".node-card").forEach(c => {
+    cardMap.set(c.dataset.id, c);
+  });
+
+  // Calculate consecutive attack path segments for highlighting
+  const activeSegments = new Set();
+  for (let i = 0; i < selectedPath.length - 1; i++) {
+    activeSegments.add(`${selectedPath[i]}->${selectedPath[i+1]}`);
+    activeSegments.add(`${selectedPath[i+1]}->${selectedPath[i]}`);
+  }
+
+  ESTATE_DATA.edges.forEach(edge => {
+    const fromCard = cardMap.get(edge.from);
+    const toCard = cardMap.get(edge.to);
+    if (!fromCard || !toCard) return;
+
+    const rFrom = fromCard.getBoundingClientRect();
+    const rTo = toCard.getBoundingClientRect();
+
+    // Coordinates relative to canvas content
+    const x1 = rFrom.left - canvasRect.left + canvas.scrollLeft + (rFrom.width / 2);
+    const y1 = rFrom.top - canvasRect.top + canvas.scrollTop + (rFrom.height / 2);
+    const x2 = rTo.left - canvasRect.left + canvas.scrollLeft + (rTo.width / 2);
+    const y2 = rTo.top - canvasRect.top + canvas.scrollTop + (rTo.height / 2);
+
+    let startX = x1;
+    let startY = y1;
+    let endX = x2;
+    let endY = y2;
+
+    if (Math.abs(y2 - y1) > 40) {
+      if (y2 > y1) {
+        startY = rFrom.bottom - canvasRect.top + canvas.scrollTop;
+        endY = rTo.top - canvasRect.top + canvas.scrollTop - 4;
+      } else {
+        startY = rFrom.top - canvasRect.top + canvas.scrollTop;
+        endY = rTo.bottom - canvasRect.top + canvas.scrollTop + 4;
+      }
+    } else {
+      if (x2 > x1) {
+        startX = rFrom.right - canvasRect.left + canvas.scrollLeft;
+        endX = rTo.left - canvasRect.left + canvas.scrollLeft - 4;
+      } else {
+        startX = rFrom.left - canvasRect.left + canvas.scrollLeft;
+        endX = rTo.right - canvasRect.left + canvas.scrollLeft + 4;
+      }
+    }
+
+    const dx = endX - startX;
+    const dy = endY - startY;
+    let pathD = "";
+    if (Math.abs(dy) > Math.abs(dx)) {
+      const cpy1 = startY + (dy * 0.5);
+      const cpy2 = endY - (dy * 0.5);
+      pathD = `M ${startX} ${startY} C ${startX} ${cpy1}, ${endX} ${cpy2}, ${endX} ${endY}`;
+    } else {
+      const cpx1 = startX + (dx * 0.5);
+      const cpx2 = endX - (dx * 0.5);
+      pathD = `M ${startX} ${startY} C ${cpx1} ${startY}, ${cpx2} ${endY}, ${endX} ${endY}`;
+    }
+
+    const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    pathEl.setAttribute("d", pathD);
+    pathEl.dataset.from = edge.from;
+    pathEl.dataset.to = edge.to;
+    pathEl.dataset.type = edge.type;
+
+    const isAttack = activeSegments.has(`${edge.from}->${edge.to}`);
+    let wireKind = "data";
+    let markerId = "arrow-default";
+
+    if (isAttack) {
+      wireKind = "active-attack";
+      markerId = "arrow-attack";
+    } else if (["exposed_to_internet", "routes_traffic", "ingress"].includes(edge.type)) {
+      wireKind = "network";
+      markerId = "arrow-net";
+    } else if (["assumes", "attached_policy", "trusts"].includes(edge.type)) {
+      wireKind = "iam";
+      markerId = "arrow-iam";
+    }
+
+    pathEl.setAttribute("class", `wire-path ${wireKind}`);
+    pathEl.setAttribute("marker-end", `url(#${markerId})`);
+    svg.appendChild(pathEl);
+  });
 }
 
 function toggleNodeSelection(nodeId) {
@@ -877,6 +1375,9 @@ function updatePathUI() {
       card.classList.remove("selected");
     }
   });
+
+  // Re-draw wires to reflect updated attack path highlighting
+  drawTopologyWires();
 
   // Update right sidebar path list
   const list = document.getElementById("path-list");
@@ -974,6 +1475,13 @@ function updateYaml() {
 }
 
 function setupEventListeners() {
+  // Canvas scroll & window resize for SVG routing wires
+  const canvas = document.getElementById("arch-canvas");
+  if (canvas) {
+    canvas.addEventListener("scroll", drawTopologyWires);
+  }
+  window.addEventListener("resize", drawTopologyWires);
+
   // Tabs
   document.querySelectorAll(".panel-tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -1014,6 +1522,40 @@ function setupEventListeners() {
     a.click();
     URL.revokeObjectURL(url);
   });
+
+  // Demo Key Loader (Visible only for standalone demo / raw template)
+  const isDemo = !document.getElementById("estate-json-data") || 
+                 !document.getElementById("estate-json-data").textContent.trim() ||
+                 document.getElementById("estate-json-data").textContent.trim().startsWith("<!--");
+  const btnLoadDemo = document.getElementById("btn-load-demo-key");
+  if (btnLoadDemo) {
+    if (isDemo) {
+      btnLoadDemo.style.display = "flex";
+      btnLoadDemo.addEventListener("click", () => {
+        const demoKey = {
+          paths: [
+            {
+              id: "path-critical-demo-01",
+              nodes: [
+                "ec2-web-frontend",
+                "role-web-app",
+                "s3-customer-pii",
+                "data-customer-pii"
+              ]
+            }
+          ],
+          finding_families: [
+            "ec2_imdsv1_enabled",
+            "iam_excessive_privilege",
+            "security_group_overexposed"
+          ]
+        };
+        document.getElementById("key-input").value = JSON.stringify(demoKey, null, 2);
+      });
+    } else {
+      btnLoadDemo.style.display = "none";
+    }
+  }
 
   // In-Browser Deterministic Evaluator (Matches app/cloudforge/lab/grade.py exactly)
   document.getElementById("btn-evaluate").addEventListener("click", () => {
