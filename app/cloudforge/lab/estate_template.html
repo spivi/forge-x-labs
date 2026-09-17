@@ -645,7 +645,7 @@
 <header>
   <div class="brand">
     <span class="wordmark">CLOUDFORG<span class="wordmark__glitch">E</span></span>
-    <span class="version-tag">v1.0.0</span>
+    <span class="version-tag">v<!-- VERSION_PLACEHOLDER --></span>
     <h1 class="header-title"><span id="title-slot"><!-- SCENARIO_TITLE_PLACEHOLDER --></span></h1>
     <span class="header-sub">/ INTERACTIVE WORKBENCH</span>
   </div>
@@ -684,8 +684,6 @@
       <div class="panel-tab active" data-tab="submission">Your Submission</div>
       <div class="panel-tab" data-tab="evaluator">Deterministic Evaluator</div>
       <div class="panel-tab" data-tab="edges">Relationships (<span id="edge-count">0</span>)</div>
-      <div class="panel-tab" data-tab="defense">Blue Defense</div>
-      <div class="panel-tab" data-tab="telemetry">Forensics</div>
     </div>
 
     <div class="panel-content" id="tab-submission">
@@ -753,43 +751,6 @@ findings: []</div>
       </div>
     </div>
 
-    <div class="panel-content" id="tab-defense" style="display:none;">
-      <div class="panel-section">
-        <div class="panel-section-title">Autonomous Blue Defense Rules</div>
-        <p style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">
-          Generated Sigma, Splunk SPL, Elastic KQL, and Terraform hardening patches for findings.
-        </p>
-        <div id="defense-rules-container" style="font-family:var(--font-mono); font-size:11px; display:flex; flex-direction:column; gap:8px;">
-          <div class="yaml-preview" style="max-height:120px;">title: Cloudforge Autonomous Detection
-status: experimental
-logsource:
-  product: aws
-  service: cloudtrail
-detection:
-  selection:
-    eventName:
-      - AssumeRole
-      - GetObject
-  condition: selection</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel-content" id="tab-telemetry" style="display:none;">
-      <div class="panel-section">
-        <div class="panel-section-title">Forensic Shell Telemetry</div>
-        <p style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">
-          Engine C synthetic adversary command history and drop file artifacts.
-        </p>
-        <div id="telemetry-log" class="yaml-preview" style="max-height:280px; overflow-y:auto;">$ whoami
-$ id
-$ uname -a
-$ env | grep -iE 'aws|azure|gcp|token|key'
-$ cat /etc/resolv.conf
-$ curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/
-$ history -w /tmp/.hist_bak</div>
-      </div>
-    </div>
   </aside>
 </div>
 
@@ -804,6 +765,9 @@ $ history -w /tmp/.hist_bak</div>
 
 <script id="estate-json-data" type="application/json">
 <!-- ESTATE_JSON_PLACEHOLDER -->
+</script>
+<script id="canonical-findings-data" type="application/json">
+<!-- CANONICAL_FINDINGS_PLACEHOLDER -->
 </script>
 <script>
 let ESTATE_DATA = null;
@@ -830,7 +794,7 @@ if (!ESTATE_DATA || !ESTATE_DATA.nodes) {
       { id: "s3-customer-pii", type: "S3Bucket", name: "customer-pii-records-000000000000", attributes: { public: "false" } },
       { id: "data-customer-pii", type: "DataSet", name: "CustomerIdentityAndPII", attributes: { classification: "restricted" } },
       { id: "kms-prod-data", type: "KmsKey", name: "key-prod-data", attributes: { key_policy: "overbroad" } },
-      { id: "s3-decoy-bucket", type: "S3Bucket", name: "public-looking-decoy", attributes: { public: "true" } }
+      { id: "s3-open-bucket", type: "S3Bucket", name: "public-looking-bucket", attributes: { public: "true" } }
     ],
     edges: [
       { from: "acct-main", to: "ec2-web-frontend", type: "exposed_to_internet" },
@@ -881,27 +845,43 @@ const ICONS = {
   GcpStorageBucket: `<svg viewBox="0 0 24 24" fill="none" stroke="#34a853" stroke-width="2"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M21 6v12c0 1.66-4 3-9 3s-9-1.34-9-3V6"/></svg>`
 };
 
-const CANONICAL_FINDINGS = [
-  { id: "iam_privesc_policy_version", label: "IAM: CreatePolicyVersion Escalation" },
-  { id: "ec2_imdsv1_enabled", label: "Compute: EC2 IMDSv1 Credential Exfiltration" },
-  { id: "lambda_function_url_unauthenticated", label: "Serverless: Lambda Public Unauthenticated Function URL" },
-  { id: "secretsmanager_policy_overbroad", label: "Secrets: Secrets Manager Overbroad Resource Policy" },
-  { id: "rds_instance_public", label: "Database: Publicly Accessible RDS Instance" },
-  { id: "ecr_repository_public_read", label: "Containers: Public Read ECR Repository Policy" },
-  { id: "sqs_queue_policy_overbroad", label: "Queues: SQS Queue Overbroad Access Policy" },
-  { id: "kms_key_policy_overbroad", label: "Cryptography: KMS Key Wildcard Decrypt Policy" },
-  { id: "ebs_snapshot_public", label: "Storage: Unencrypted Public EBS Snapshot" },
-  { id: "iam_passrole_risk", label: "IAM: PassRole Escalation Chain" },
-  { id: "iam_cross_account_trust", label: "IAM: External Cross-Account Trust" },
-  { id: "iam_excessive_privilege", label: "IAM: Overly Broad Permissions (s3:Get*/List*)" },
-  { id: "s3_public_exposure", label: "Storage: Public S3 Bucket Read/Write" },
-  { id: "s3_logging_missing", label: "Governance: S3 Server Access Logging Missing" },
-  { id: "security_group_overexposed", label: "Network: Security Group Ingress 0.0.0.0/0" },
-  { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" },
-  { id: "k8s_pod_irsa_exfil", label: "Kubernetes: Pod IRSA Exfiltration" },
-  { id: "azure_imds_keyvault_harvest", label: "Azure: App Service Key Vault Harvest" },
-  { id: "gcp_workload_identity_federation", label: "GCP: Workload Identity Federation Exfil" }
-];
+let CANONICAL_FINDINGS = null;
+try {
+  const el = document.getElementById("canonical-findings-data");
+  const raw = el ? el.textContent.trim() : "";
+  if (raw && !raw.startsWith("<!--")) {
+    CANONICAL_FINDINGS = JSON.parse(raw);
+  }
+} catch (e) {
+  CANONICAL_FINDINGS = null;
+}
+
+if (!CANONICAL_FINDINGS) {
+  // Full, unfiltered catalog (renders when opened directly as raw template in any
+  // browser). A real page gets the vendor-filtered list computed server-side by
+  // render_estate_html from the estate's own node types; see app/cloudforge/lab/estate.py.
+  CANONICAL_FINDINGS = [
+    { id: "iam_privesc_policy_version", label: "IAM: CreatePolicyVersion Escalation" },
+    { id: "ec2_imdsv1_enabled", label: "Compute: EC2 IMDSv1 Credential Exfiltration" },
+    { id: "lambda_function_url_unauthenticated", label: "Serverless: Lambda Public Unauthenticated Function URL" },
+    { id: "secretsmanager_policy_overbroad", label: "Secrets: Secrets Manager Overbroad Resource Policy" },
+    { id: "rds_instance_public", label: "Database: Publicly Accessible RDS Instance" },
+    { id: "ecr_repository_public_read", label: "Containers: Public Read ECR Repository Policy" },
+    { id: "sqs_queue_policy_overbroad", label: "Queues: SQS Queue Overbroad Access Policy" },
+    { id: "kms_key_policy_overbroad", label: "Cryptography: KMS Key Wildcard Decrypt Policy" },
+    { id: "ebs_snapshot_public", label: "Storage: Unencrypted Public EBS Snapshot" },
+    { id: "iam_passrole_risk", label: "IAM: PassRole Escalation Chain" },
+    { id: "iam_cross_account_trust", label: "IAM: External Cross-Account Trust" },
+    { id: "iam_excessive_privilege", label: "IAM: Overly Broad Permissions (s3:Get*/List*)" },
+    { id: "s3_public_exposure", label: "Storage: Public S3 Bucket Read/Write" },
+    { id: "s3_logging_missing", label: "Governance: S3 Server Access Logging Missing" },
+    { id: "security_group_overexposed", label: "Network: Security Group Ingress 0.0.0.0/0" },
+    { id: "public_looking_bucket_with_compensating_control", label: "Benign/Decoy: Public-Looking Bucket with Control" },
+    { id: "k8s_pod_irsa_exfil", label: "Kubernetes: Pod IRSA Exfiltration" },
+    { id: "azure_imds_keyvault_harvest", label: "Azure: App Service Key Vault Harvest" },
+    { id: "gcp_workload_identity_federation", label: "GCP: Workload Identity Federation Exfil" }
+  ];
+}
 
 // Network Architecture Zones (Multi-Tier Enterprise Cloud Topology)
 const NETWORK_ZONES = [
@@ -1481,8 +1461,6 @@ function setupEventListeners() {
       document.getElementById("tab-submission").style.display = tabId === "submission" ? "flex" : "none";
       document.getElementById("tab-evaluator").style.display = tabId === "evaluator" ? "flex" : "none";
       document.getElementById("tab-edges").style.display = tabId === "edges" ? "flex" : "none";
-      document.getElementById("tab-defense").style.display = tabId === "defense" ? "flex" : "none";
-      document.getElementById("tab-telemetry").style.display = tabId === "telemetry" ? "flex" : "none";
     });
   });
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from app.cloudforge.generate.composer import GraphComposer
@@ -22,6 +23,16 @@ def test_stripped_nodes_have_no_security() -> None:
     for node in estate["nodes"]:
         assert "security" not in node
         assert "criticality" not in node
+
+
+def test_stripped_nodes_have_no_origin() -> None:
+    """``origin`` names the fragment kind (core / decoy / noise); it is answer key."""
+    bundle = _bundle()
+    assert all(n.origin is not None for n in bundle.graph.nodes)
+    estate = strip_graph(bundle.graph)
+    for node in estate["nodes"]:
+        assert "origin" not in node
+    assert "origin" not in json.dumps(estate)
 
 
 def test_stripped_edges_have_no_security() -> None:

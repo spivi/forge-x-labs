@@ -3,12 +3,22 @@
 A sibling of ``TemplateGenerator`` behind the ``ScenarioGenerator`` protocol.
 Given ``(spec, seed)`` it draws a deterministic *fragment plan* — one
 ``core.<family>`` fragment plus decoy / false-positive / compensating-control
-counts derived from ``spec.variation_axes`` — then fills with diverse ``benign_noise``
-until the scale profile's node band is met. Every fragment owns its own
+counts derived from ``spec.difficulty`` (``spec.variation_axes`` overrides win
+per kind) — then fills with diverse ``benign_noise``, biased toward the low or
+high end of the scale profile's node band by the same difficulty, until that
+band is met. Every fragment owns its own
 namespaced ids, so the assembled graph, findings, and ground truth cannot
 disagree; a globally-duplicate id raises ``GraphIntegrityError`` before any
 projection. The only randomness is ``Random(seed)``, so the same ``(spec, seed)``
 yields byte-identical artifacts.
+
+Ids are role-free on purpose. Node ids are the join key between the student
+estate and every instructor artifact, so they are minted here exactly once, for
+both trees. Fragments build under a private ``n<NN>_<salt>`` namespace; after
+assembly ``composer_ids.retoken`` gives every NODE its own ``n<k>_<salt>`` token
+from a seeded permutation over all nodes and rewrites every reference, so neither
+a token nor the grouping of tokens says which fragment a node came from. That
+provenance lives only in ``GraphNode.origin``, which the student strip never copies.
 """
 
 from __future__ import annotations
@@ -18,11 +28,13 @@ from typing import Any
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.composer_ids import node_ns, retoken
 from app.cloudforge.generate.composer_kinds import (
     CORE_KINDS,
     EXTRA_KINDS,
     NOISE_KINDS,
     SHORT,
+    origin_of,
 )
 from app.cloudforge.generate.fragments import (
     benign_noise,  # noqa: F401
@@ -57,6 +69,18 @@ from app.cloudforge.models.graph import GraphEdge, GraphNode, ScenarioGraph
 from app.cloudforge.models.scenario import ScenarioSpec
 
 _Plan = list[tuple[str, str, dict[str, Any]]]
+_Draft = list[tuple[str, dict[str, Any]]]
+# Placeholder namespace used only to count a fragment's nodes while planning.
+_COUNT_NS = "plan"
+
+# Per-difficulty extra-fragment counts, keyed by the ``SHORT`` vocabulary
+# (``decoy``/``fp``/``ctrl``). A fixed int is used as-is; a ``(lo, hi)`` pair is
+# drawn with ``rng.randint``. "medium" is absent on purpose: it keeps today's
+# ``rng.randint(1, 3)`` for every kind, which ``_axis_count`` falls back to.
+_DIFFICULTY_EXTRA_COUNTS: dict[str, dict[str, int | tuple[int, int]]] = {
+    "easy": {"decoy": 1, "fp": 0, "ctrl": 0},
+    "hard": {"decoy": 3, "fp": 2, "ctrl": (1, 2)},
+}
 
 
 class GraphComposer:
@@ -76,43 +100,72 @@ class GraphComposer:
         )
 
     def _plan(self, rng: Random) -> _Plan:
-        core = self._core_kind()
-        plan: _Plan = [(core, self._ns(core, 0), {"path_hops": rng.randint(3, 5)})]
+        draft: _Draft = [(self._core_kind(), {"path_hops": rng.randint(3, 5)})]
         for kind in EXTRA_KINDS:
-            self._add_extras(plan, kind, self._axis_count(kind, rng))
-        return self._fill_to_scale(plan, rng)
+            self._add_extras(draft, kind, self._axis_count(kind, rng))
+        return self._namespace(self._fill_to_scale(draft, rng))
 
     def _core_kind(self) -> str:
         return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
 
     def _axis_count(self, kind: str, rng: Random) -> int:
-        override = self._spec.variation_axes.get(SHORT[kind])
+        short = SHORT[kind]
+        override = self._spec.variation_axes.get(short)
         if override is not None:
             return max(0, int(override))
-        return rng.randint(1, 3)
+        fixed = _DIFFICULTY_EXTRA_COUNTS.get(self._spec.difficulty, {}).get(short)
+        if fixed is None:
+            return rng.randint(1, 3)
+        return rng.randint(*fixed) if isinstance(fixed, tuple) else fixed
 
-    def _add_extras(self, plan: _Plan, kind: str, count: int) -> None:
+    def _add_extras(self, draft: _Draft, kind: str, count: int) -> None:
         """Append up to ``count`` instances of ``kind`` while the plan stays under
         the profile's ``max_nodes`` ceiling (reserving one slot for scale fill)."""
-        for i in range(count):
-            if self._planned_node_count(plan) >= self._profile.max_nodes - 1:
+        for _ in range(count):
+            if self._planned_node_count(draft) >= self._profile.max_nodes - 1:
                 return
-            plan.append((kind, self._ns(kind, i), {}))
+            draft.append((kind, {}))
 
-    def _fill_to_scale(self, plan: _Plan, rng: Random) -> _Plan:
-        target = rng.randint(self._profile.min_nodes, self._profile.max_nodes)
-        planned = self._planned_node_count(plan)
-        index = 0
+    def _fill_to_scale(self, draft: _Draft, rng: Random) -> _Draft:
+        target = rng.randint(*self._noise_target_range())
+        planned = self._planned_node_count(draft)
         while planned < target and planned < self._profile.max_nodes:
-            kind = rng.choice(NOISE_KINDS)
-            plan.append((kind, self._ns(kind, index), {}))
+            draft.append((rng.choice(NOISE_KINDS), {}))
             planned += 1
-            index += 1
-        return plan
+        return draft
 
-    def _planned_node_count(self, plan: _Plan) -> int:
+    def _noise_target_range(self) -> tuple[int, int]:
+        """The ``rng.randint`` band ``_fill_to_scale`` draws its node target from.
+
+        "easy" biases toward the profile's low end, "hard" toward its high end;
+        "medium" draws from the whole band, same as before difficulty mattered.
+        """
+        lo, hi = self._profile.min_nodes, self._profile.max_nodes
+        third = (hi - lo) // 3
+        if self._spec.difficulty == "easy":
+            return lo, lo + third
+        if self._spec.difficulty == "hard":
+            return hi - third, hi
+        return lo, hi
+
+    def _planned_node_count(self, draft: _Draft) -> int:
         rng = Random(0)
-        return sum(len(get_fragment(k).build(ns, rng, p).nodes) for k, ns, p in plan)
+        return sum(len(get_fragment(k).build(_COUNT_NS, rng, p).nodes) for k, p in draft)
+
+    def _namespace(self, draft: _Draft) -> _Plan:
+        """Mint one private namespace per planned fragment.
+
+        Fragments need a namespace so their own edges, findings and paths agree.
+        Node ids are re-keyed per node by ``retoken`` afterwards; only path ids and
+        finding ids keep this prefix, so it is drawn from a seeded permutation (its
+        own stream, like ``_salt``) rather than plan order, and the core fragment
+        is not always ``n00``. Seed 0 has no salt and still yields distinct names.
+        """
+        tokens = list(range(len(draft)))
+        Random(self._seed + 211).shuffle(tokens)
+        salt = self._salt()
+        paired = zip(tokens, draft, strict=True)
+        return [(kind, node_ns(token, salt), params) for token, (kind, params) in paired]
 
     def _assemble(self, plan: _Plan) -> FragmentBundle:
         rng = Random(self._seed)
@@ -123,25 +176,24 @@ class GraphComposer:
         salt = self._salt()
         for kind, ns, params in plan:
             part = get_fragment(kind).build(ns, rng, params)
-            if salt:
-                for node in part.nodes:
-                    node.name = f"{node.name}-{salt}"
+            for node in part.nodes:
+                node.origin = origin_of(kind)
             nodes.extend(part.nodes)
             edges.extend(part.edges)
             findings.extend(part.findings)
             paths.extend(part.paths)
         _assert_unique_ids(nodes)
-        return FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=paths)
+        _dedupe_names(nodes)
+        if salt:
+            for node in nodes:
+                node.name = f"{node.name}-{salt}"
+        bundle = FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=paths)
+        return retoken(bundle, self._seed, salt)
 
     def _salt(self) -> str:
         if self._seed == 0:
             return ""
         return f"{Random(self._seed + 101).randint(0x1000, 0xFFFF):04x}"
-
-    def _ns(self, kind: str, index: int) -> str:
-        prefix = SHORT.get(kind, "node")
-        salt = self._salt()
-        return f"{prefix}{index}_{salt}" if salt else f"{prefix}{index}"
 
 
 def _assert_unique_ids(nodes: list[GraphNode]) -> None:
@@ -150,6 +202,24 @@ def _assert_unique_ids(nodes: list[GraphNode]) -> None:
         if node.id in seen:
             raise GraphIntegrityError(f"duplicate composed node id: {node.id}")
         seen.add(node.id)
+
+
+def _dedupe_names(nodes: list[GraphNode]) -> None:
+    """Make names unique per node type, in plan order, before the salt is appended.
+
+    Two fragments drawing the same vocabulary name (two IAM roles both called
+    ``LegacySupportRole``) would be impossible in a real account and would mark
+    both as generated filler. The first keeps its name; later ones get ``-2``,
+    ``-3``. Keyed by type so a bucket and the application named after it coexist.
+    """
+    seen: set[tuple[str, str]] = set()
+    for node in nodes:
+        base = node.name
+        suffix = 1
+        while (node.type.value, node.name) in seen:
+            suffix += 1
+            node.name = f"{base}-{suffix}"
+        seen.add((node.type.value, node.name))
 
 
 class ComposerGenerator:

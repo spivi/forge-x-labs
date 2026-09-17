@@ -14,6 +14,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Criticality = Literal["low", "medium", "high", "critical"]
 EdgeRisk = Literal["none", "low", "medium", "high", "critical"]
+# Which composer fragment family minted a node. Answer-key material: the student
+# strip (``lab/strip.py``) whitelists fields and never copies it.
+NodeOrigin = Literal["core", "decoy", "noise", "false_positive", "compensating_control"]
 
 
 class NodeType(StrEnum):
@@ -125,6 +128,8 @@ class GraphNode(BaseModel):
     security: NodeSecurity
     # Terraform-relevant payload (IAM actions, CIDRs, bucket names, arns...).
     attributes: dict[str, str | list[str]] = Field(default_factory=dict)
+    # Set by ``GraphComposer`` only; ``None`` for template-generated or hand-built nodes.
+    origin: NodeOrigin | None = None
 
 
 class GraphEdge(BaseModel):

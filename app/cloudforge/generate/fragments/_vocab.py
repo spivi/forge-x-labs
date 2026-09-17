@@ -99,3 +99,38 @@ ECR_NAMES = (
     "repo-collector-agent",
     "repo-utility-image",
 )
+
+# Identities for the non-core fragments. Nothing below may say what the fragment
+# is for (decoy, noise, false positive, control): node ids and names reach the
+# student estate, and a role word in either hands over the answer key. Each entry
+# is a tuple so one draw yields a slug plus names that belong together.
+
+DECOY_IDENTITIES = (
+    # (stem, role name, policy name, scratch bucket the policy points at)
+    ("legacy-support", "LegacySupportRole", "LegacySupportReadPolicy", "legacy-support-scratch"),
+    ("reporting-read", "ReportingReadRole", "ReportingReadPolicy", "reporting-exports-scratch"),
+    ("qa-automation", "QaAutomationRole", "QaAutomationReadPolicy", "qa-automation-fixtures"),
+    ("migration-helper", "MigrationHelperRole", "MigrationHelperReadPolicy", "migration-staging"),
+    ("partner-sync", "PartnerSyncRole", "PartnerSyncReadPolicy", "partner-sync-inbox"),
+    ("release-audit", "ReleaseAuditRole", "ReleaseAuditReadPolicy", "release-audit-archive"),
+)
+
+PUBLIC_LOOKING_BUCKETS = (
+    # (stem, bucket name): buckets an operator would really open to the internet
+    ("static-site", "static-site-assets"),
+    ("public-docs", "public-docs-mirror"),
+    ("cdn-origin", "cdn-origin-media"),
+    ("marketing-downloads", "marketing-downloads"),
+    ("open-data", "open-data-exports"),
+    ("release-downloads", "release-downloads"),
+)
+
+LOGGED_BUCKETS = (
+    # (stem, bucket name, trail name): a bucket wired to its own access-log trail
+    ("app-config", "app-config-store", "trail-app-config"),
+    ("ops-runbooks", "ops-runbooks", "trail-ops-runbooks"),
+    ("billing-exports", "billing-exports-archive", "trail-billing-exports"),
+    ("audit-evidence", "audit-evidence", "trail-audit-evidence"),
+    ("ml-features", "ml-feature-store", "trail-ml-features"),
+    ("partner-uploads", "partner-uploads", "trail-partner-uploads"),
+)

@@ -1,6 +1,8 @@
-"""Registry of fragment kinds and namespace mappings for GraphComposer."""
+"""Registry of fragment kinds, variation-axis keys and origins for GraphComposer."""
 
 from __future__ import annotations
+
+from app.cloudforge.models.graph import NodeOrigin
 
 CORE_KINDS: dict[str, str] = {
     "ci_cd_iam_chain": "core.ci_cd_iam_chain",
@@ -36,6 +38,8 @@ EXTRA_KINDS: tuple[str, ...] = (
     "compensating_control.explicit_deny",
 )
 
+# ``variation_axes`` keys per kind (``spec.variation_axes["decoy"]`` etc.). These
+# are spec vocabulary only; they never appear in a generated id.
 SHORT: dict[str, str] = {
     "core.ci_cd_iam_chain": "core",
     "core.public_data_exposure": "core",
@@ -63,3 +67,18 @@ SHORT: dict[str, str] = {
     "benign_noise.data_set": "noise",
     "benign_noise.log_trail": "noise",
 }
+
+# Fragment kind family (the part before the first ``.``) -> the ``GraphNode.origin``
+# the composer stamps on every node that family builds.
+ORIGINS: dict[str, NodeOrigin] = {
+    "core": "core",
+    "decoy": "decoy",
+    "false_positive": "false_positive",
+    "compensating_control": "compensating_control",
+    "benign_noise": "noise",
+}
+
+
+def origin_of(kind: str) -> NodeOrigin:
+    """The origin label for a registered fragment kind such as ``decoy.iam_role_dead_end``."""
+    return ORIGINS[kind.split(".", 1)[0]]

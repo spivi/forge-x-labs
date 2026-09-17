@@ -5,15 +5,13 @@
 <h1 align="center">Forge X Labs: <code>cloudforge</code></h1>
 
 <p align="center">
-  Generate a unique, validated, <strong>never-applied</strong> cloud misconfig lab
+  Generate a validated, <strong>never-applied</strong> cloud misconfig lab
   per student. No cloud account required.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
-  <img src="https://img.shields.io/badge/Cloud-Never--Applied-success" alt="Cloud Never-Applied">
-  <img src="https://img.shields.io/badge/Cost-$0_Cloud_Spend-success" alt="$0 Cloud Spend">
 </p>
 
 <p align="center">
@@ -47,6 +45,11 @@ range.
 
 We lose on live console practice and catalog depth. We win on no account,
 per-student copies, and a machine-checkable key.
+
+Fifteen families, one attack story each. Seeds change the estate around the story (names,
+noise, decoys, hop count on the CI chain), not the story. `difficulty` sets how many decoys
+and false positives sit around it. The community is welcome to fork, add, and contribute
+more sophisticated scenarios; see CONTRIBUTING.md.
 
 ## Install
 
@@ -126,10 +129,10 @@ cloudforge challenge examples/ci_cd_iam_chain.yaml --out challenge.html --seed 1
 
 The workbench is a single HTML file with no CDN:
 
-- Five-tier layout: Perimeter, Compute, Storage, Services, Identity
+- Seven zones, from perimeter and network ingress to governance and telemetry
 - Mission briefing on the board
 - Click nodes to draft an attack path
-- Finding checklist
+- Finding checklist filtered to the vendors in the estate
 - YAML export for `cloudforge grade`
 - Client-side scoring against the same math as `grade`
 
