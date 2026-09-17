@@ -8,6 +8,7 @@ from random import Random
 from typing import Any, get_args
 
 import pytest
+from pydantic import ValidationError
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
@@ -181,11 +182,12 @@ def test_stays_within_max_nodes_for_tiny_profile() -> None:
     assert 10 <= len(g.nodes) <= 20
 
 
-def test_unknown_scenario_type_falls_back_to_ci_cd_core() -> None:
-    spec = _spec(scenario_type="unmapped_family", scale_profile="small")
-    bundle = GraphComposer(spec, seed=1).generate()
-    core = [n for n in bundle.graph.nodes if n.origin == "core"]
-    assert any(n.id.endswith("/cicd-github") for n in core)
+def test_unknown_scenario_type_is_rejected_at_load_time() -> None:
+    """The old silent fallback to ``core.ci_cd_iam_chain`` is gone (v1.4.0): an
+    unregistered family is a load-time ``ScenarioSpec`` error, so ``GraphComposer``
+    never sees one."""
+    with pytest.raises(ValidationError, match="unmapped_family"):
+        _spec(scenario_type="unmapped_family", scale_profile="small")
 
 
 def test_seed_salting_produces_unique_namespaces() -> None:

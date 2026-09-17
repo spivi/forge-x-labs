@@ -16,7 +16,7 @@ from typing import Any
 
 from app.cloudforge.generate.fragments._core import Kit, Piece, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import GCP_DEAD_ENDS, GCP_HOP_ACCOUNTS
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -37,9 +37,18 @@ def _email(name: str) -> str:
     return f"{name}@{_PROJECT_ID}.iam.gserviceaccount.com"
 
 
-@register("core.gcp_workload_identity_federation")
+@register_core
 @register("core.gcp_workload_identity")
 class GcpWorkloadIdentity:
+    scenario_type = "gcp_workload_identity_federation"
+    cloud = "gcp"
+    prompt = (
+        "An external CI identity federates into this project. Can it impersonate "
+        "a service account and read restricted storage?"
+    )
+    checklist = ("gcp_workload_identity_federation", "GCP: Workload Identity Federation Exfil")
+    teaching_point = "Workload Identity Pool -> GCS"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

@@ -22,7 +22,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments import core_ci_cd_nodes as parts
 from app.cloudforge.generate.fragments._core import Kit, hop_lines, shape_of
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -41,8 +41,17 @@ def _extra_hops(params: dict[str, Any]) -> int:
     return shape_of(params).extra_hops
 
 
-@register("core.ci_cd_iam_chain")
+@register_core
 class CiCdIamChain:
+    scenario_type = "ci_cd_iam_chain"
+    cloud = "aws"
+    prompt = (
+        "A CI identity deploys into this account. Can it reach sensitive customer "
+        "data? Which issues are real, and which look worse than they are?"
+    )
+    checklist = ("iam_passrole_risk", "IAM: PassRole Escalation Chain")
+    teaching_point = "CI OIDC identity -> PassRole -> sensitive data"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, parts.TAGS)
         hops = parts.hop_nodes(kit, rng, _extra_hops(params))

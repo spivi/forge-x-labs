@@ -20,7 +20,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_KEYS
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -35,8 +35,17 @@ _BUCKET = "s3-encrypted"
 _SINK = "kms-data"
 
 
-@register("core.kms_key_overbroad")
+@register_core
 class KmsKeyOverbroad:
+    scenario_type = "kms_key_overbroad"
+    cloud = "aws"
+    prompt = (
+        "A customer data store is encrypted with a KMS key. Who can decrypt with "
+        "that key, and what does the key unlock?"
+    )
+    checklist = ("kms_key_policy_overbroad", "Cryptography: KMS Key Wildcard Decrypt Policy")
+    teaching_point = "Wildcard `kms:Decrypt` on a key policy; reaches the key"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(kit), _lookalike)

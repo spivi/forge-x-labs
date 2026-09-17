@@ -19,7 +19,7 @@ from app.cloudforge import constants
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, draw_hops, hop_lines, shape_of
 from app.cloudforge.generate.fragments._vocab import AWS_HOP_ROLES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -36,8 +36,17 @@ _ENTRY = "acct-external"
 _SINK = "role-shared"
 
 
-@register("core.cross_account_trust")
+@register_core
 class CrossAccountTrust:
+    scenario_type = "cross_account_trust"
+    cloud = "aws"
+    prompt = (
+        "An external AWS account is trusted into this environment. Which role does "
+        "it land in, and what can that role reach from there?"
+    )
+    checklist = ("iam_cross_account_trust", "IAM: External Cross-Account Trust")
+    teaching_point = "External account trusted into a role; the data it reads is a second path"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         shape = shape_of(params)

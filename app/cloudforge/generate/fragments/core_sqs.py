@@ -19,7 +19,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_QUEUES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -34,8 +34,17 @@ _SINK = "sqs-order-events"
 _ACTIONS = ["sqs:ReceiveMessage", "sqs:SendMessage"]
 
 
-@register("core.sqs_queue_overbroad_policy")
+@register_core
 class SqsQueueOverbroadPolicy:
+    scenario_type = "sqs_queue_overbroad_policy"
+    cloud = "aws"
+    prompt = (
+        "An event queue handles transaction messages. Can unauthorized external "
+        "parties read or inject the messages in flight?"
+    )
+    checklist = ("sqs_queue_policy_overbroad", "Queues: SQS Queue Overbroad Access Policy")
+    teaching_point = "Wildcard SQS policy; reaches the messages in flight"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(), _lookalike)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from app.cloudforge.errors import UnknownScenarioTypeError
+from app.cloudforge.errors import TemplateProjectionMissingError, UnknownScenarioTypeError
 from app.cloudforge.generate import (
     ci_cd_iam_chain,
     cross_account_trust,
@@ -25,7 +25,6 @@ from app.cloudforge.generate import (
     sqs_queue_overbroad_policy,
 )
 from app.cloudforge.generate.base import ScenarioBundle
-from app.cloudforge.generate.composer import GraphComposer
 from app.cloudforge.generate.composer_kinds import CORE_KINDS
 from app.cloudforge.models.scenario import ScenarioSpec
 
@@ -143,14 +142,23 @@ _BUILDERS: dict[str, Callable[[], ScenarioBundle]] = {
 
 
 class TemplateGenerator:
-    """Rule-based generator: looks up a builder by ``scenario_type``."""
+    """Rule-based generator: looks up a builder by ``scenario_type``.
+
+    The template engine only covers the families with a hand-written projection
+    (``_BUILDERS``); a family registered only as a core fragment (a new family
+    added after v1.4.0 needs none) has no projection here and must be generated
+    with ``--engine composer`` instead.
+    """
 
     def generate(self, spec: ScenarioSpec) -> ScenarioBundle:
         builder = _BUILDERS.get(spec.scenario_type)
         if builder is not None:
             return builder()
         if spec.scenario_type in CORE_KINDS:
-            return GraphComposer(spec, seed=0).generate()
+            raise TemplateProjectionMissingError(
+                f"{spec.scenario_type!r} has no template projection; use "
+                f"--engine composer (template supports: {', '.join(sorted(_BUILDERS))})"
+            )
         known = ", ".join(sorted({*_BUILDERS, *CORE_KINDS})) or "(none)"
         raise UnknownScenarioTypeError(
             f"no generator for scenario_type={spec.scenario_type!r}; known: {known}"

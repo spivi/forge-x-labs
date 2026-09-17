@@ -20,7 +20,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_DATABASES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -34,8 +34,17 @@ _ENTRY = "acct-main"
 _SINK = "rds-customer-db"
 
 
-@register("core.public_rds_instance")
+@register_core
 class PublicRdsInstance:
+    scenario_type = "public_rds_instance"
+    cloud = "aws"
+    prompt = (
+        "A production relational database has been deployed. Can the database "
+        "itself be reached from the internet, or is it isolated in private subnets?"
+    )
+    checklist = ("rds_instance_public", "Database: Publicly Accessible RDS Instance")
+    teaching_point = "Public RDS with `0.0.0.0/0` ingress; reaches the database"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(), _lookalike)

@@ -83,3 +83,18 @@ class ScenarioSpec(BaseModel):
                     f"variation_axes[{key!r}] must be an integer count, got {value!r}"
                 ) from exc
         return axes
+
+    @field_validator("scenario_type")
+    @classmethod
+    def _scenario_type_must_be_a_registered_family(cls, value: str) -> str:
+        # Imported lazily: the fragment registry lives in ``generate``, which
+        # imports this module, so importing it back at module scope would cycle.
+        # By the time any ``ScenarioSpec`` is validated, ``generate`` is loaded.
+        from app.cloudforge.generate.fragments.base import core_scenario_types
+
+        known = core_scenario_types()
+        if value not in known:
+            raise ValueError(
+                f"unknown scenario_type {value!r}; known families: {', '.join(known)}"
+            )
+        return value

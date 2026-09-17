@@ -23,7 +23,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_BUCKETS
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -38,8 +38,17 @@ _BUCKET = "s3-public-data"
 _SINK = "data-customer-pii"
 
 
-@register("core.public_data_exposure")
+@register_core
 class PublicDataExposure:
+    scenario_type = "public_data_exposure"
+    cloud = "aws"
+    prompt = (
+        "Some data in this account may be reachable from the internet. Find the "
+        "exposure. Not every public-looking bucket is a true positive."
+    )
+    checklist = ("s3_public_exposure", "Storage: Public S3 Bucket Read/Write")
+    teaching_point = "Public-read S3 bucket with PII and decoys"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(kit), _lookalike)

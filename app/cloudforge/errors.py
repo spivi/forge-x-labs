@@ -22,6 +22,15 @@ class UnknownScenarioTypeError(CloudforgeError):
     """A scenario requests a ``scenario_type`` with no registered generator."""
 
 
+class TemplateProjectionMissingError(CloudforgeError):
+    """A registered core family has no ``--engine template`` projection.
+
+    The family exists (``ScenarioSpec`` validation already passed) but
+    ``template_generator.py`` has no hand-written builder for it; only
+    ``--engine composer`` can generate it.
+    """
+
+
 class UnknownEngineError(CloudforgeError):
     """The CLI ``--engine`` option names an engine that does not exist."""
 

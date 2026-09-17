@@ -19,7 +19,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_SNAPSHOTS
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -33,8 +33,17 @@ _ENTRY = "acct-main"
 _SINK = "snap-public"
 
 
-@register("core.public_ebs_snapshot")
+@register_core
 class PublicEbsSnapshot:
+    scenario_type = "public_ebs_snapshot"
+    cloud = "aws"
+    prompt = (
+        "An EBS snapshot in this account may be shared more widely than intended. "
+        "Which snapshot, and who can create a volume from it?"
+    )
+    checklist = ("ebs_snapshot_public", "Storage: Unencrypted Public EBS Snapshot")
+    teaching_point = "Unencrypted snapshot shared with `all`; reaches the snapshot"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(), _lookalike)

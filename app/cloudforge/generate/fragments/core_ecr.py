@@ -19,7 +19,7 @@ from typing import Any
 from app.cloudforge.generate.fragments import _aws_shape as aws
 from app.cloudforge.generate.fragments._core import Kit, Piece, shape_of
 from app.cloudforge.generate.fragments._vocab import LOOKALIKE_REPOSITORIES
-from app.cloudforge.generate.fragments.base import FragmentBundle, register
+from app.cloudforge.generate.fragments.base import FragmentBundle, register_core
 from app.cloudforge.models.findings import (
     ExpectedFinding,
     FindingFamily,
@@ -34,8 +34,17 @@ _SINK = "ecr-payment-gateway"
 _ACTIONS = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
 
 
-@register("core.ecr_repository_public_read")
+@register_core
 class EcrRepositoryPublicRead:
+    scenario_type = "ecr_repository_public_read"
+    cloud = "aws"
+    prompt = (
+        "A container repository hosts application images. Can external parties "
+        "pull the image, and what does it embed?"
+    )
+    checklist = ("ecr_repository_public_read", "Containers: Public Read ECR Repository Policy")
+    teaching_point = "Public registry; reaches the image and what it embeds"
+
     def build(self, ns: str, rng: Random, params: dict[str, Any]) -> FragmentBundle:
         kit = Kit(ns, _TAGS)
         extra = aws.extend(kit, rng, shape_of(params), _story(), _lookalike)

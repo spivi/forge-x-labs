@@ -44,27 +44,16 @@ from app.cloudforge.generate.composer_kinds import (
 from app.cloudforge.generate.fragments import (
     benign_noise,  # noqa: F401
     compensating_control,  # noqa: F401
-    core_azure_managed_identity,  # noqa: F401
-    core_ci_cd,  # noqa: F401
-    core_cross_account,  # noqa: F401
-    core_ec2_imds,  # noqa: F401
-    core_ecr,  # noqa: F401
-    core_gcp_workload_identity,  # noqa: F401
-    core_iam_privesc,  # noqa: F401
-    core_k8s_irsa,  # noqa: F401
-    core_kms,  # noqa: F401
-    core_lambda,  # noqa: F401
-    core_public_data,  # noqa: F401
-    core_rds,  # noqa: F401
-    core_secretsmanager,  # noqa: F401
-    core_snapshot,  # noqa: F401
-    core_sqs,  # noqa: F401
     decoy,  # noqa: F401
     false_positive,  # noqa: F401
     noncore_azure,  # noqa: F401
     noncore_gcp,  # noqa: F401
     noncore_k8s,  # noqa: F401
 )
+
+# Every ``core_*.py`` module is imported by the ``fragments`` package itself
+# (see ``fragments/__init__.py``), triggered by the import above: a new core
+# family needs no line here.
 from app.cloudforge.generate.fragments._core import Shape
 from app.cloudforge.generate.fragments.base import FragmentBundle, get_fragment
 from app.cloudforge.generate.scale_profiles import get_profile
@@ -166,7 +155,9 @@ class GraphComposer:
         return self._namespace(self._fill_to_scale(draft, rng, padding_params))
 
     def _core_kind(self) -> str:
-        return CORE_KINDS.get(self._spec.scenario_type, "core.ci_cd_iam_chain")
+        # ``ScenarioSpec.scenario_type`` is validated against the fragment registry
+        # at load time (``models/scenario.py``), so this is always a known family.
+        return CORE_KINDS[self._spec.scenario_type]
 
     def _shape(self, rng: Random) -> Shape:
         """Draw the core path's shape from the difficulty band, then clamp it so
