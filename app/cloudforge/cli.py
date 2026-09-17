@@ -57,8 +57,8 @@ def generate(
     out: Annotated[Path, typer.Option("--out", help="Output scenario directory.")],
     engine: Annotated[
         str,
-        typer.Option("--engine", help="Generation engine: 'template' (default) or 'composer'."),
-    ] = "template",
+        typer.Option("--engine", help="Generation engine: 'composer' (default) or 'template'."),
+    ] = "composer",
     seed: Annotated[
         int, typer.Option("--seed", help="Seed for the composer engine (deterministic).")
     ] = 0,
@@ -83,7 +83,9 @@ def generate(
 
 
 def _build_bundle(spec: ScenarioSpec, engine: str, seed: int) -> ScenarioBundle:
-    """Dispatch to the requested engine; ``template`` (default) is unchanged."""
+    """Dispatch to the requested engine; ``composer`` (default) plans decoys and shape from
+    ``seed``, ``template`` is a fixed, non-seeded projection kept for the families that have
+    one."""
     if engine == "template":
         return TemplateGenerator().generate(spec)
     if engine == "composer":

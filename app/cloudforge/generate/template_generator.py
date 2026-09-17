@@ -2,7 +2,8 @@
 
 Dispatches on ``scenario_type`` to a registered builder. New scenario families
 register here; new *engines* (LLM, diffusion) implement ``ScenarioGenerator``
-separately. This is the MVP's only engine.
+separately. A fixed, non-seeded projection kept for the families that have one;
+``GraphComposer`` is the default engine.
 """
 
 from __future__ import annotations

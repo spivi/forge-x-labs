@@ -68,7 +68,15 @@ def test_generate_on_colliding_graph_exits_with_clean_error(
     monkeypatch.setattr(TemplateGenerator, "generate", lambda self, spec: colliding)
 
     result = runner.invoke(
-        app, ["generate", "examples/ci_cd_iam_chain.yaml", "--out", str(tmp_path / "s")]
+        app,
+        [
+            "generate",
+            "examples/ci_cd_iam_chain.yaml",
+            "--out",
+            str(tmp_path / "s"),
+            "--engine",
+            "template",
+        ],
     )
 
     assert result.exit_code == 1

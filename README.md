@@ -82,7 +82,7 @@ tools are skipped (WARN), not a hard fail.
 Generate, check, and read one lab:
 
 ```bash
-cloudforge generate examples/ci_cd_iam_chain.yaml --out out/scenario_001 --engine composer --seed 17
+cloudforge generate examples/ci_cd_iam_chain.yaml --out out/scenario_001 --seed 17
 cloudforge validate out/scenario_001
 cloudforge report   out/scenario_001
 ```
@@ -177,8 +177,8 @@ The workbench is a single HTML file with no CDN:
 Dummy account `000000000000`. Never applied.
 
 The last three families emit Azure, GCP, or Kubernetes Terraform plus any AWS
-resources on the path. Still never applied. Use `--engine composer` (the `lab`
-default).
+resources on the path. Still never applied. `--engine template` (the fixed,
+non-seeded projection) does not support them; `composer` is the default.
 
 ## Safety
 
