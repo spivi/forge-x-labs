@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from random import Random
 from typing import Any
 
 import pytest
@@ -11,6 +12,8 @@ import pytest
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
 from app.cloudforge.generate.composer import ComposerGenerator, GraphComposer
+from app.cloudforge.generate.composer_ids import retoken
+from app.cloudforge.generate.fragments.base import get_fragment
 from app.cloudforge.io.loaders import load_yaml
 from app.cloudforge.models.scenario import ScenarioSpec
 
@@ -150,25 +153,45 @@ def test_namespaces_and_names_carry_no_role_words() -> None:
             assert not _ROLE_WORDS.search(n.name), n.name
 
 
-def test_seed_zero_namespaces_are_unique_per_fragment_and_unsalted() -> None:
+def test_seed_zero_tokens_are_unique_per_node_and_unsalted() -> None:
     g = GraphComposer(_spec(scale_profile="small"), seed=0).generate().graph
-    by_origin_ns: dict[str, set[str]] = {}
-    for n in g.nodes:
-        assert n.origin is not None
-        by_origin_ns.setdefault(_namespace_of(n.id), set()).add(n.origin)
-    # One namespace never spans two fragment kinds, and the token is bare (no salt).
-    assert all(len(origins) == 1 for origins in by_origin_ns.values())
-    assert all(_UNSALTED_NS.match(f"{ns}/") for ns in by_origin_ns)
+    tokens = [_namespace_of(n.id) for n in g.nodes]
+    assert len(set(tokens)) == len(g.nodes)
+    assert all(_UNSALTED_NS.match(f"{token}/") for token in tokens)
 
 
-def test_core_fragment_token_is_not_always_first() -> None:
-    """The permutation must move the core fragment off token 0 for some seeds."""
-    core_tokens: set[str] = set()
-    for seed in range(8):
+def test_every_node_has_its_own_token() -> None:
+    """Tokens are per node, so sorting ids by token exposes no fragment cluster."""
+    for seed in (1, 17):
         g = GraphComposer(_spec(scale_profile="small"), seed=seed).generate().graph
-        core = [n for n in g.nodes if n.origin == "core"]
-        core_tokens |= {_namespace_of(n.id).split("_", 1)[0] for n in core}
-    assert core_tokens != {"n00"}
+        tokens = [_namespace_of(n.id) for n in g.nodes]
+        assert len(set(tokens)) == len(g.nodes), seed
+
+
+def test_true_path_nodes_do_not_share_a_token() -> None:
+    for seed in (1, 17):
+        bundle = GraphComposer(_spec(scale_profile="small"), seed=seed).generate()
+        for path in bundle.ground_truth.paths:
+            tokens = [_namespace_of(nid) for nid in path.nodes]
+            assert len(set(tokens)) == len(path.nodes), (seed, path.id)
+
+
+def test_retoken_rewrites_every_reference_through_one_map() -> None:
+    bundle = GraphComposer(_spec(scale_profile="small"), seed=17).generate()
+    ids = {n.id for n in bundle.graph.nodes}
+    edge_keys = {e.key for e in bundle.graph.edges}
+    assert all(e.from_ in ids and e.to in ids for e in bundle.graph.edges)
+    for path in bundle.ground_truth.paths:
+        assert set(path.nodes) <= ids and set(path.edges) <= edge_keys
+    for finding in bundle.findings.findings:
+        assert set(finding.resource_ids) <= ids
+
+
+def test_retoken_rejects_a_dangling_reference() -> None:
+    part = get_fragment("decoy.iam_role_dead_end").build("f0", Random(0), {})
+    part.findings[0].resource_ids.append("f0/never-built")
+    with pytest.raises(GraphIntegrityError):
+        retoken(part, seed=1, salt="abcd")
 
 
 def test_origin_is_stamped_from_the_fragment_kind() -> None:

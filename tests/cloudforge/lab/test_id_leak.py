@@ -4,8 +4,9 @@ Node ids are the join key between ``student/estate.json`` and every instructor
 artifact, so they are minted once by the composer for both trees. These tests
 write a real lab for every example spec at two seeds and check, from the files a
 student actually receives, that no id or name carries a role word, that the two
-trees agree on the id set, that every instructor reference resolves, and that the
-true path still grades as a hit.
+trees agree on the id set, that every instructor reference resolves, that tokens
+are per node (so no fragment shows up as a cluster), and that the true path still
+grades as a hit.
 """
 
 from __future__ import annotations
@@ -98,6 +99,22 @@ def test_student_ids_and_names_carry_no_role_words(
         text = tf.read_text(encoding="utf-8")
         assert not _ROLE_WORDS.search(text), tf.name
         assert not _OLD_NAMESPACE.search(text), tf.name
+
+
+@pytest.mark.parametrize(("example", "seed"), _CASES)
+def test_tokens_are_per_node_and_the_true_path_spans_distinct_tokens(
+    tmp_path_factory: pytest.TempPathFactory, example: Path, seed: int
+) -> None:
+    """Sorting student ids by token must not surface the path as one cluster."""
+    lab = _lab(tmp_path_factory, example, seed)
+    ids = _node_ids(_json(lab.estate_json))
+    tokens = [nid.split("/", 1)[0] for nid in ids]
+    assert len(set(tokens)) == len(ids)
+    paths = _json(lab.instructor / "ground_truth_paths.json")["paths"]
+    assert isinstance(paths, list) and paths
+    for path in paths:
+        path_tokens = [str(nid).split("/", 1)[0] for nid in path["nodes"]]
+        assert len(set(path_tokens)) == len(path["nodes"]), path["id"]
 
 
 @pytest.mark.parametrize(("example", "seed"), _CASES)

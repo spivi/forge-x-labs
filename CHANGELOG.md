@@ -7,10 +7,11 @@
 - README: the workbench has seven zones, not five, and its finding checklist
   is the whole catalog rather than a per-vendor list. Two claim badges dropped.
 - Student ids and names no longer reveal which nodes are the path, decoys, or
-  noise. Namespaces are `n<NN>_<salt>` from a seeded permutation instead of
-  `core0_`/`decoy0_`/`noise13_`, and the non-core fragments draw operator-style
-  names. The fragment kind is kept for the instructor in a new optional
-  `origin` field on graph nodes, which the student strip never copies.
+  noise. Every node gets its own `n<k>_<salt>` token from a seeded permutation
+  instead of a shared `core0_`/`decoy0_`/`noise13_` prefix, so ids do not
+  cluster by fragment, and the non-core fragments draw operator-style names.
+  The fragment kind is kept for the instructor in a new optional `origin`
+  field on graph nodes, which the student strip never copies.
 
 ## 1.3.0 (2026-09-17)
 

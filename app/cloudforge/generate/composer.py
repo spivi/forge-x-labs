@@ -10,12 +10,13 @@ disagree; a globally-duplicate id raises ``GraphIntegrityError`` before any
 projection. The only randomness is ``Random(seed)``, so the same ``(spec, seed)``
 yields byte-identical artifacts.
 
-Namespaces are role-free on purpose. Node ids are the join key between the student
+Ids are role-free on purpose. Node ids are the join key between the student
 estate and every instructor artifact, so they are minted here exactly once, for
-both trees: each fragment gets ``n<NN>_<salt>`` where ``NN`` comes from a seeded
-permutation over the whole plan, and nothing about the token or its order says
-whether the fragment is the core path, a decoy, or filler. That provenance lives
-only in ``GraphNode.origin``, which the student strip never copies.
+both trees. Fragments build under a private ``n<NN>_<salt>`` namespace; after
+assembly ``composer_ids.retoken`` gives every NODE its own ``n<k>_<salt>`` token
+from a seeded permutation over all nodes and rewrites every reference, so neither
+a token nor the grouping of tokens says which fragment a node came from. That
+provenance lives only in ``GraphNode.origin``, which the student strip never copies.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from typing import Any
 
 from app.cloudforge.errors import GraphIntegrityError
 from app.cloudforge.generate.base import ScenarioBundle
+from app.cloudforge.generate.composer_ids import node_ns, retoken
 from app.cloudforge.generate.composer_kinds import (
     CORE_KINDS,
     EXTRA_KINDS,
@@ -122,18 +124,19 @@ class GraphComposer:
         return sum(len(get_fragment(k).build(_COUNT_NS, rng, p).nodes) for k, p in draft)
 
     def _namespace(self, draft: _Draft) -> _Plan:
-        """Mint one role-free namespace per planned fragment.
+        """Mint one private namespace per planned fragment.
 
-        Tokens are a seeded permutation of ``range(len(draft))`` drawn from its own
-        stream (like ``_salt``), so the core fragment lands on an arbitrary token and
-        neither the token nor its order encodes the fragment's role. Seed 0 has no
-        salt and still yields distinct namespaces.
+        Fragments need a namespace so their own edges, findings and paths agree.
+        Node ids are re-keyed per node by ``retoken`` afterwards; only path ids and
+        finding ids keep this prefix, so it is drawn from a seeded permutation (its
+        own stream, like ``_salt``) rather than plan order, and the core fragment
+        is not always ``n00``. Seed 0 has no salt and still yields distinct names.
         """
         tokens = list(range(len(draft)))
         Random(self._seed + 211).shuffle(tokens)
         salt = self._salt()
         paired = zip(tokens, draft, strict=True)
-        return [(kind, _ns(token, salt), params) for token, (kind, params) in paired]
+        return [(kind, node_ns(token, salt), params) for token, (kind, params) in paired]
 
     def _assemble(self, plan: _Plan) -> FragmentBundle:
         rng = Random(self._seed)
@@ -155,16 +158,13 @@ class GraphComposer:
         if salt:
             for node in nodes:
                 node.name = f"{node.name}-{salt}"
-        return FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=paths)
+        bundle = FragmentBundle(nodes=nodes, edges=edges, findings=findings, paths=paths)
+        return retoken(bundle, self._seed, salt)
 
     def _salt(self) -> str:
         if self._seed == 0:
             return ""
         return f"{Random(self._seed + 101).randint(0x1000, 0xFFFF):04x}"
-
-
-def _ns(token: int, salt: str) -> str:
-    return f"n{token:02d}_{salt}" if salt else f"n{token:02d}"
 
 
 def _assert_unique_ids(nodes: list[GraphNode]) -> None:
