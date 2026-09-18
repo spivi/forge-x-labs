@@ -11,6 +11,8 @@
 
 Status: a local CLI. No hosted service, no accounts, nothing is ever applied to a cloud.
 
+The free-text answer is graded outside this repo: [cloudforge-jev](https://github.com/spivi/cloudforge-jev) reads the instructor pack and asks TypeSafe Jev three yes/no questions. It is kept separate so the product has no remote dependency; `cloudforge grade` works without it.
+
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
