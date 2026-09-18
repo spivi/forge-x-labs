@@ -1,4 +1,4 @@
-"""Adversarial HCL-string-value corpus (FXL-N2, regression-locks FXL-35).
+"""Adversarial HCL-string-value corpus (regression-lock).
 
 Applies the shared :data:`HOSTILE_VALUES` corpus to every graph string sink whose
 value reaches a *quoted HCL string literal* via :func:`hcl_str`:
@@ -320,18 +320,18 @@ def test_bucket_policy_document_interpolation_is_inert_under_terraform(tmp_path:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-# --- 5. explicit FXL-35 regression-lock: the two interpolation surfaces --------
+# --- 5. explicit regression-lock: the two interpolation surfaces --------
 
 
 def test_interpolation_opener_is_neutralized_to_literal() -> None:
-    """``${...}`` -> ``$${...}`` (regression-lock FXL-35): a lone opener never survives."""
+    """``${...}`` -> ``$${...}`` (regression-lock): a lone opener never survives."""
     literal = hcl_str("x${local.fake_account_id}")
     assert "$${local.fake_account_id}" in literal
     assert not _has_live_hcl_opener(literal)
 
 
 def test_template_directive_is_neutralized_to_literal() -> None:
-    """``%{...}`` -> ``%%{...}`` (regression-lock FXL-35): a lone directive never survives."""
+    """``%{...}`` -> ``%%{...}`` (regression-lock): a lone directive never survives."""
     literal = hcl_str("%{ if true }evil%{ endif }")
     assert "%%{ if true }evil%%{ endif }" in literal
     assert not _has_live_hcl_opener(literal)

@@ -1,6 +1,6 @@
 """Loader for the file-based hostile corpus (``tests/security/corpus/*.txt``).
 
-FXL-108 (FXL-STRESS-3) deliverable: the hostile-value corpus lives in plain ``.txt``
+The hostile-value corpus lives in plain ``.txt``
 files (not hardcoded in a Python module) so it is easy to audit, diff, and extend
 without touching test code. Each non-comment, non-blank line is a single Python
 string-literal, parsed with ``ast.literal_eval`` — plain newline-delimited text

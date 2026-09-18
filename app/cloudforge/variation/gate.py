@@ -1,7 +1,7 @@
 """Diversity acceptance gate — thresholds ARE the generator-depth test.
 
 A 0-FAIL suite that misses these thresholds is ``cosmetic variation only``,
-never success (design doc §5 / FXL-VAR-1g). Optional scanners (checkov
+never success (design doc §5). Optional scanners (checkov
 absent → ``scanner_score_profiles == ["not_scored"]``) are WARN, not FAIL.
 An axis a family cannot vary is ``unsupported``, not a failed threshold.
 """

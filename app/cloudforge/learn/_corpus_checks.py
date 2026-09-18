@@ -75,7 +75,7 @@ def _value_of(member: object) -> str:
 
 
 def _recompute_training_eligible(pattern: RiskPattern) -> bool:
-    """Recompute the design §6/FXL-D007 eligibility rule from ``pattern``'s own fields.
+    """Recompute the design §6 eligibility rule from ``pattern``'s own fields.
 
     Mirrors ``RiskPattern.training_eligible`` exactly, but compares field *values*
     rather than enum identity so a bypassed-validator pattern (plain strings instead of
@@ -94,7 +94,7 @@ def _training_eligible_consistency_issues(pattern: RiskPattern) -> list[CorpusIs
     """``training_eligible`` must match the documented eligibility rule (design §6/§9.5).
 
     ``training_eligible`` is a ``computed_field`` derived from ``validation_status``,
-    ``safety_classification``, and ``provenance`` (FXL-D007) — never free-form. A normal
+    ``safety_classification``, and ``provenance`` — never free-form. A normal
     ``RiskPattern`` built via ``model_validate``/its constructor can never disagree with
     its own computed property. But a pattern reaching the corpus through a bypassed
     validator (e.g. ``model_construct``) can end up with a stored

@@ -1,4 +1,4 @@
-"""CLI wiring for ``variation run --gate`` (FXL-VAR-1g).
+"""CLI wiring for ``variation run --gate``.
 
 A one-seed suite is structurally shallow, so ``--gate`` must exit 1 and print
 ``cosmetic variation only``. External tools are forced absent (hermetic).

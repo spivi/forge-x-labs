@@ -1,4 +1,4 @@
-"""Synthesizes ``RiskPattern`` corpora at scale for the FXL-112 benchmark.
+"""Synthesizes ``RiskPattern`` corpora at scale for the stress benchmark.
 
 Builds patterns programmatically from the two shipped seed-pattern shapes (mirroring
 ``tests/cloudforge/learn/conftest.py::build_pattern``) x a deterministic variation

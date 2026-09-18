@@ -7,7 +7,7 @@ stamps provenance completely (raising on incomplete provenance), and pins
 ``normalizer_version``. ``validation_status`` starts ``unvalidated`` (ticket #67's
 validator promotes it); ``training_eligible`` is a ``computed_field`` on ``RiskPattern``.
 
-FXL-96: a source (e.g. the ``rule_catalog_yaml`` seed catalog) declares structured
+A source (e.g. the ``rule_catalog_yaml`` seed catalog) declares structured
 ``missing_controls``/``compensating_controls``/``negative_controls``/
 ``risky_relationships``/``weakness_family`` inside ``raw_payload``; those are preserved
 onto the ``RiskPattern`` (sorted, deterministic) instead of dropped, and a seed's own
@@ -87,7 +87,7 @@ def _build_id(raw: RawPatternRecord) -> str:
     return f"{_slugify(raw.source_id)}-{_slugify(raw.raw_id)}"
 
 
-# --- declared raw_payload fields (FXL-96: preserve, don't drop) ------------------
+# --- declared raw_payload fields (preserve, don't drop) ------------------
 
 
 def _payload_list(raw: RawPatternRecord, field: str) -> list[str]:

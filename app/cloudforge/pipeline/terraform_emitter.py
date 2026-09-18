@@ -75,7 +75,7 @@ class TerraformEmitter:
     def emit(self, terraform_dir: Path) -> list[Path]:
         # Fail loud BEFORE writing any file: distinct node ids that sanitize to the
         # same per-type resource label would make ``terraform validate`` reject a
-        # duplicate resource (FXL-N4).
+        # duplicate resource.
         check_label_collisions(self._graph.nodes)
         written: list[Path] = []
         written.append(

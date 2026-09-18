@@ -9,15 +9,17 @@
   per student. No cloud account required.
 </p>
 
+Status: a local CLI. No hosted service, no accounts, nothing is ever applied to a cloud.
+
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
 </p>
 
 <p align="center">
-  <img src="docs/demo/cloudforge-vs-cloudgoat.gif" alt="Cloudforge vs CloudGoat demo" width="760">
+  <img src="docs/assets/workbench.png" alt="cloudforge student workbench for a Kubernetes IRSA lab" width="760">
   <br>
-  <em><a href="docs/demo/cloudforge-vs-cloudgoat.mp4">Watch the MP4 demo</a></em>
+  <em>A student pack from cloudforge roundtable. The instructor key is not in this tree.</em>
 </p>
 
 ---
@@ -82,7 +84,7 @@ tools are skipped (WARN), not a hard fail.
 Generate, check, and read one lab:
 
 ```bash
-cloudforge generate examples/ci_cd_iam_chain.yaml --out out/scenario_001 --engine composer --seed 17
+cloudforge generate examples/ci_cd_iam_chain.yaml --out out/scenario_001 --seed 17
 cloudforge validate out/scenario_001
 cloudforge report   out/scenario_001
 ```
@@ -150,7 +152,7 @@ The workbench is a single HTML file with no CDN:
 - Seven zones, from perimeter and network ingress to governance and telemetry
 - Mission briefing on the board
 - Click nodes to draft an attack path
-- Finding checklist filtered to the vendors in the estate
+- Findings checklist filtered to the vendors in the estate
 - YAML export for `cloudforge grade`
 - Client-side scoring against the same math as `grade`
 
@@ -177,8 +179,8 @@ The workbench is a single HTML file with no CDN:
 Dummy account `000000000000`. Never applied.
 
 The last three families emit Azure, GCP, or Kubernetes Terraform plus any AWS
-resources on the path. Still never applied. Use `--engine composer` (the `lab`
-default).
+resources on the path. Still never applied. `--engine template` (the fixed,
+non-seeded projection) does not support them; `composer` is the default.
 
 ## Safety
 
@@ -216,12 +218,15 @@ not train a model. See [Learning Corpus](docs/wiki/Learning-Corpus.md).
 See [CONTRIBUTING.md](CONTRIBUTING.md). Product code lives in `app/cloudforge/`.
 
 ```bash
-ruff check --fix && ruff format
-mypy --strict app/
-PYTHONPATH=. .venv/bin/pytest tests/cloudforge tests/security -q --no-cov
+poetry run ruff check app tests scripts
+poetry run ruff format --check app tests scripts
+poetry run mypy --strict app/
+PYTHONPATH=. poetry run pytest tests/cloudforge tests/security tests/unit tests/integration tests/property -q --no-cov
 ```
 
 ## Docs
 
-[`docs/wiki/`](docs/wiki/) covers architecture, the graph model, validation,
-scenario families, [labs](docs/wiki/Labs.md), and safety.
+[Labs](docs/wiki/Labs.md), [Scenario Families](docs/wiki/Scenario-Families.md), and
+[Adding a Family](docs/wiki/Adding-a-Family.md). The rest of
+[`docs/wiki/`](docs/wiki/) (architecture, the graph model, validation, the
+learning corpus) is there for contributors.

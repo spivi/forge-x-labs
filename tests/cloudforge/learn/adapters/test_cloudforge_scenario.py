@@ -26,8 +26,8 @@ _PDE_DIR = _FIXTURES / "scenario_public_data_exposure"
 
 def _source_entry(path: str = "out/") -> SourceEntry:
     # The entry's ``path`` is a provenance LABEL only — the directory the adapter actually
-    # reads is passed as ``extract``'s second argument. Since FXL-109 added path-traversal
-    # containment to ``SourceEntry.path`` (absolute/escaping paths are rejected at the
+    # reads is passed as ``extract``'s second argument. Path-traversal
+    # containment was added to ``SourceEntry.path`` (absolute/escaping paths are rejected at the
     # model boundary), this label defaults to the real registry's in-tree relative value
     # (``out/``) rather than an absolute ``tmp_path``. The read location stays wherever the
     # test points ``extract`` — decoupling the (contained) provenance label from the

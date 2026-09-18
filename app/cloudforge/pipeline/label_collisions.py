@@ -1,4 +1,4 @@
-"""Pre-emission guard against duplicate Terraform resource labels (FXL-N4).
+"""Pre-emission guard against duplicate Terraform resource labels.
 
 :func:`resource_name` sanitizes any ``node.id`` to a Terraform-legal label
 (``[^A-Za-z0-9_]`` -> ``_``, leading-char guard). Distinct node ids that differ

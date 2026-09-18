@@ -1,6 +1,6 @@
 """Corpus load/save + corpus-level validation gate (design §9.5).
 
-Mirrors the FXL-D003 12-point scenario discipline, applied to the whole corpus rather
+Mirrors the 12-point scenario discipline, applied to the whole corpus rather
 than a single pattern: every pattern has complete provenance (**no provenance, no
 corpus**), every ``graph_fragment`` passes fragment validation (reusing
 ``validate.validate_fragment`` — never reinvented; see ``_corpus_checks.py``), no two

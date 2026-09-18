@@ -1,4 +1,4 @@
-"""``rule_catalog_yaml`` adapter tests (FXL-63).
+"""``rule_catalog_yaml`` adapter tests.
 
 Exercises the adapter against the small fixture catalog
 (``fixtures/sample_rule_catalog.yaml``, 4 entries: 2 AWS + 2 GCP, spanning storage/iam/

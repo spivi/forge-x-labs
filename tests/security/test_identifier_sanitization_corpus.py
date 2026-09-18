@@ -1,4 +1,4 @@
-"""Adversarial resource-LABEL corpus (FXL-N2, regression-locks FXL-39).
+"""Adversarial resource-LABEL corpus (regression-lock).
 
 The resource-LABEL position — ``resource "type" "<label>"`` — is a bare Terraform
 identifier, not a quotable string, so :func:`hcl_str` cannot guard it. Every ``node.id``
@@ -112,7 +112,7 @@ def _every_hostile_id_graph() -> ScenarioGraph:
     """One graph giving every corpus value a hostile id across each labeled kind.
 
     ``resource_name`` is per-node, so different raw ids can collapse to the same
-    sanitized label (a documented FXL-N4 collision surface). To keep this a pure
+    sanitized label (a documented collision surface). To keep this a pure
     *sanitization* test (not a collision test), we prefix each id with a unique safe
     stem so labels stay distinct while the hostile suffix still exercises the sink.
     """
@@ -146,16 +146,16 @@ def test_every_hostile_id_is_terraform_valid(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-# --- 4. explicit FXL-39 regression-lock ---------------------------------------
+# --- 4. explicit regression-lock ---------------------------------------
 
 
 def test_benign_hyphen_id_maps_to_underscore() -> None:
-    """Preserve the pre-FXL-39 behavior for the common, benign case."""
+    """Preserve the original behavior for the common, benign case."""
     assert resource_name(_node_with_id("deploy-role-1")) == "deploy_role_1"
 
 
 def test_label_breakout_id_is_fully_sanitized() -> None:
-    """The FXL-39 breakout id collapses every illegal char to ``_`` (regression-lock)."""
+    """The breakout id collapses every illegal char to ``_`` (regression-lock)."""
     label = resource_name(_node_with_id('a" { evil }" { injected'))
     assert label == "a____evil______injected"
     assert _TF_IDENTIFIER.match(label)

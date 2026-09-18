@@ -1,4 +1,4 @@
-"""``corpus.py`` tests (FXL-70): JSONL load/save + corpus-level validation (§9.5).
+"""``corpus.py`` tests: JSONL load/save + corpus-level validation (§9.5).
 
 Builds a real end-to-end corpus (14 seed rule-catalog entries -> normalize -> validate
 -> dedup) as the "clean corpus" baseline, then crafts each design §9.5 violation

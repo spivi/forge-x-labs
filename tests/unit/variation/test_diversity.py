@@ -1,6 +1,6 @@
 """Unit tests for the graph-shape signature + diversity report.
 
-Core adversarial contract (per the FXL-VAR-1d acceptance criteria): a purely
+Core adversarial contract (per the diversity model's acceptance criteria): a purely
 cosmetic mutation (names/tags/one benign-additive node) must NOT change the
 signature; a genuine scale-profile change MUST change it.
 """

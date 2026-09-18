@@ -1,4 +1,4 @@
-"""``validate_fragment`` tests (FXL-67): the 4 graph-fragment validation rules (§9.2).
+"""``validate_fragment`` tests: the 4 graph-fragment validation rules (§9.2).
 
 Exercises each rule's pass/fail path against hand-built ``RiskPattern``s for precise
 control over inputs, plus real normalizer/adapter output (the seed rule catalog and a
@@ -267,7 +267,7 @@ def _local_rule_catalog_source() -> SourceEntry:
 
 def _scenario_source() -> SourceEntry:
     # ``path`` is a provenance LABEL only (the adapter reads the dir passed as extract()'s
-    # 2nd arg). Since FXL-109 added path-traversal containment to ``SourceEntry.path``,
+    # 2nd arg). Since path-traversal containment was added to ``SourceEntry.path``,
     # this uses the real registry's in-tree relative value (``out/``) rather than the
     # absolute fixture path.
     return SourceEntry(

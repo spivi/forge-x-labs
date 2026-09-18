@@ -15,8 +15,7 @@ EXPORT_RULESET: tuple[str, ...] = (
     "validation_status == valid",
     "training_eligible == true",
     "safety_classification in {defensive_pattern, benchmark_pattern, training_pattern}",
-    "provenance.reuse_status allows reuse (full_reuse or attribution, "
-    "or mappings_only per FXL-D007)",
+    "provenance.reuse_status allows reuse (full_reuse or attribution, or mappings_only)",
     "provenance.allowed_for_training == true",
     "quality_score >= 0.70",
 )

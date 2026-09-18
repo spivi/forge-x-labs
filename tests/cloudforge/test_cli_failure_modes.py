@@ -1,4 +1,4 @@
-"""FXL-STRESS-9 (#111): CLI failure-mode + UX stress (S1/S15).
+"""CLI failure-mode + UX stress (#111, S1/S15).
 
 Proves the CLI fails clearly on every hostile/adversarial input named in the issue:
 missing scenario file, empty/invalid YAML, unknown scenario family, an

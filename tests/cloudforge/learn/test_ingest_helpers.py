@@ -1,4 +1,4 @@
-"""``_ingest.py`` helper tests (FXL-73): adapter resolution + cached raw-path lookup."""
+"""``_ingest.py`` helper tests: adapter resolution + cached raw-path lookup."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ class TestResolveAdapter:
 class TestResolveRawPath:
     def test_local_source_resolves_its_declared_path_inside_the_project_root(self) -> None:
         # resolve_raw_path now returns a CONTAINED, resolved absolute path (path-traversal
-        # guard, FXL-109): the returned path is inside the project root (CWD) and points at
+        # guard): the returned path is inside the project root (CWD) and points at
         # the declared in-tree file. It is no longer the bare relative path.
         entry = _local_entry()
 

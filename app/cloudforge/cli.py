@@ -45,7 +45,7 @@ _STATUS_STYLE = {Status.PASS: "green", Status.WARN: "yellow", Status.FAIL: "red"
 # artifact that fails Pydantic schema validation raises ``pydantic.ValidationError`` (NOT a
 # ``CloudforgeError``), and an unwritable/unreadable filesystem path raises ``OSError``
 # (e.g. a read-only output directory). Both must surface as a clean ``error:`` + exit 1,
-# never a raw traceback (FXL-N4 / stress-contract S1/S15) — mirrors the fail-soft pattern
+# never a raw traceback (stress-contract S1/S15) — mirrors the fail-soft pattern
 # already used by ``report/renderer.py::_run_validation``.
 _CLI_ERRORS: tuple[type[Exception], ...] = (CloudforgeError, ValidationError, OSError)
 _SCAFFOLD_ERRORS: tuple[type[Exception], ...] = (ScaffoldError, OSError)
@@ -57,8 +57,8 @@ def generate(
     out: Annotated[Path, typer.Option("--out", help="Output scenario directory.")],
     engine: Annotated[
         str,
-        typer.Option("--engine", help="Generation engine: 'template' (default) or 'composer'."),
-    ] = "template",
+        typer.Option("--engine", help="Generation engine: 'composer' (default) or 'template'."),
+    ] = "composer",
     seed: Annotated[
         int, typer.Option("--seed", help="Seed for the composer engine (deterministic).")
     ] = 0,
@@ -74,7 +74,7 @@ def generate(
         bundle = _apply_mutation(bundle, spec, mutate_seed)
         # ``write_all`` runs the emitter, whose pre-emission collision guard raises a
         # ``GraphIntegrityError`` (a ``CloudforgeError``) — keep it inside the catch so
-        # a colliding graph surfaces as a clean CLI error, not a raw traceback (FXL-N4).
+        # a colliding graph surfaces as a clean CLI error, not a raw traceback.
         ScenarioArtifacts(ScenarioPaths.from_dir(out)).write_all(spec, bundle)
     except _CLI_ERRORS as exc:
         console.print(f"[red]error:[/red] {exc}")
@@ -83,7 +83,9 @@ def generate(
 
 
 def _build_bundle(spec: ScenarioSpec, engine: str, seed: int) -> ScenarioBundle:
-    """Dispatch to the requested engine; ``template`` (default) is unchanged."""
+    """Dispatch to the requested engine; ``composer`` (default) plans decoys and shape from
+    ``seed``, ``template`` is a fixed, non-seeded projection kept for the families that have
+    one."""
     if engine == "template":
         return TemplateGenerator().generate(spec)
     if engine == "composer":

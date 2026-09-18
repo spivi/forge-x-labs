@@ -1,4 +1,4 @@
-"""CLI tests for the ``cloudforge variation`` command group (FXL-VAR-1f).
+"""CLI tests for the ``cloudforge variation`` command group.
 
 Covers the ACs: ``run`` exits 0 and writes a manifest; ``summarize`` exits 0; every
 handler is wrapped in ``_CLI_ERRORS`` so bad input surfaces as a clean ``error:`` + exit 1

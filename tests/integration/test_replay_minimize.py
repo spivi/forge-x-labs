@@ -1,4 +1,4 @@
-"""Replay + failure-capture/minimize integration tests (FXL-VAR-1e ACs 3–4).
+"""Replay + failure-capture/minimize integration tests.
 
 - ``replay`` proves a manifest entry's key artifacts are byte-reproducible.
 - ``capture_failure`` preserves the raw scenario tree + logs + exception (a COPY,

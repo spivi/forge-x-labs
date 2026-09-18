@@ -1,4 +1,4 @@
-"""Metamorphic consistency tests (FXL-STRESS-8, #110).
+"""Metamorphic consistency tests (#110).
 
 A metamorphic test transforms an input in a way that PRESERVES its semantics, then
 asserts an invariant still holds on the transformed output. Covers the transforms

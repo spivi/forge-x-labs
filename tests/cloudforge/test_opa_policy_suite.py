@@ -1,4 +1,4 @@
-"""``opa test`` wrapper for the Rego unit-test suite (FXL-STRESS-6).
+"""``opa test`` wrapper for the Rego unit-test suite.
 
 ``policies/scenario_test.rego`` holds native ``opa test`` cases (``test_`` rules,
 discovered by ``opa test``) that pin down every ``deny`` rule in

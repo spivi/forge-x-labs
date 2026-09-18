@@ -1,8 +1,9 @@
 """CLI tests for the ``--engine composer --seed N`` option on ``generate``.
 
-The default (``--engine template``) behavior must stay unchanged; ``composer``
-writes a valid artifact tree; a bad engine name surfaces as a clean CLI error
-(no raw traceback), consistent with the stress-fixed ``_CLI_ERRORS`` invariant.
+``composer`` is the default engine; ``--engine template`` keeps working for the
+families that have a hand-written projection; a bad engine name surfaces as a
+clean CLI error (no raw traceback), consistent with the stress-fixed
+``_CLI_ERRORS`` invariant.
 """
 
 from __future__ import annotations
@@ -68,14 +69,16 @@ def test_composer_engine_is_deterministic(tmp_path: Path) -> None:
     assert (a / "graph.json").read_text() == (b / "graph.json").read_text()
 
 
-def test_default_engine_still_template(tmp_path: Path) -> None:
+def test_default_engine_is_composer(tmp_path: Path) -> None:
     out = tmp_path / "t"
     r = runner.invoke(app, ["generate", "examples/ci_cd_iam_chain.yaml", "--out", str(out)])
     assert r.exit_code == 0, r.output
     assert (out / "graph.json").exists()
 
 
-def test_explicit_template_engine_matches_default(tmp_path: Path) -> None:
+def test_default_engine_matches_explicit_composer(tmp_path: Path) -> None:
+    """No ``--engine`` flag must produce the same artifact as ``--engine composer``
+    at the same default seed (0)."""
     default_out = tmp_path / "d"
     explicit_out = tmp_path / "e"
     runner.invoke(app, ["generate", "examples/ci_cd_iam_chain.yaml", "--out", str(default_out)])
@@ -87,10 +90,49 @@ def test_explicit_template_engine_matches_default(tmp_path: Path) -> None:
             "--out",
             str(explicit_out),
             "--engine",
-            "template",
+            "composer",
+            "--seed",
+            "0",
         ],
     )
     assert (default_out / "graph.json").read_text() == (explicit_out / "graph.json").read_text()
+
+
+def test_default_engine_differs_from_template(tmp_path: Path) -> None:
+    """The default output must NOT match ``--engine template``, proving the
+    default really is composer and not a silent fallback."""
+    default_out = tmp_path / "d"
+    template_out = tmp_path / "t"
+    runner.invoke(app, ["generate", "examples/ci_cd_iam_chain.yaml", "--out", str(default_out)])
+    runner.invoke(
+        app,
+        [
+            "generate",
+            "examples/ci_cd_iam_chain.yaml",
+            "--out",
+            str(template_out),
+            "--engine",
+            "template",
+        ],
+    )
+    assert (default_out / "graph.json").read_text() != (template_out / "graph.json").read_text()
+
+
+def test_explicit_template_engine_still_works(tmp_path: Path) -> None:
+    out = tmp_path / "t"
+    r = runner.invoke(
+        app,
+        [
+            "generate",
+            "examples/ci_cd_iam_chain.yaml",
+            "--out",
+            str(out),
+            "--engine",
+            "template",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+    assert (out / "graph.json").exists()
 
 
 def test_unknown_engine_is_clean_error(tmp_path: Path) -> None:

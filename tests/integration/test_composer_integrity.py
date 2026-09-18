@@ -2,7 +2,7 @@
 suite across families x seeds, proving ground-truth agreement holds under
 fragment composition.
 
-This is the ground-truth-preserving core of FXL-VAR-1c. The assertion must never
+This is the ground-truth-preserving core of the graph composer. The assertion must never
 be weakened; any FAIL is a real integrity bug to fix at the fragment/composer
 source.
 """

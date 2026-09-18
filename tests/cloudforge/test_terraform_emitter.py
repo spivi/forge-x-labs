@@ -1,4 +1,4 @@
-"""Terraform emitter tests: the emitter is graph-driven (FXL-31).
+"""Terraform emitter tests: the emitter is graph-driven.
 
 Each scenario family must emit HCL for ITS OWN resources, rendered from the
 scenario graph nodes — not a single hardcoded family. The regression suite pins
@@ -142,7 +142,7 @@ def test_static_files_carry_dummy_account_id(tmp_path: Path) -> None:
     assert constants.DUMMY_ACCOUNT_ID in files["variables.tf"]
 
 
-# --- per-family common_tags are graph-derived (FXL-35) -----------------------
+# --- per-family common_tags are graph-derived -----------------------
 
 
 def test_main_tf_common_tags_match_pde_graph(tmp_path: Path) -> None:
@@ -167,7 +167,7 @@ def test_main_tf_common_tags_match_ci_cd_graph(tmp_path: Path) -> None:
     assert "prod" not in main
 
 
-# --- HCL escaping: a hostile node value must not break out (FXL-35) ----------
+# --- HCL escaping: a hostile node value must not break out ----------
 
 
 def _hostile_ci_cd_graph(payload: str) -> ScenarioGraph:
@@ -209,7 +209,7 @@ def test_hostile_hcl_is_terraform_valid(tmp_path: Path) -> None:
     assert 'pwned"\n}\nresource' not in s3
 
 
-# --- HCL interpolation ${...} / template %{...} must be neutralized (FXL-35) --
+# --- HCL interpolation ${...} / template %{...} must be neutralized --
 
 
 def test_interpolation_payload_is_inert(tmp_path: Path) -> None:
@@ -249,7 +249,7 @@ def test_interpolation_reference_does_not_break_validate(tmp_path: Path) -> None
     _assert_terraform_validates(files, tmp_path)
 
 
-# --- resource-LABEL injection: node.id must be sanitized to a legal id (FXL-39) --
+# --- resource-LABEL injection: node.id must be sanitized to a legal id --
 
 
 _HOSTILE_IDS = ('a" { evil }', "123start", "", "x\ny", "a b-c", 'a" { evil }" {')
@@ -262,7 +262,7 @@ def test_resource_name_is_always_a_legal_identifier() -> None:
 
 
 def test_resource_name_maps_hyphen_to_underscore() -> None:
-    # Preserve the pre-FXL-39 behavior for the common, benign case.
+    # Preserve the original behavior for the common, benign case.
     assert resource_name(_node_with_id("deploy-role-1")) == "deploy_role_1"
 
 
@@ -303,7 +303,7 @@ def test_hostile_id_hcl_is_terraform_valid(tmp_path: Path) -> None:
     _assert_terraform_validates(files, tmp_path)
 
 
-# --- derive_common_tags is total on an empty graph (FXL-39) ------------------
+# --- derive_common_tags is total on an empty graph ------------------
 
 
 def test_derive_common_tags_on_empty_graph_does_not_raise() -> None:
@@ -313,7 +313,7 @@ def test_derive_common_tags_on_empty_graph_does_not_raise() -> None:
     assert tags == NodeTags(env="unknown", owner="unknown", app="unknown")
 
 
-# --- per-type label-collision detection: distinct ids must not collide (FXL-N4) --
+# --- per-type label-collision detection: distinct ids must not collide --
 
 
 def _node(node_id: str, node_type: NodeType, name: str = "n") -> GraphNode:

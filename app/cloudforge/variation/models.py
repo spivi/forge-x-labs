@@ -10,7 +10,7 @@ this module (or anywhere in ``app.cloudforge.variation``) shells out to
 in-memory and validates/reports on them (§6 of the design doc).
 
 ``RunManifest``/``ScenarioManifestEntry`` are the run-artifact models a future
-suite runner (FXL-VAR-1e) will populate — one entry per composed scenario.
+suite runner will populate — one entry per composed scenario.
 """
 
 from __future__ import annotations

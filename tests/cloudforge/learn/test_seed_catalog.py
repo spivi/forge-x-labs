@@ -1,4 +1,4 @@
-"""Seed rule catalog tests (FXL-72): the real ``data/rule_catalog/seed_patterns.yaml``.
+"""Seed rule catalog tests: the real ``data/rule_catalog/seed_patterns.yaml``.
 
 Loads the actual seed catalog (not a fixture) through the merged ``rule_catalog_yaml``
 adapter and the real source registry, and asserts (design §8):

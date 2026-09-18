@@ -1,4 +1,4 @@
-"""``PatternNormalizer`` tests (FXL-66): ``RawPatternRecord`` -> ``RiskPattern``.
+"""``PatternNormalizer`` tests: ``RawPatternRecord`` -> ``RiskPattern``.
 
 Exercises the normalizer against real records produced by all three adapters
 (``cloudforge_scenario``, ``rule_catalog_yaml``, ``checkov_policy_index``) — no
@@ -49,7 +49,7 @@ def _checkov_source() -> SourceEntry:
 
 def _scenario_source() -> SourceEntry:
     # ``path`` is a provenance LABEL only (the adapter reads the dir passed as extract()'s
-    # 2nd arg). Since FXL-109 added path-traversal containment to ``SourceEntry.path``,
+    # 2nd arg). Since path-traversal containment was added to ``SourceEntry.path``,
     # this uses the real registry's in-tree relative value (``out/``) rather than the
     # absolute fixture path.
     return SourceEntry(
@@ -220,7 +220,7 @@ class TestGraphFragment:
         pattern = PatternNormalizer().normalize(raw)
 
         assert isinstance(pattern.graph_fragment, ScenarioGraph)
-        # one honest node per declared resource type — no fabricated edges (FXL-96):
+        # one honest node per declared resource type — no fabricated edges:
         # a seed declares a risk pattern, not a graph, so no relationships are invented.
         assert len(pattern.graph_fragment.nodes) == 2
         assert pattern.graph_fragment.edges == []
@@ -228,7 +228,7 @@ class TestGraphFragment:
     def test_normalize_does_not_fabricate_edges_from_declared_relationships(self) -> None:
         # A declared risky_relationship is preserved as a FIELD, but the normalizer
         # must NOT invent a graph edge for it (that would encode false cloud semantics
-        # — FXL-96 review). Real per-seed fragments are hand-authored later (#98).
+        # — review). Real per-seed fragments are hand-authored later (#98).
         raw = _build_raw(
             resource_types=["aws_s3_bucket"],
             raw_payload={"risky_relationships": ["can_read"]},
@@ -247,7 +247,7 @@ class TestGraphFragment:
         assert pattern.graph_fragment.edges == []
 
     def test_normalize_derives_no_expected_findings_for_rule_catalog_seed(self) -> None:
-        # Findings are never fabricated (FXL-96 review): a record whose raw_payload
+        # Findings are never fabricated (review): a record whose raw_payload
         # embeds none (as here) normalizes with expected_findings == []. Sources that
         # DO embed hand-authored findings get them reused verbatim (#98).
         raw = _build_raw(resource_types=["aws_s3_bucket"])
@@ -266,7 +266,7 @@ class TestGraphFragment:
         assert "cicd-github" in node_ids
 
 
-# --- declared-field preservation (FXL-96) -------------------------------------
+# --- declared-field preservation -------------------------------------
 
 # The raw_payload the rule_catalog_yaml adapter emits for a seed carries the rich
 # declared fields as strings/lists (bools are coerced to "true"/"false"); the

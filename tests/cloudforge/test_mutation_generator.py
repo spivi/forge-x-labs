@@ -1,4 +1,4 @@
-"""Mutation-engine tests (FXL-14).
+"""Mutation-engine tests.
 
 Covers: valid bundle out, seed determinism (byte-identical graph.json), stable
 ground-truth ids across seeds, and the risk engine passing on >=3 seeded variants.

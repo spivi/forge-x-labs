@@ -4,7 +4,7 @@ A pattern is written to the training export only if ALL hold: ``validation_statu
 valid``, ``training_eligible == true``, ``safety_classification`` in the trainable set,
 ``provenance.reuse_status`` allows reuse, ``provenance.allowed_for_training == true``,
 and ``quality_score >= 0.70``. The first four conditions plus the reuse/training flags
-are already encoded by ``RiskPattern.training_eligible`` (honoring FXL-D007:
+are already encoded by ``RiskPattern.training_eligible`` (the reuse-status rule:
 ``mappings_only`` is training-eligible; ``restricted``/``metadata_only``/``unknown`` are
 not) — this module never re-derives them, it reuses ``training_eligible`` as the single
 source of truth and adds only the quality bar.

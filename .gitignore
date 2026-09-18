@@ -66,7 +66,6 @@ setup.sh
 scripts/*
 !scripts/check-signoff.sh
 !scripts/no-master-commit.sh
-!scripts/generate_demo_video.py
 !scripts/stress_benchmark.py
 !scripts/stress_benchmark_corpus.py
 !scripts/stress_benchmark_corpus_factory.py

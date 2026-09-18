@@ -1,7 +1,7 @@
 """Support helpers for the CLI-level mutation determinism/risk-preservation stress
-suite (FXL-STRESS-4, issue #114).
+suite (issue #114).
 
-Distinct from ``mutation_stress_support.py`` (FXL-N3, in-memory, single-family,
+Distinct from ``mutation_stress_support.py`` (in-memory, single-family,
 100 seeds): this module drives the REAL Typer CLI (``generate`` twice on disk,
 ``validate``, ``report``) across BOTH scenario families so the byte-identical
 assertion (S10) covers the actual emitted artifact files a user gets — not just an
@@ -211,7 +211,7 @@ def run_cli_seed(family: str, seed: int, tmp_root: Path) -> CliSeedResult:
 
 @dataclass
 class MutationSummary:
-    """The FXL-STRESS-4 aggregate written to ``mutation_summary.json``.
+    """The aggregate written to ``mutation_summary.json``.
 
     Field names match the ticket's required aggregate: validated, path-preserved,
     forbidden-perm-hit counts, and distinct-cosmetic-variant counts — plus enough

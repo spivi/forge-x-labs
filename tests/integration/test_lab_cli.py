@@ -1,4 +1,4 @@
-"""End-to-end ``cloudforge lab`` / ``grade`` (FXL-144 / FXL-145)."""
+"""End-to-end ``cloudforge lab`` / ``grade``."""
 
 from __future__ import annotations
 

@@ -7,7 +7,7 @@ tables — NOT a classifier, NOT ML. Split out of ``normalizer.py`` to keep that
 under the 200-line cap (rules/general.md).
 
 ``resolve_weakness_family`` additionally honors a source's explicitly declared
-``weakness_family`` (FXL-96) over keyword inference, so a seed's own classification is
+``weakness_family`` over keyword inference, so a seed's own classification is
 never over-generalized.
 """
 
@@ -108,7 +108,7 @@ def resolve_weakness_family(raw: RawPatternRecord, declared: str | None) -> Weak
     ``declared`` is whatever a source (e.g. the ``rule_catalog_yaml`` seed YAML, via
     ``raw_payload["weakness_family"]``) explicitly names. When it is a valid
     ``WeaknessFamily`` value, USE IT — a seed author's explicit classification is more
-    reliable than a keyword scan and must not be over-generalized (FXL-96/#93).
+    reliable than a keyword scan and must not be over-generalized (#93).
     Falls back to :func:`infer_weakness_family` when absent or not a recognized value.
     """
     if declared:

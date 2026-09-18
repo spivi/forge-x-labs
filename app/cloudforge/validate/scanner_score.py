@@ -1,9 +1,10 @@
 """Scanner-result scorer: map observed Checkov findings to expected findings.
 
 Turns cloudforge from a scenario *generator* into a benchmark *harness* (gap #10 of
-FXL-D003). Checkov emits resource-level AWS-hygiene checks keyed by a Terraform
-resource ADDRESS (``aws_iam_role.role_deploy``); our ``expected_findings.json`` are
-graph-level risk-chain findings keyed by GRAPH NODE ids (``role-deploy``). These do
+the 12-point scenario discipline). Checkov emits resource-level AWS-hygiene checks
+keyed by a Terraform resource ADDRESS (``aws_iam_role.role_deploy``); our
+``expected_findings.json`` are graph-level risk-chain findings keyed by GRAPH NODE
+ids (``role-deploy``). These do
 not map 1:1, so the scorer inverts the emitter's ``resource_name`` mapping to link a
 checkov ``resource`` back to a node, then scores coverage honestly:
 

@@ -76,7 +76,7 @@ def _pct(
 
 
 def _scanner_score_profiles() -> list[str]:
-    """Scanner scoring runs in the suite runner (FXL-VAR-1e), not here; this
+    """Scanner scoring runs in the suite runner, not here; this
     harness-layer report marks the dimension WARN-style 'not_scored' rather
     than silently omitting it (never collapse WARN into a fake PASS/FAIL)."""
     return ["not_scored"]

@@ -1,4 +1,4 @@
-"""Learn-pipeline differential consistency tests (FXL-STRESS-8, #110).
+"""Learn-pipeline differential consistency tests (#110).
 
 Covers:
   * a pattern's ``quality_score >= 0.70`` -> re-running ``score_pattern`` reproduces

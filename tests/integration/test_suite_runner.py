@@ -1,6 +1,6 @@
 """``run_suite`` — the harness's per-(family x scale x seed) orchestrator.
 
-Covers the FXL-VAR-1e acceptance criteria: the smoke spec produces 10 scenarios
+Covers the suite runner's acceptance criteria: the smoke spec produces 10 scenarios
 with zero FAILs, the run tree matches design-doc §9, ``run_id`` is honored (never
 generated), and determinism holds (same run_id + seeds -> identical manifests).
 """

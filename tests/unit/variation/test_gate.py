@@ -1,4 +1,4 @@
-"""Unit tests for the diversity acceptance gate (FXL-VAR-1g).
+"""Unit tests for the diversity acceptance gate.
 
 ``evaluate_gate`` consumes the live ``diversity_report.json`` shape written by
 the suite runner (suite-level metrics, percents on 0–100, ``unsupported_axes``

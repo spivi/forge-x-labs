@@ -1,4 +1,4 @@
-"""Tests for the ``cross_account_trust`` family (FXL-148)."""
+"""Tests for the ``cross_account_trust`` family."""
 
 from __future__ import annotations
 

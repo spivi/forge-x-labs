@@ -124,6 +124,11 @@
   (`scripts/render_family_table.py`) and held to it by a test, so it cannot
   drift; `docs/wiki/Curriculum.md` (a first week, session by session) is
   linked from the wiki home and the README's roundtable section.
+- README shows a screenshot of a generated workbench instead of the
+  slide-deck video.
+- `cloudforge generate` now defaults to `--engine composer`, matching `lab`,
+  `lab-cohort`, `roundtable`, and `challenge`; `--engine template` keeps
+  working for the families that have a hand-written projection.
 
 ## 1.3.1 (2026-09-17)
 

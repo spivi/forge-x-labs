@@ -14,7 +14,7 @@ A ``RiskPattern.graph_fragment`` is valid only if all four rules hold:
    this — the check exists to surface the rule explicitly and stay correct if that
    ever changes.
 3. **Findings reference existing resources** — every ``ExpectedFinding.resource_ids``
-   entry points to a node in the fragment (mirrors FXL-D003 point 4).
+   entry points to a node in the fragment (mirrors the 12-point scenario discipline's point 4).
 4. **No forbidden destructive actions** — reuses ``constants.FORBIDDEN_PERMISSION_PATTERNS``
    (the same fnmatch scan as ``validate.graph_risk``) over every node's ``actions``
    attribute. Any match fails validation AND forces
